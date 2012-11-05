@@ -91,9 +91,8 @@ class Context(object):
                                 _pop_multiple(p, None, "ec", "edgecolor")
         a["fc"] = a["facecolor"] = \
                             _pop_multiple(p, p["color"], "fc", "facecolor")
-        a["head_length"] = p.pop("head_length", 0.1)
-        a["head_width"] = p.pop("head_width", 0.1)
-
+        a["head_length"] = p.pop("head_length", 0.2)
+        a["head_width"] = p.pop("head_width", 0.15)
         if a["ec"] is None:
             a["ec"] = a["edgecolor"] = a["fc"]
 
