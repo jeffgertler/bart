@@ -31,7 +31,7 @@ th = np.radians(25.)
 x, y = star[0] + z + p * np.cos(th), star[1] + p * np.sin(th)
 ctx.add_line([star[0] + z, x], [star[1], y],
              a1=True, a2=True,
-             text=r"$p$", va="top", offset=[3, -3],
+             text=r"$a$", va="top", offset=[3, -3],
             )
 
 # Stellar radius.
