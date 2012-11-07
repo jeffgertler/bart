@@ -1,39 +1,41 @@
 body {
     font-family: "Helvetica Neue", Helvetica, sans-serif;
-    font-size: 14px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     line-height: 1.2;
 }
 
-h2 {
-    font-size: 18px;
+h3 {
+    font-size: 16px;
     text-align: center;
 }
 
-#canvas {
+#three-dee {
+    position: relative;
     text-align: center;
 }
 
-.star {
-    fill: #ffc40d;
+#three-dee canvas {
+    cursor: move;
+    background-color: #000;
+}
+
+#two-dee {
+    text-align: center;
+}
+
+.axis line, .axis path {
     stroke: #333;
-    stroke-width: 1.25px;
-}
-
-.arc {
     fill: none;
-    stroke: #222;
-    stroke-width: 1.25px;
-    opacity: 0.6;
 }
 
-.planet {
-    fill: steelblue;
+.axis.label {
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+circle.current {
+    fill: #f00;
     stroke: #333;
-    stroke-width: 1.25px;
-    opacity: 0.8;
-}
-
-.area {
-    fill: red;
+    stroke-width: 1.5px;
 }
