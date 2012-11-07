@@ -1,0 +1,39 @@
+body {
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.2;
+}
+
+h2 {
+    font-size: 18px;
+    text-align: center;
+}
+
+#canvas {
+    text-align: center;
+}
+
+.star {
+    fill: #ffc40d;
+    stroke: #333;
+    stroke-width: 1.25px;
+}
+
+.arc {
+    fill: none;
+    stroke: #222;
+    stroke-width: 1.25px;
+    opacity: 0.6;
+}
+
+.planet {
+    fill: steelblue;
+    stroke: #333;
+    stroke-width: 1.25px;
+    opacity: 0.8;
+}
+
+.area {
+    fill: red;
+}
