@@ -3,7 +3,7 @@
 // ========================================================================
 
 var Lightcurve = function () {
-  this.a = 0.3;
+  this.p = 0.3;
   this.amin = 0.05;
   this.amax = 1.05;
   this.orbital_radius = 5.0;
@@ -12,22 +12,43 @@ var Lightcurve = function () {
   this.incl = 0.0;
   this.max_incl = 45.0 * Math.PI / 180.0;
 
+  // The limb-darkening profile.
+  this.ldp = d3.range(0.1, 1.1, 0.3).map(function (r0) {
+    // var r = Math.pow(r0, 0.5),
+    //     onemmu = 1 - Math.sqrt(1 - r);
+    // return [r, 1 - 0.5 * onemmu - 0.1 * onemmu * onemmu];
+    return [r0, 1];
+  });
+
+  // The 3D element.
   this.three = setup_3d(this);
 
+  // The transit plot.
   this.pl = plot3().width(700)
                    .height(300)
                    .margin({top: 20, right: 10, bottom: 30, left:50})
                    .xlabel("Phase")
                    .ylabel("Relative Flux")
                    .ylim([0.85, 1.01]);
-
   this.pl.plot("time", "flux", {label: "data"});
   this.pl.plot("time", "flux", {label: "current", render: "scatter"});
+
+  // The limb darkening plot.
+  this.ldpl = plot3().width(400)
+                   .height(250)
+                   .margin({top: 20, right: 10, bottom: 30, left:50})
+                   .xlabel("r")
+                   .xlim([0, 1])
+                   .ylim([0, 1]);
+  this.ldpl.plot(function (d) { return d[0]; }, function (d) { return d[1]; });
+  this.ldpl.plot(function (d) { return d[0]; }, function (d) { return d[1]; },
+               {"render": "scatter"});
 };
 
-Lightcurve.prototype.bind = function (three, two) {
+Lightcurve.prototype.bind = function (three, two, limb) {
   this.three(three);
   this.two = two;
+  this.limb = limb;
   this.redraw();
 }
 
@@ -39,7 +60,9 @@ Lightcurve.prototype.advance = function () {
   var th = (this.th + Math.PI) % (2 * Math.PI) - Math.PI;
   this.pl(d3.select(this.two).datum({data: this.data,
                                      current: [{time: th,
-                                                flux: this.occultation(th)}]}));
+                                                flux: this.flux(th)}]}));
+
+  this.ldpl(d3.select(this.limb).datum([[0, 1]].concat(this.ldp)));
 };
 
 Lightcurve.prototype.redraw = function () {
@@ -47,34 +70,60 @@ Lightcurve.prototype.redraw = function () {
   this.data = this.compute();
 };
 
-Lightcurve.prototype.occultation = function (t) {
+Lightcurve.prototype.flux = function (t) {
   var x = this.orbital_radius * Math.cos(t),
       y = this.orbital_radius * Math.sin(t),
       x0 = x * Math.cos(this.incl),
       z0 = x * Math.sin(this.incl),
       b = Math.sqrt(y * y + z0 * z0),
-      a = this.a;
+      p = this.p;
 
-  if (x0 < 0 || b >= 1 + a) return 1.0;
-  else if (Math.abs(1 - a) < b  && b < 1 + a) {
-    var a2 = a * a,
-      b2 = b * b,
-         tmp = b2 - a2 + 1,
-         k1 = Math.acos(0.5 * tmp / b),
-         k2 = Math.acos(0.5 * (b2 + a2 - 1) / b / a),
-         k3 = Math.sqrt(b2 - 0.25 * tmp * tmp);
-    return 1 - (k1 + a2 * k2 - k3) / Math.PI;
-  } else if (b <= 1 - a) return 1 - a * a;
-  return 0.0;
+  if (x0 < 0 || b + p > 1) return 1.0;
+
+  var areas = this.ldp.map(function (d) {
+    return compute_occultation(d[0], p, b);
+  });
+
+  console.log(b, areas);
+
+  var ldp = this.ldp;
+  var occulted_flux = areas[0] + areas.slice(1).reduce(function (curr, a, i) {
+    return curr + ldp[i][1] * (a - areas[i]);
+  }, 0.0);
+
+  return 1 - occulted_flux / this.total_flux;
 };
 
 Lightcurve.prototype.compute = function () {
   var th = d3.range(-Math.PI, Math.PI, 0.001);
 
+  // Compute the total flux from the star for normalization purposes.
+  this.total_flux = Math.PI * this.ldp.reduce(function (curr, d, i, arr) {
+    if (i === 0) return curr + d[1] * d[0] * d[0];
+    return curr + d[1] * d[0] * d[0] - d[1] * arr[i - 1][0] * arr[i - 1][0];
+  }, 0.0);
+
   return th.map(function (t) {
-    return {time: t, flux: this.occultation(t)};
+    return {time: t, flux: this.flux(t)};
   }, this);
+
+  throw "sup";
 };
+
+function compute_occultation (r0, p, b) {
+  if (b >= r0 + p) return 0.0;
+  if (b <= p - r0) return Math.PI * r0 * r0;
+  if (b <= r0 - p) return Math.PI * p * p;
+
+  var r2 = r0 * r0,
+      p2 = p * p,
+      b2 = b * b,
+      k0 = Math.acos((b2 + p2 - r2) / (2 * b * p)),
+      k1 = Math.acos((b2 + r2 - p2) / (2 * b * r0)),
+      k2 = Math.sqrt((p + r0 - b) * (b + p - r0) * (b - p + r0) * (b + r0 + p));
+
+  return p2 * k0 + r2 * k1 - 0.5 * k2;
+}
 
 
 // ========================================================================
@@ -121,7 +170,7 @@ function setup_3d (lc_) {
     scene.add(star);
 
     // Set up the planet.
-    var radp = lc.a * rs, segp = 16, ringsp = 16,
+    var radp = lc.p * rs, segp = 16, ringsp = 16,
         planet_mat = new THREE.MeshLambertMaterial({color: 0x00EEAA});
 
     planet = new THREE.Mesh(new THREE.SphereGeometry(radp, segp, ringsp), planet_mat);
@@ -180,7 +229,7 @@ function setup_3d (lc_) {
 $(function () {
 
   var lc = new Lightcurve();
-  lc.bind("#three-dee", "#two-dee");
+  lc.bind("#three-dee", "#two-dee", "#limb-darkening");
 
   function animate () {
     requestAnimationFrame(animate);

@@ -10,18 +10,14 @@ h3 {
     text-align: center;
 }
 
-#three-dee {
-    position: relative;
-    text-align: center;
+.container {
+  width: 700px;
+  margin: 0 auto;
 }
 
 #three-dee canvas {
     cursor: move;
     background-color: #000;
-}
-
-#two-dee {
-    text-align: center;
 }
 
 .axis line, .axis path {
@@ -38,4 +34,11 @@ circle.current {
     fill: #f00;
     stroke: #333;
     stroke-width: 1.5px;
+}
+
+#limb-darkening circle {
+  cursor: move;
+  fill: #f00;
+  stroke: #333;
+  stroke-width: 1.5px;
 }
