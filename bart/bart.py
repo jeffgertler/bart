@@ -106,8 +106,8 @@ class BART(object):
         r0 = self.radius
         self.planets.append(Planet(r / r0, T, i, phi, e, a / r0))
 
-    def lightcurve(self, t):
-        lc = np.ones_like(t)
+    def lightcurve(self, t, f0=1.0):
+        lc = f0 * np.ones_like(t)
         for p in self.planets:
             x, y, z = p.coords(t, i0=self.incl)
             m = x > 0
@@ -116,7 +116,7 @@ class BART(object):
 
         return lc
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import matplotlib.pyplot as pl
 
     np.random.seed(42)
