@@ -13,34 +13,30 @@ class BART(object):
     def __init__(self, radius, incl):
         self.radius = radius
         self.incl = incl
-        self.planets = []
+
+        self.rp = []
+        self.ap = []
+        self.ep = []
+        self.tp = []
+        self.php = []
+        self.ip = []
 
         dr = 0.01
         self.r = np.arange(0, 1, dr) + dr
         self.Ir = quad_ld(0.5, 0.1, self.r)
 
-    def add_planet(self, r, T, i, phi, e, a):
-        r0 = self.radius
-        self.planets.append(Planet(r / r0, T, i, phi, e, a / r0))
+    def add_planet(self, r, a, e, T, phi, i):
+        self.rp.append(r)
+        self.ap.append(a)
+        self.ep.append(e)
+        self.tp.append(T)
+        self.php.append(phi)
+        self.ip.append(i)
 
     def lightcurve(self, t, f0=1.0):
-        rp = [p.radius * self.radius for p in self.planets]
-        ap = [p.a * self.radius for p in self.planets]
-        ep = [p.e for p in self.planets]
-        tp = [p.T for p in self.planets]
-        php = [p.phi for p in self.planets]
-        ip = [p.incl for p in self.planets]
         return _bart.lightcurve(t, self.radius, f0, self.incl,
-                                rp, ap, ep, tp, php, ip,
-                                self.r, self.Ir)
-        # lc = f0 * np.ones_like(t)
-        # for p in self.planets:
-        #     x, y, z = p.coords(t, i0=self.incl)
-        #     m = x > 0
-        #     b = np.sqrt(y[m] ** 2 + z[m] ** 2)
-        #     lc[m] *= histogram_limb_darkening(p.radius, b, self.r, self.Ir)
-
-        # return lc
+                                self.rp, self.ap, self.ep, self.tp, self.php,
+                                self.ip, self.r, self.Ir)
 
 if __name__ == "__main__":
     import matplotlib.pyplot as pl

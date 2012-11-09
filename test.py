@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.optimize as op
 import matplotlib.pyplot as pl
 import pyfits
 
@@ -9,7 +8,7 @@ from bart import BART
 def get_model(params):
     f0, p, T, a, phi, incl = np.atleast_1d(params) ** 2
     ps = BART(10.0, 0.0)
-    ps.add_planet(p, T, incl, phi, 0.0, a)
+    ps.add_planet(p, a, 0.0, T, phi, incl)
     return ps
 
 

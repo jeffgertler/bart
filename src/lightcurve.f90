@@ -30,7 +30,7 @@
 
         do i=1,np
 
-          call coords(t, n, ep(i), ap(i)/rs, tp(i), php(i), iobs+ip(i),&
+          call coords(n, t, ep(i), ap(i)/rs, tp(i), php(i), iobs+ip(i),&
                       pos)
 
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:))

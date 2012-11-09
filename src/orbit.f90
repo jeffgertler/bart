@@ -31,7 +31,7 @@
 
       end subroutine
 
-      subroutine coords(t, n, e, a, period, phi, incl, pos)
+      subroutine coords(n, t, e, a, period, phi, incl, pos)
 
         double precision :: pi=3.141592653589793238462643D0
         integer, intent(in) :: n
