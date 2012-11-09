@@ -3,6 +3,8 @@
         ! Compute the occulted area for a disk of radius `p` in front of
         ! a disk of radius `r0` and impact parameter `b`.
 
+        implicit none
+
         double precision :: pi=3.141592653589793238462643D0
         double precision, intent(in) :: r0, p, b
         double precision, intent(out) :: area
@@ -49,6 +51,8 @@
         ! `b`). The limb-darkening profile of the star is defined by the
         ! samples `ir` at radii `r`.
 
+        implicit none
+
         double precision :: pi=3.141592653589793238462643D0
         integer :: i, j
 
@@ -62,6 +66,7 @@
         double precision, dimension(nbins) :: r2
 
         ! The array of impact parameters.
+        integer, intent(in) :: n
         double precision, dimension(n), intent(in) :: b
 
         ! An array of occulted fluxes.
