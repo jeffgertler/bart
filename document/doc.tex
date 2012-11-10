@@ -78,7 +78,7 @@
 
 \begin{abstract}
 With enormous numbers of putative exoplanet transits being discovered annually,
-there is a need for fast and transit modeling for use in likelihood tests and
+there is a need for fast and precise transit modeling for use in likelihood tests and
 probabilistic inference.  We propose a high performance method---and deliver
 open-source code---that models transits numerically by treating the parent star
 as a superposition of uniform-intensity annular regions.  We use the code to
@@ -99,12 +99,12 @@ keywords: made-up-by-Hogg
 
 \section{Introduction}
 
-In the age of \project{Kepler}, accurate modeling transit lightcurves---making
+In the age of \project{Kepler}, accurate modeling of transit lightcurves---making
 predictions of the flux as a function of time for a star partially (or totally)
 eclipsed by a planet---is of great importance.  Many things can matter in principle,
 from the angular sizes and velocities of the star and planet to limb darkening of
 the primary star to light emitted and reflected by the heterogeneous planet surface
-to stellar rotation, surface convection, and sunspots.
+to stellar rotation, surface convection, oblateness, and sunspots.
 
 Up to now, most eclipse modeling has made use of extremely useful and fast analytic
 approximations (\citealt{mandel}).  However, these approximations only permit certain
@@ -183,6 +183,8 @@ What are the limitations of what we have done?
 
 We didn't do anything beyond limb-darkening:  No sunspots or convection.
 How could we (in principle) make those changes within the \project{Bart} framework?
+
+Related to the above, are there elliptical generalizations of any of the above?
 
 We didn't do anything about reflection or emission from the companion.
 How could we (in principle) make that change within the framework?
