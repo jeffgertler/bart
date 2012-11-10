@@ -59,15 +59,14 @@
 
 \begin{document}
 
-\title{Hipster exoplanet transits}
+\title{Bart:\ Fast and flexible modeling of exoplanet transits}
 
 \newcommand{\nyu}{2}
 \newcommand{\mpia}{3}
 \author{%
     Daniel~Foreman-Mackey\altaffilmark{1,\nyu},
-    Patrick Cooper\altaffilmark{\nyu},
-    David~W.~Hogg\altaffilmark{\nyu,\mpia},
-    \etal%
+    Patrick Cooper\altaffilmark{\nyu}, and
+    David~W.~Hogg\altaffilmark{\nyu,\mpia}
 }
 \altaffiltext{1}{To whom correspondence should be addressed:
                         \url{danfm@nyu.edu}}
@@ -78,11 +77,25 @@
                         K\"onigstuhl 17, D-69117 Heidelberg, Germany}
 
 \begin{abstract}
+With enormous numbers of putative exoplanet transits being discovered annually,
+there is a need for fast and transit modeling for use in likelihood tests and
+probabilistic inference.  We propose a high performance method---and deliver
+open-source code---that models transits numerically by treating the parent star
+as a superposition of uniform-intensity annular regions.  We use the code to
+probabilistically model transits in lightcures taken from \project{Kepler} and
+\project{GALEX} time-domain photometric data.  We find that with high
+signal-to-noise data we can measure the planet-to-star radius ratio, the
+parent-star limb darkening function, and (fantastically) even the planet orbital
+eccentricity (from ingress--egress asymmetries).  It's pretty sick.
 \end{abstract}
 
 \keywords{%
+exoplanets: sickness
+---
+code: open-source
+---
+keywords: made-up-by-Hogg
 }
-
 
 \section{Introduction}
 
