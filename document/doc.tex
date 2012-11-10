@@ -86,6 +86,20 @@
 
 \section{Introduction}
 
+In the age of \project{Kepler}, accurate modeling transit lightcurves---making
+predictions of the flux as a function of time for a star partially (or totally)
+eclipsed by a planet---is of great importance.  Many things can matter in principle,
+from the angular sizes and velocities of the star and planet to limb darkening of
+the primary star to light emitted and reflected by the heterogeneous planet surface
+to stellar rotation, surface convection, and sunspots.
+
+Up to now, most eclipse modeling has made use of extremely useful and fast analytic
+approximations (\citealt{mandel}).  However, these approximations only permit certain
+kinds of limb darkening effects and require the evaluation of special
+functions.  Here we present a new approach to modeling planetary transits, based on
+a numerical annular model for limb darkening.  We describe and publish high performance
+open-source code and also apply it to real data to demonstrate its use in probabilistic
+inference.
 
 \section{Lightcurves}
 
