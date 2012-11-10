@@ -59,15 +59,14 @@
 
 \begin{document}
 
-\title{Hipster exoplanet transits}
+\title{Bart:\ Fast and flexible modeling of exoplanet transits}
 
 \newcommand{\nyu}{2}
 \newcommand{\mpia}{3}
 \author{%
     Daniel~Foreman-Mackey\altaffilmark{1,\nyu},
-    Patrick Cooper\altaffilmark{\nyu},
-    David~W.~Hogg\altaffilmark{\nyu,\mpia},
-    \etal%
+    Patrick Cooper\altaffilmark{\nyu}, and
+    David~W.~Hogg\altaffilmark{\nyu,\mpia}
 }
 \altaffiltext{1}{To whom correspondence should be addressed:
                         \url{danfm@nyu.edu}}
@@ -78,14 +77,42 @@
                         K\"onigstuhl 17, D-69117 Heidelberg, Germany}
 
 \begin{abstract}
+With enormous numbers of putative exoplanet transits being discovered annually,
+there is a need for fast and transit modeling for use in likelihood tests and
+probabilistic inference.  We propose a high performance method---and deliver
+open-source code---that models transits numerically by treating the parent star
+as a superposition of uniform-intensity annular regions.  We use the code to
+probabilistically model transits in lightcures taken from \project{Kepler} and
+\project{GALEX} time-domain photometric data.  We find that with high
+signal-to-noise data we can measure the planet-to-star radius ratio, the
+parent-star limb darkening function, and (fantastically) even the planet orbital
+eccentricity (from ingress--egress asymmetries).  It's pretty sick.
 \end{abstract}
 
 \keywords{%
+exoplanets: sickness
+---
+code: open-source
+---
+keywords: made-up-by-Hogg
 }
-
 
 \section{Introduction}
 
+In the age of \project{Kepler}, accurate modeling transit lightcurves---making
+predictions of the flux as a function of time for a star partially (or totally)
+eclipsed by a planet---is of great importance.  Many things can matter in principle,
+from the angular sizes and velocities of the star and planet to limb darkening of
+the primary star to light emitted and reflected by the heterogeneous planet surface
+to stellar rotation, surface convection, and sunspots.
+
+Up to now, most eclipse modeling has made use of extremely useful and fast analytic
+approximations (\citealt{mandel}).  However, these approximations only permit certain
+kinds of limb darkening effects and require the evaluation of special
+functions.  Here we present a new approach to modeling planetary transits, based on
+a numerical annular model for limb darkening.  We describe and publish high performance
+open-source code and also apply it to real data to demonstrate its use in probabilistic
+inference.
 
 \section{Lightcurves}
 
@@ -142,8 +169,23 @@ At given $(a, b, \theta)$, the radii of the edges of the planet are given
         b^2\,\sin^2\theta}
 \end{eqnarray}
 
+\section{Kepler KOI XXX}
 
+\section{GALEX JXXX-XXX}
 
+\section{Discussion}
+
+What is so good about what we have done?
+
+What are the limitations of what we have done?
+
+We didn't do anything beyond limb-darkening:  No sunspots or convection.
+How could we (in principle) make those changes within the \project{Bart} framework?
+
+We didn't do anything about reflection or emission from the companion.
+How could we (in principle) make that change within the framework?
+
+Please use our code.  It is available at XXX.
 
 \acknowledgments
 
