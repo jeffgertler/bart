@@ -1,5 +1,10 @@
       subroutine eanom2manom(eanom, e, manom)
 
+        ! Return the mean anomaly given an eccentric anomaly and
+        ! eccentricity.
+
+        implicit none
+
         double precision, intent(in) :: eanom, e
         double precision, intent(out) :: manom
 
@@ -8,6 +13,11 @@
       end subroutine
 
       subroutine manom2eanom(manom, e, eanom)
+
+        ! Solve for the eccentric anomaly given a mean anomaly and an
+        ! eccentricity.
+
+        implicit none
 
         double precision, intent(in) :: manom, e
         double precision, intent(out) :: eanom
@@ -31,7 +41,12 @@
 
       end subroutine
 
-      subroutine coords(n, t, e, a, period, phi, incl, pos)
+      subroutine solve_orbit(n, t, e, a, period, phi, incl, pos)
+
+        ! Solve Kepler's equations for the 3D position of a point mass
+        ! eccetrically orbiting a larger mass.
+
+        implicit none
 
         double precision :: pi=3.141592653589793238462643D0
         integer, intent(in) :: n
@@ -40,7 +55,7 @@
         double precision, dimension(3,n), intent(out) :: pos
 
         integer :: i
-        double precision :: manom, psi, cpsi, cth, r, x, y
+        double precision :: manom, psi, cpsi, d, cth, r, x, y
 
         do i=1,n
 

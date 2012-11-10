@@ -17,4 +17,4 @@ scalings.pdf: bench.dat plot_benchmark.py
 	python plot_benchmark.py bench.dat
 
 clean:
-	rm -f run bench.dat
+	rm -f run bench.dat scalings.pdf

@@ -10,26 +10,14 @@
         double precision, intent(out) :: area
         double precision :: r2, p2, b2
         double precision :: k1, k2, k3
-        integer :: c
 
         if (b .ge. r0 + p) then
-
-          c = 0
           area = 0.0D0
-
         elseif (b .le. r0 - p) then
-
-          c = 1
           area = pi * p * p
-
         elseif (b .le. p - r0) then
-
-          c = 2
           area = pi * r0 * r0
-
         else
-
-          c = 3
           r2 = r0 * r0
           p2 = p * p
           b2 = b * b
@@ -39,12 +27,11 @@
           k3 = dsqrt((p+r0-b) * (b+p-r0) * (b-p+r0) * (b+r0+p))
 
           area = p2 * k1 + r2 * k2 - 0.5 * k3
-
         endif
 
       end subroutine
 
-      subroutine hist_limb_darkening (p, nbins, r, ir, n, b, lam)
+      subroutine ldlc(p, nbins, r, ir, n, b, lam)
 
         ! Compute the limb-darkened lightcurve for a planet of radius
         ! `p` passing in front of a star (at a set of impact parameters
@@ -87,15 +74,14 @@
         enddo
         norm = pi * norm
 
-        ! Then, compute the occulted areas.
         do i=1,n
 
+          ! Then, compute the occulted area in each annulus.
           do j=1,nbins
-
             call occarea(r(j), p, b(i), areas(j))
-
           enddo
 
+          ! Do the first order integral over radial bins.
           lam(i) = areas(1) * ir(1)
           do j=2,nbins
             lam(i) = lam(i) + ir(j) * (areas(j) - areas(j - 1))
