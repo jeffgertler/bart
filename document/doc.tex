@@ -120,22 +120,22 @@ The lightcurve of a transit of a planet in front of a star can be computed by
 integrating the amount of stellar light that is occulted by the planet for
 each position in the orbit. Assuming that the system is sufficiently distant
 that we can neglect three-dimensional effects, the geometry can be specified
-by two dimensionless parameters the radius of the planet relative to the
-star $a$ and the impact parameter (in the plane of the sky) $b$. The geometry
+by three parameters, the radius of the star $R$, the radius of the planet $p$
+and the impact parameter (in the plane of the sky) $b$. The geometry
 of this system (as seen by the observer) is shown in \fig{geom}. In the plane
 of the sky, the amount of occulted stellar light can be computed by the area
 integral:
 \begin{eqnarray}\eqlabel{general-occ}
-    \lambda (a, b) & = & \int_{A_\mathrm{occ}} I(r) \, \dd A
+    \lambda (R, p, b) & = & \int_{A_\mathrm{occ}} I(r) \, \dd A
 \end{eqnarray}
 where $r$ is distance from the center of the star and $A_\mathrm{occ}$ is the
 area (in the plane of the sky) where the planet overlaps the star.
 
-For uniform $I(r) = 1$, 
+For uniform $I(r) = 1$,
 \[
-\lambda(a,b) = \left\{ \begin{array}{ll} 0 & 1+a<b \\ \kappa_1 + \kappa_a - \frac{1}{2} \sqrt{(1+a+b)(1-a+b)(-1+a+b)(1+a-b)}    & |1-a| < b \leq 1+a \\ a^2 & b \leq 1-a \\ 1 & b \leq a-1 \end{array} \right.
+\lambda (R, p, b) = \left\{ \begin{array}{ll} 0 & R+p<b \\ R^2 \kappa_R + p^2 \kappa_p - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}    & |R-p| < b \leq R+p \\ \pi p^2 & b \leq R-a \\ \pi R^2 & b \leq a-R \end{array} \right.
 \]
-with $\kappa_1 = \mathrm{cos}^{-1}((-a^2+b^2+1)/2b)$ and $\kappa_a = a^2 \mathrm{cos}^{-1}((a^2+b^2-1)/2ab)$. The derivation for this formula can be found in the appendix.
+with $\kappa_R = \mathrm{cos}^{-1}((-p^2+b^2+R^2)/2 \, b)$ and $\kappa_p = \mathrm{cos}^{-1}((p^2+b^2-R^2)/2\, p \, b)$. The derivation for this formula can be found in the appendix.
 \section{Limb-darkening}
 
 \citet{mandel} provide the commonly used analytic expressions for the effects
@@ -195,60 +195,90 @@ Please use our code.  It is available at XXX.
 
 \section{Appendix}
 
-The first case, $1+a < b$, corresponds to the case when the impact parameter of the planet is greater than the combined radii of the star and planet. Hence no flux is occulted.  The third case, $b \leq 1-a$, corresponds to the scenario where the entire planet is within the observers perception of the star.  Hence the planet's entire area, $a^2$, is occulted.  The last case, $b \leq a-1$ implies $a-1 \geq 0$ since b is positive by definition, thus the apparent radius of the planet is larger than the star.  Also, with b less than the difference between between the planet's radius and the stellar radius, the entire (normalized) area of the star is occulted, hence $\lambda = 1$.  Thus the only non-trivial case is the second, $|1-a| < b \leq 1+a$.
+The first case, $R+p < b$, corresponds to the case when the impact parameter of
+the planet is greater than the combined radii of the star and planet. Hence no
+flux is occulted.  The third case, $b \leq R-p$, corresponds to the scenario
+where the entire planet is within the observers perception of the star.  Hence
+the planet's entire area, $\pi \, p^2$, is occulted.  The last case, $b \leq p-R$ implies
+$p-R \geq 0$ since $b$ is positive by definition, thus the apparent radius of the
+planet is larger than the star.  Also, with $b$ less than the difference between
+between the planet's radius and the stellar radius, the entire area
+of the star is occulted, hence $\lambda = \pi R^2$.  Thus the only non-trivial
+case is the second, $|R-p| < b \leq R+p$.
 
-The derivation of this formula comes in two parts, first we need to find the area of a generalized circular cap, and then use that formula twice to find the asymmetrical lense occulted in figure x (yo dan, how do you command your robot to display geometrical sexiness?)  
+the derivation of this formula comes in two parts, first we need to find the area of
+a generalized circular cap, and then use that formula twice to find the asymmetrical
+lense occulted in figure x (yo dan, how do you command your robot to display geometrical sexiness?)
 
 %\include{dan's sexiness}
 
-We would like to find the shaded area as a function of the radius of the circle (R) as well as the distance from the bottom of the cap to the center of circle (r).  First note that the length of the chord (a) is given by
+We would like to find the shaded area as a function of the radius of the circle (R)
+as well as the distance from the bottom of the cap to the center of circle (r).
+First note that the length of the chord (a) is given by
 \[
-a = 2 r \mathrm{tan} \left( \frac{\theta}{2} \right) = 2 r \left( \frac{\sqrt{R^2 - r^2}}{r} \right) = 2 \sqrt{R^2 - r^2}
+a = 2 \, r \, \mathrm{tan} \left( \frac{\theta}{2} \right) = 2 \, r \,
+\left( \frac{\sqrt{R^2 - r^2}}{r} \right) = 2 \, \sqrt{R^2 - r^2}
 \]
 also we note that the arclength s is given by
 \[
-s = R \theta = R \left( 2 \mathrm{cos}^{-1} \left( \frac{r}{R} \right) \right)
+s = R \, \theta = R \, \left( 2 \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right) \right)
 \]
-The area of the circular cap is then the total area of the wedge of angle $\theta$ less the area of the isoceles triangle of base a. 
+The area of the circular cap is then the total area of the wedge of angle $\theta$
+less the area of the isosceles triangle of base a.
 \[
-A(R,r) = (\pi R^2) \left( \frac{\theta}{2 \pi} \right) - \frac{1}{2} a r = \frac{1}{2} R (R \theta) - \frac{1}{2} r ( 2 \sqrt{R^2 - r^2} ) 
-\]
-\[
- = \frac{1}{2} R s - r \sqrt{R^2 - r^2} = \frac{1}{2} R \left( 2 R \mathrm{cos}^{-1} \left( \frac{r}{R} \right) \right) - r \sqrt{R^2 - r^2} = R^2 \mathrm{cos}^{-1} \left( \frac{r}{R} \right) - r \sqrt{R^2 - r^2} 
-\]
-Now we need only compute the proper r for each half of the asymmetrical lense, the occulted area will follow. The equations of the two circles are $x^2 + y^2 = 1$ and $(x-b)^2 + y^2 = a^2$.  Subtracting these two formulas and solving for x yields
-\[
-x = \frac{b^2 + 1 - a^2}{2 b}
+A(R,r) = (\pi \, R^2) \left( \frac{\theta}{2 \, \pi} \right) - \frac{1}{2} a \,
+r = \frac{1}{2} R \, (R \, \theta) - \frac{1}{2} r \, ( 2 \, \sqrt{R^2 - r^2} )
 \]
 \[
-b - x = \frac{b^2 + a^2 -1}{2 b}
+ = \frac{1}{2} R \, s - r \, \sqrt{R^2 - r^2} = \frac{1}{2} R \, \left( 2 \, R
+ \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right) \right) - r \, \sqrt{R^2 - r^2}
+ = R^2 \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right) - r \, \sqrt{R^2 - r^2}
 \]
-The heights of the isoceles triangles needed to calculate the area of their respective circular caps are then given by $r_1 = x$ and $r_a = b-x$.  The occulted area is simply the sum of these two caps
+Now we need only compute the proper r for each half of the asymmetrical lense,
+the occulted area will follow. The equations of the two circles are $x^2 + y^2 = R$
+and $(x-b)^2 + y^2 = p^2$.  Subtracting these two formulas and solving for x yields
 \[
-\lambda(a,b) = A(1,r_1) + A(a,r_a) = 
+x = \frac{b^2 + R^2 - p^2}{2 \, b}
 \]
 \[
- = \mathrm{cos}^{-1} \left( \frac{b^2 + 1 - a^2}{2 b } \right) + a^2 \mathrm{cos}^{-1} \left( \frac{b^2 + a^2 - 1}{2 a b} \right) 
+b - x = \frac{b^2 + p^2 - R^2}{2 \, b}
+\]
+The heights of the isoceles triangles needed to calculate the area of their respective
+circular caps are then given by $r_R = x$ and $r_p = b-x$.  The occulted area is
+simply the sum of these two caps
+\[
+\lambda(R,p,b) = A(R,r_R) + A(p,r_p) =
 \]
 \[
-- \frac{b^2 + 1 - a^2}{2 b} \sqrt{1 - \left( \frac{b^2 + 1 - a^2}{2 b} \right)^2 } - \frac{b^2 + a^2 -1}{2 b} \sqrt{ a^2 - \left( \frac{b^2 + a^2 - 1}{2 b} \right)^2 }  
+ = \mathrm{cos}^{-1} \left( \frac{b^2 + R^2 - p^2}{2 \, b } \right) + p^2
+ \, \mathrm{cos}^{-1} \left( \frac{b^2 + p^2 - R^2}{2 \, p \, b} \right)
 \]
-In the second line, ie the terms with square roots, one can factor by completing the squares to show that
 \[
-\sqrt{1 - \left( \frac{b^2 + 1 - a^2}{2 b} \right)^2 } =  \sqrt{ a^2 - \left( \frac{b^2 + a^2 - 1}{2 b} \right)^2 } = \frac{1}{2 b} \sqrt{(1+a+b)(1-a+b)(-1+a+b)(1+a-b)} 
+- \frac{b^2 + R^2 - p^2}{2 \, b} \sqrt{R^2 - \left( \frac{b^2 + R^2 - p^2}{2 \, b}
+\right)^2 } - \frac{b^2 + p^2 -R^2}{2 \, b} \sqrt{ p^2 - \left( \frac{b^2 + p^2
+- R^2}{2 \, b} \right)^2 }
+\]
+In the second line above, one can factor by completing the squares to show that
+\[
+\sqrt{R^2 - \left( \frac{b^2 + R^2 - p^2}{2 \, b} \right)^2 } =  \sqrt{ p^2 -
+\left( \frac{b^2 + p^2 - R^2}{2 \, b} \right)^2 } =
+\]
+\[
+ = \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
 \]
 The second line of the occulted area is finally
 \[
-- \left( \frac{b^2 +1 - a^2}{2 b} + \frac{b^2 + a^2 - 1}{2 b} \right) \left( \frac{1}{2 b} \sqrt{(1+a+b)(1-a+b)(-1+a+b)(1+a-b)} \right) 
+- \left( \frac{b^2 +R^2 - p^2}{2 \, b} + \frac{b^2 + p^2 - R^2}{2 \, b} \right)
+\left( \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \right)
 \]
 \[
- = - \frac{1}{2} \sqrt{(1+a+b)(1-a+b)(-1+a+b)(1+a-b)} 
+ = - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
 \]
 yielding the desired result
 \[
-\lambda_{non-trivial} = \kappa_1 + \kappa_a - \frac{1}{2} \sqrt{(1+a+b)(1-a+b)(-1+a+b)(1+a-b)} 
+\lambda_{non-trivial} = R^2 \kappa_R + p^2 \kappa_p - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
 \]
-with $\kappa_1 = \mathrm{cos}^{-1} \left( \frac{-a^2 + b^2 +1}{2 b} \right)$ and $\kappa_a = \mathrm{cos}^{-1} \left( \frac{a^2 + b^2 -1}{2 a b} \right)$ 
+with $\kappa_R = \mathrm{cos}^{-1} \left( \frac{-p^2 + b^2 +R^2}{2 \, b} \right)$ and $\kappa_p = \mathrm{cos}^{-1} \left( \frac{p^2 + b^2 -R^2}{2 \, a \, b} \right)$
 \newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
 \begin{thebibliography}{}\raggedright
 
