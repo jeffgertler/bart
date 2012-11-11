@@ -5,3 +5,4 @@ build
 *.so
 bart/_bart*
 *.dat
+*.pyf

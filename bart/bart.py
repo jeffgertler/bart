@@ -1,4 +1,7 @@
+__all__ = ["fit_lightcurve", "BART"]
+
 import numpy as np
+import scipy.optimize as op
 
 import _bart
 
@@ -8,55 +11,127 @@ def quad_ld(g1, g2, r):
     return 1 - g1 * onemmu - g2 * onemmu * onemmu
 
 
+def nl_ld(c, r):
+    mu = np.sqrt(1 - r ** 2)
+    return 1 - sum([c[i] * (1.0 - mu ** (0.5 * (i + 1)))
+                                          for i in range(len(c))])
+
+
+def fit_lightcurve(t, f, ferr, rs=1.0, p=None, a=1.0, T=1.0):
+    # Deal with masked and problematic data points.
+    inds = ~(np.isnan(t) + np.isnan(f) + np.isnan(ferr)
+           + np.isinf(t) + np.isinf(f) + np.isinf(ferr)
+           + (t < 0) + (f < 0) + (ferr <= 0))
+    t, f, ivar = t[inds], f[inds], 1.0 / ferr[inds] / ferr[inds]
+
+    # Make a guess at the initialization.
+    fs, iobs = np.median(f), 0.0
+    e, phi, i = 0.001, 0.5 * np.pi, 0.0
+
+    # Estimate the planetary radius from the bottom of the lightcurve.
+    # Make sure to convert to Jupiter radii.
+    if p is None:
+        p = rs * np.sqrt(1.0 - np.min(f) / fs) / 9.94493e-2
+
+    # Initialize the system.
+    ps = BART(rs, fs, iobs, ldp=[50, 0.4, 0.1], ldptype="quad")
+    ps.add_planet(p, a, e, T, phi, i)
+    ps._data = (t, f, ivar)
+
+    # Check the parameter conversions.
+    p0 = ps.to_vector()
+    ps.from_vector(p0)
+    np.testing.assert_almost_equal(p0, ps.to_vector())
+
+    # Optimize.
+    p1 = op.minimize(ps.chi2, p0)
+    ps.from_vector(p1.x)
+    return ps
+
+
 class BART(object):
 
-    def __init__(self, radius, incl):
-        self.radius = radius
-        self.incl = incl
+    def __init__(self, rs, fs, iobs, ldp=None, ldptype=None):
+        self._data = None
 
-        self.rp = []
-        self.ap = []
-        self.ep = []
-        self.tp = []
-        self.php = []
-        self.ip = []
+        self.rs = rs
+        self.fs = fs
+        self.iobs = iobs
 
-        dr = 0.01
-        self.r = np.arange(0, 1, dr) + dr
-        self.Ir = quad_ld(0.5, 0.1, self.r)
+        self.rp, self.ap, self.ep, self.tp, self.php, self.ip = \
+                                            [np.array([]) for i in range(6)]
+
+        if ldp is not None and ldptype is None:
+            self.r = ldp[:, 0]
+            self.Ir = ldp[:, 1]
+        elif ldptype == "quad":
+            assert ldp is not None and len(ldp) == 3, \
+                "You must provide the limb-darkening coefficients."
+            dr = 1.0 / ldp[0]
+            self.r = np.arange(0, 1, dr) + dr
+            self.Ir = quad_ld(ldp[1], ldp[2], self.r)
+        elif ldptype == "nl":
+            assert ldp is not None and len(ldp) >= 2, \
+                "You must provide the limb-darkening coefficients."
+            dr = 1.0 / ldp[0]
+            self.r = np.arange(0, 1, dr) + dr
+            self.Ir = nl_ld(ldp[1:], self.r)
+        else:
+            raise Exception("You must choose a limb-darkening law.")
 
     def add_planet(self, r, a, e, T, phi, i):
-        self.rp.append(r)
-        self.ap.append(a)
-        self.ep.append(e)
-        self.tp.append(T)
-        self.php.append(phi)
-        self.ip.append(i)
+        self.rp = np.append(self.rp, r)
+        self.ap = np.append(self.ap, a)
+        self.ep = np.append(self.ep, e)
+        self.tp = np.append(self.tp, T)
+        self.php = np.append(self.php, phi)
+        self.ip = np.append(self.ip, i)
 
-    def lightcurve(self, t, f0=1.0):
-        return _bart.lightcurve(t, self.radius, f0, self.incl,
+    def to_vector(self):
+        v = [np.log(self.fs)]
+        for i in range(len(self.rp)):
+            v += [self.php[i]]  # ,
+                  # np.log(self.ap[i])]
+                  # self.ep[i],
+                  # np.log(self.tp[i]),
+                  # self.php[i],
+                  # self.ip[i]]
+        return np.array(v)
+
+    def from_vector(self, v):
+        self.fs = np.exp(v[0])
+
+        npars = 1
+        for j, i in enumerate(range(0, len(self.rp) * npars, npars)):
+            # self.rp[j] = np.exp(v[i + 1])
+            self.php[j] = v[i + 1]
+
+            # self.ap[j] = np.exp(v[i + 2])
+            # self.rp[j] = np.exp(v[1 + i])
+            # self.ap[j] = np.exp(v[2 + i])
+            # self.ep[j] = v[3 + i]
+            # self.tp[j] = np.exp(v[4 + i])
+            # self.php[j] = v[5 + i]
+            # self.ip[j] = v[6 + i]
+
+        # Check the eccentricity.
+        assert np.all(self.ep >= 0) and np.all(self.ep <= 1)
+
+    def chi2(self, p):
+        assert self._data is not None
+        try:
+            self.from_vector(p)
+        except AssertionError:
+            return 1e100
+        model = self.lightcurve()
+        delta = self._data[1] - model
+        c2 = np.sum(delta * delta * self._data[2])
+        return c2
+
+    def lightcurve(self, t=None):
+        if t is None:
+            assert self._data is not None
+            t = self._data[0]
+        return _bart.lightcurve(t, self.rs, self.fs, self.iobs,
                                 self.rp, self.ap, self.ep, self.tp, self.php,
                                 self.ip, self.r, self.Ir)
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as pl
-
-    np.random.seed(42)
-    ps = BART(10.0, -1.3)
-
-    # Hot Jupiter.
-    # T = 0.05
-    # ps.add_planet(1.2, T, 1.3, np.pi, 0.01, 108)
-
-    # Jupiter.
-    ps.add_planet(1.0, 12.0, 1.3, np.pi, 0.05, 11000)
-
-    # Saturn.
-    # ps.add_planet(0.85, 30.0, 2.5, 0.0, 0.05, 21000)
-
-    t = 150.0 * np.random.rand(84091)
-    lc = ps.lightcurve(t)
-
-    pl.plot(t % 12, lc, ".k")
-    pl.xlim(5.99, 6.01)
-    pl.savefig("lightcurve.png")

@@ -21,7 +21,7 @@
 
         double precision, intent(in) :: manom, e
         double precision, intent(out) :: eanom
-        double precision :: tmp, delta, tol=1.25e-15
+        double precision :: tmp, delta, tol=1.25e-8
         integer :: it, maxit=100
 
         eanom = manom + e * dsin(manom)
@@ -37,7 +37,7 @@
 
         enddo
 
-        write(*,*) "Warning: root finding didn't converge."
+        write(*,*) "Warning: root finding didn't converge.", manom, e
 
       end subroutine
 
