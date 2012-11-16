@@ -2,6 +2,8 @@ __all__ = ["fit_lightcurve", "BART"]
 
 import numpy as np
 import scipy.optimize as op
+from scipy.signal.spectral import lombscargle
+import emcee
 
 import _bart
 
@@ -17,7 +19,7 @@ def nl_ld(c, r):
                                           for i in range(len(c))])
 
 
-def fit_lightcurve(t, f, ferr, rs=1.0, p=None, a=1.0, T=1.0):
+def fit_lightcurve(t, f, ferr, rs=1.0, p=None, a=0.01, T=1.0):
     # Deal with masked and problematic data points.
     inds = ~(np.isnan(t) + np.isnan(f) + np.isnan(ferr)
            + np.isinf(t) + np.isinf(f) + np.isinf(ferr)
@@ -26,7 +28,7 @@ def fit_lightcurve(t, f, ferr, rs=1.0, p=None, a=1.0, T=1.0):
 
     # Make a guess at the initialization.
     fs, iobs = np.median(f), 0.0
-    e, phi, i = 0.001, 0.5 * np.pi, 0.0
+    e, phi, i = 0.001, np.pi, 0.0
 
     # Estimate the planetary radius from the bottom of the lightcurve.
     # Make sure to convert to Jupiter radii.
@@ -44,9 +46,19 @@ def fit_lightcurve(t, f, ferr, rs=1.0, p=None, a=1.0, T=1.0):
     np.testing.assert_almost_equal(p0, ps.to_vector())
 
     # Optimize.
-    p1 = op.minimize(ps.chi2, p0)
-    ps.from_vector(p1.x)
-    return ps
+    # p1 = op.minimize(ps.chi2, p0)
+    # ps.from_vector(p1.x)
+    # return ps
+
+    # Sample.
+    ndim, nwalkers = len(p0), 100
+    initial_position = [p0 * (1 + 0.1 * np.random.randn(ndim))
+                                                for i in range(nwalkers)]
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, ps)
+    pos, lnprob, state = sampler.run_mcmc(initial_position, 100)
+    sampler.reset()
+    sampler.run_mcmc(pos, 100, lnprob0=lnprob)
+    return sampler
 
 
 class BART(object):
@@ -90,29 +102,25 @@ class BART(object):
     def to_vector(self):
         v = [np.log(self.fs)]
         for i in range(len(self.rp)):
-            v += [self.php[i]]  # ,
-                  # np.log(self.ap[i])]
-                  # self.ep[i],
-                  # np.log(self.tp[i]),
-                  # self.php[i],
-                  # self.ip[i]]
+            v += [np.log(self.rp[i]),
+                  np.log(self.ap[i]),
+                  self.ep[i],
+                  np.log(self.tp[i]),
+                  self.php[i],
+                  self.ip[i]]
         return np.array(v)
 
     def from_vector(self, v):
         self.fs = np.exp(v[0])
 
-        npars = 1
+        npars = 6
         for j, i in enumerate(range(0, len(self.rp) * npars, npars)):
-            # self.rp[j] = np.exp(v[i + 1])
-            self.php[j] = v[i + 1]
-
-            # self.ap[j] = np.exp(v[i + 2])
-            # self.rp[j] = np.exp(v[1 + i])
-            # self.ap[j] = np.exp(v[2 + i])
-            # self.ep[j] = v[3 + i]
-            # self.tp[j] = np.exp(v[4 + i])
-            # self.php[j] = v[5 + i]
-            # self.ip[j] = v[6 + i]
+            self.rp[j] = np.exp(v[i + 1])
+            self.ap[j] = np.exp(v[i + 2])
+            self.ep[j] = v[i + 3]
+            self.tp[j] = np.exp(v[i + 4])
+            self.php[j] = v[i + 5]
+            self.ip[j] = v[i + 6]
 
         # Check the eccentricity.
         assert np.all(self.ep >= 0) and np.all(self.ep <= 1)
@@ -127,6 +135,9 @@ class BART(object):
         delta = self._data[1] - model
         c2 = np.sum(delta * delta * self._data[2])
         return c2
+
+    def __call__(self, p):
+        return -0.5 * self.chi2(p)
 
     def lightcurve(self, t=None):
         if t is None:

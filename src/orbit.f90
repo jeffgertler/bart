@@ -1,43 +1,34 @@
-      subroutine eanom2manom(eanom, e, manom)
-
-        ! Return the mean anomaly given an eccentric anomaly and
-        ! eccentricity.
-
-        implicit none
-
-        double precision, intent(in) :: eanom, e
-        double precision, intent(out) :: manom
-
-        manom = eanom - e * dsin(eanom)
-
-      end subroutine
-
-      subroutine manom2eanom(manom, e, eanom)
+      subroutine wt2psi(wt, e, psi)
 
         ! Solve for the eccentric anomaly given a mean anomaly and an
-        ! eccentricity.
+        ! eccentricity using Halley's method.
 
         implicit none
 
-        double precision, intent(in) :: manom, e
-        double precision, intent(out) :: eanom
-        double precision :: tmp, delta, tol=1.25e-8
+        double precision, intent(in) :: wt, e
+        double precision, intent(out) :: psi
+        double precision :: psi0, f, fp, fpp, tol=1.48e-8
         integer :: it, maxit=100
 
-        eanom = manom + e * dsin(manom)
-
+        psi0 = wt
         do it=1,maxit
 
-          call eanom2manom(eanom, e, tmp)
-          delta = manom - tmp
-          eanom = eanom + delta / (1.0d0 - e * dcos(eanom))
-          if (delta * delta .le. tol) then
+          ! Compute the function and derivatives.
+          f = psi0 - e * sin(psi0) - wt
+          fp = 1.d0 - e * cos(psi0)
+          fpp = e * sin(psi0)
+
+          psi = psi0 - 2.d0 * f * fp / (2.d0 * fp * fp - f * fpp)
+
+          if (abs(psi - psi0) .le. tol) then
             return
           endif
 
+          psi0 = psi
+
         enddo
 
-        write(*,*) "Warning: root finding didn't converge.", manom, e
+        write(*,*) "Warning: root finding didn't converge.", wt, e
 
       end subroutine
 
@@ -60,7 +51,7 @@
         do i=1,n
 
           manom = 2 * pi * t(i) / period + phi
-          call manom2eanom(manom, e, psi)
+          call wt2psi(manom, e, psi)
           cpsi = dcos(psi)
           d = 1.0d0 - e * cpsi
           cth = (cpsi - e) / d

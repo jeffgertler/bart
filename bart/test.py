@@ -37,60 +37,8 @@ def brute_force(p, b, Ir):
     return 1 - o / norm
 
 
-def _occulted_area(r0, p, b):
-    b = np.atleast_1d(np.abs(b))
-    r0 = np.atleast_1d(r0)
-    ret = np.zeros([len(r0), len(b)])
-
-    b = b[None, :] * np.ones_like(ret)
-    r0 = r0[:, None] * np.ones_like(ret)
-
-    p2 = p * p
-    b2 = b * b
-    r2 = r0 * r0
-
-    m2 = (np.abs(r0 - p) < b) * (b < r0 + p)
-    m3 = b <= r0 - p
-    m4 = b <= p - r0
-
-    # Fully occulted and un-occulted.
-    ret[m3] = np.pi * p2
-    ret[m4] = np.pi * r2[m4]
-
-    b = b[m2]
-    b2 = b2[m2]
-    r0 = r0[m2]
-    r2 = r2[m2]
-
-    k1 = np.arccos(0.5 * (b2 + p2 - r2) / b / p)
-    k2 = np.arccos(0.5 * (b2 + r2 - p2) / b / r0)
-    k3 = np.sqrt((p + r0 - b) * (b + p - r0) * (b - p + r0) * (b + r0 + p))
-
-    ret[m2] = p2 * k1 + r2 * k2 - 0.5 * k3
-
-    return ret
-
-
 def uniform_disks(p, b):
     return 1 - _occulted_area(1, p, b)[0] / np.pi
-
-
-def histogram_limb_darkening(p, b, r, Ir):
-    r2 = r * r
-    norm = np.pi * (r2[0] * Ir[0] + np.sum(Ir[1:] * (r2[1:] - r2[:-1])))
-
-    areas = _occulted_area(r, p, b)
-    dA = areas[1:] - areas[:-1]
-
-    return 1 - (areas[0] * Ir[0] + np.sum(Ir[1:, None] * dA, axis=0)) / norm
-
-
-def quad_ld(g1, g2):
-    def ld(r):
-        onemmu = 1 - np.sqrt(1 - r * r)
-        return 1 - g1 * onemmu - g2 * onemmu * onemmu
-
-    return ld
 
 
 if __name__ == "__main__":
