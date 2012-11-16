@@ -1,8 +1,8 @@
 __all__ = ["fit_lightcurve", "BART"]
 
 import numpy as np
-import scipy.optimize as op
-from scipy.signal.spectral import lombscargle
+# import scipy.optimize as op
+# from scipy.signal.spectral import lombscargle
 import emcee
 
 import _bart
