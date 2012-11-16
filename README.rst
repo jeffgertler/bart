@@ -43,7 +43,7 @@ To generate fake data for a "Hot Jupiter",
     nbins, gamma1, gamma2 = 50, 0.39, 0.1
 
     # Initialize the planetary system.
-    system = bart.BART(rs, fs, iobs, ldp=[nbins, gamma1, gamma2], ldp_type=ld_type)
+    system = bart.BART(rs, fs, iobs, ldp=[nbins, gamma1, gamma2], ldptype=ld_type)
 
     # The parameters of the planet:
     r = 5.0      # The radius of the planet in Jupter radii.
