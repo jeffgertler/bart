@@ -1,7 +1,6 @@
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as pl
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                                                 os.path.abspath(__file__)))))
@@ -33,26 +32,12 @@ i = 0.0      # The relative observation angle for this planet in degrees.
 # Add the planet.
 system.add_planet(r, a, e, T, phi, i)
 
-# Compute a lightcurve.
+# Compute some synthetic data.
 time = 365.0 * np.random.rand(500)
-ferr = 10 * np.random.rand(len(time))  # The uncertainties.
+ferr = 50 * np.random.rand(len(time))  # The uncertainties.
 flux = system.lightcurve(time) + ferr * np.random.randn(len(time))
 
-# Plot it.
-pl.figure(figsize=(6, 8))
+# Fit it.
+chain = system.fit(time, flux, ferr)
 
-pl.subplot(3, 1, 1)
-pl.errorbar(time, flux, yerr=ferr, fmt=".k")
-
-pl.subplot(3, 1, 2)
-pl.errorbar(time % T, flux, yerr=ferr, fmt=".k")
-t = np.linspace(0, T, 1000)
-f = system.lightcurve(t)
-pl.plot(t, f, "#4682b4", lw=1)
-
-pl.subplot(3, 1, 3)
-pl.errorbar(time % T, flux, yerr=ferr, fmt=".k")
-pl.plot(t, f, "#4682b4", lw=1)
-pl.xlim(1.5, 2.7)
-
-pl.savefig("lc.png")
+system.plot_fit()
