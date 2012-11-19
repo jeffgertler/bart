@@ -230,17 +230,21 @@ class BART(object):
 
         return self._sampler.flatchain
 
-    def plot_fit(self, bp=""):
+    def plot_fit(self, bp="", truths=None):
         import matplotlib.pyplot as pl
 
         assert self._data is not None and self._sampler is not None, \
                 "You have to fit some data first."
 
         chain = self._sampler.flatchain
-        print np.exp(np.median(chain, axis=0))
+
+        plotchain = self._sampler.flatchain
+        for i, (k, p) in enumerate(self._pars.iteritems()):
+            plotchain[:, i] = p.iconv(chain[:, i])
 
         triangle.corner(chain.T, labels=[str(p)
-                                for k, p in self._pars.iteritems()], bins=50)
+                                for k, p in self._pars.iteritems()], bins=50,
+                                truths=truths)
         pl.savefig("parameters.png")
 
         for i in range(chain.shape[1]):
@@ -259,13 +263,11 @@ class BART(object):
             f[ind, :] = self.from_vector(v).lightcurve(t)
         f = f.T
 
-        # Plot the data.
+        # Plot the fit.
         time, flux, ivar = self._data
         pl.figure(figsize=(6, 4))
-        pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=".k")
-
-        # Over plot the fit.
         pl.plot(t, f, "#4682b4", alpha=0.1)
+        pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=".k")
 
         pl.savefig("lc.png")
 

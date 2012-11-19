@@ -47,4 +47,4 @@ flux = system.lightcurve(time) + ferr * np.random.randn(len(time))
 chain = system.fit(time, flux, ferr,
                    pars=["fs", "T", "a", "r", "gamma1", "gamma2"])
 
-system.plot_fit()
+system.plot_fit(truths=[fs, T, a, r, gamma1, gamma2])
