@@ -242,26 +242,23 @@ class BART(object):
         for i, (k, p) in enumerate(self._pars.iteritems()):
             plotchain[:, i] = p.iconv(chain[:, i])
 
-        triangle.corner(chain.T, labels=[str(p)
-                                for k, p in self._pars.iteritems()], bins=50,
+        triangle.corner(plotchain.T, labels=[str(p)
+                                for k, p in self._pars.iteritems()], bins=20,
                                 truths=truths)
         pl.savefig("parameters.png")
 
-        for i in range(chain.shape[1]):
-            pl.clf()
-            pl.plot(self._sampler.chain[:, :, i].T)
-            pl.savefig("time.{0}.png".format(i))
-
         # Compute the best fit period.
-        print self._pars.keys()
         T = np.exp(np.median(chain[:, self._pars.keys().index("T0")]))
 
         # Generate light curve samples.
         t = np.linspace(0, T, 500)
         f = np.empty((len(chain), len(t)))
+        ld = np.empty((len(chain), len(self.ldp.bins)))
         for ind, v in enumerate(chain):
             f[ind, :] = self.from_vector(v).lightcurve(t)
+            ld[ind, :] = self.ldp.intensity
         f = f.T
+        ld = ld.T
 
         # Plot the fit.
         time, flux, ivar = self._data
@@ -270,6 +267,11 @@ class BART(object):
         pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=".k")
 
         pl.savefig("lc.png")
+
+        # Plot the limb-darkening.
+        pl.clf()
+        pl.plot(self.ldp.bins, ld, "#4682b4", alpha=0.1)
+        pl.savefig("ld.png")
 
 
 class LimbDarkening(object):
