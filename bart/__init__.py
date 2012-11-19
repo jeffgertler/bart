@@ -1,1 +1,2 @@
-from bart import fit_lightcurve, BART
+from bart import (BART, LimbDarkening, QuadraticLimbDarkening,
+                  NonlinearLimbDarkening)
