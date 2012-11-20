@@ -113,17 +113,31 @@ class BART(object):
         return self.lnlike() + lnp
 
     def lnprior(self):
+        lnp = 0.0
+
+        # Priors on the limb darkening profile.
         ldp = self.ldp
-        g1, g2 = ldp.gamma1, ldp.gamma2
-        sm = g1 + g2
-        if isinstance(ldp, QuadraticLimbDarkening) and (not 0 < sm < 1
-                or g1 < 0 or g2 < 0):
+
+        # LDP must be strictly positive.
+        if np.any(ldp.intensity < 0) or np.any(ldp.intensity > 1):
             return -np.inf
+
+        # LDP must be monotonically decreasing.
+        # if np.any(ldp.intensity[1:] > ldp.intensity[:-1]):
+        #     return -np.inf
+
+        # The gammas in the quadratic case must sum to less than one and be
+        # greater than or equal to zero.
+        if hasattr(ldp, "gamma1") and hasattr(ldp, "gamma2"):
+            g1, g2 = ldp.gamma1, ldp.gamma2
+            sm = g1 + g2
+            if not 0 < sm < 1 or g1 < 0 or g2 < 0:
+                return -np.inf
 
         if np.any(self.ep < 0) or np.any(self.ep > 1):
             return -np.inf
 
-        return 0.0
+        return lnp
 
     def lnlike(self):
         assert self._data is not None
@@ -174,6 +188,19 @@ class BART(object):
             setter = lambda ps, val: setattr(ps.ldp, var, val)
             self._pars[var] = Parameter(r"$\gamma_{0}$".format(var[-1]),
                                         getter, setter)
+        elif var == "ldp":
+            for i in range(len(self.ldp.intensity) - 1):
+                def getter(j):
+                    return lambda ps: ps.ldp.intensity[j] \
+                                    - ps.ldp.intensity[j + 1]
+
+                def setter(j):
+                    return lambda ps, val: ps.ldp.intensity.__setitem__(
+                                  j + 1, ps.ldp.intensity[j] - val)
+
+                self._pars["ldp_{0}".format(i)] = Parameter(
+                        r"$\Delta I_{{{0}}}$".format(i), getter(i), setter(i),
+                        conv=np.log, iconv=np.exp)
         else:
             raise RuntimeError("Unknown parameter {0}".format(var))
 
@@ -193,10 +220,10 @@ class BART(object):
         # Check vector conversions.
         p0 = self.to_vector()
         self.from_vector(p0)
-        assert np.all(p0 == self.to_vector())
+        np.testing.assert_almost_equal(p0, self.to_vector())
 
         # Set up emcee.
-        nwalkers, ndim = 500, len(p0)
+        nwalkers, ndim = 300, len(p0)
         self._sampler = emcee.EnsembleSampler(nwalkers, ndim, self)
 
         # Sample the parameters.
@@ -218,11 +245,18 @@ class BART(object):
             mu, cov = np.mean(good, axis=1), np.cov(good)
             p0[~inds] = np.random.multivariate_normal(mu, cov, np.sum(~inds))
 
-            print("Rejected {0} walkers.".format(np.sum(~inds)))
+            for n in np.arange(len(p0))[~inds]:
+                lp = self.lnprob(p0[n])
+                # NOTE: this _could_ go on forever.
+                while np.isinf(lp):
+                    p0[n] = np.random.multivariate_normal(mu, cov)
+                    lp = self.lnprob(p0[n])
+            if np.sum(~inds) > 0:
+                print("Rejected {0} walkers.".format(np.sum(~inds)))
+                self._sampler.reset()
 
         # Reset and rerun.
-        self._sampler.reset()
-        self._sampler.run_mcmc(p0, 100, thin=10)
+        self._sampler.run_mcmc(p0, 500, thin=50)
 
         # Let's see some stats.
         print("Acceptance fraction: {0:.2f} %"
@@ -230,7 +264,7 @@ class BART(object):
 
         return self._sampler.flatchain
 
-    def plot_fit(self, bp="", truths=None):
+    def plot_fit(self, bp="", truths=None, true_ldp=None):
         import matplotlib.pyplot as pl
 
         assert self._data is not None and self._sampler is not None, \
@@ -238,40 +272,49 @@ class BART(object):
 
         chain = self._sampler.flatchain
 
-        plotchain = self._sampler.flatchain
-        for i, (k, p) in enumerate(self._pars.iteritems()):
-            plotchain[:, i] = p.iconv(chain[:, i])
-
-        triangle.corner(plotchain.T, labels=[str(p)
-                                for k, p in self._pars.iteritems()], bins=20,
-                                truths=truths)
-        pl.savefig("parameters.png")
-
         # Compute the best fit period.
         T = np.exp(np.median(chain[:, self._pars.keys().index("T0")]))
 
         # Generate light curve samples.
         t = np.linspace(0, T, 500)
         f = np.empty((len(chain), len(t)))
-        ld = np.empty((len(chain), len(self.ldp.bins)))
+        ld = [self.ldp.plot()[0],
+              np.empty((len(chain), 2 * len(self.ldp.bins)))]
         for ind, v in enumerate(chain):
             f[ind, :] = self.from_vector(v).lightcurve(t)
-            ld[ind, :] = self.ldp.intensity
+            ld[1][ind, :] = self.ldp.plot()[1]
         f = f.T
-        ld = ld.T
+        ld[1] = ld[1].T
 
         # Plot the fit.
         time, flux, ivar = self._data
         pl.figure(figsize=(6, 4))
-        pl.plot(t, f, "#4682b4", alpha=0.1)
-        pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=".k")
+        pl.plot(t, f, "#4682b4", alpha=0.1, zorder=1)
+        pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=".k",
+                    zorder=2)
 
         pl.savefig("lc.png")
 
         # Plot the limb-darkening.
         pl.clf()
-        pl.plot(self.ldp.bins, ld, "#4682b4", alpha=0.1)
+        pl.plot(*ld, color="#4682b4", alpha=0.1)
+        if true_ldp is not None:
+            pl.plot(*true_ldp, color="k", lw=2)
         pl.savefig("ld.png")
+
+        # Plot the parameter histograms.
+        plotchain = self._sampler.flatchain
+        inds = []
+        for i, (k, p) in enumerate(self._pars.iteritems()):
+            plotchain[:, i] = p.iconv(chain[:, i])
+            if "ldp" not in k:
+                inds.append(i)
+
+        triangle.corner(plotchain[:, inds].T, labels=[str(p)
+                                for k, p in self._pars.iteritems()], bins=20,
+                                truths=truths)
+        pl.savefig("parameters.png")
+
 
 
 class LimbDarkening(object):
@@ -279,6 +322,14 @@ class LimbDarkening(object):
     def __init__(self, bins, intensity):
         self.bins = bins
         self.intensity = intensity
+
+    def plot(self):
+        x = [0, ]
+        [(x.append(b), x.append(b)) for b in self.bins]
+        y = []
+        [(y.append(i), y.append(i)) for i in self.intensity]
+
+        return x[:-1], y
 
 
 class QuadraticLimbDarkening(LimbDarkening):

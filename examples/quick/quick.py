@@ -16,11 +16,13 @@ iobs = 0.0
 
 # The limb-darkening parameters.
 ld_type = "quad"
-nbins, gamma1, gamma2 = 50, 0.39, 0.1
+nbins, gamma1, gamma2 = 100, 0.39, 0.1
+ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
+true_ldp = ldp.plot()
+print len(true_ldp[0]), len(true_ldp[1])
 
 # Initialize the planetary system.
-system = bart.BART(rs, fs, iobs,
-                   ldp=bart.QuadraticLimbDarkening(nbins, gamma1, gamma2))
+system = bart.BART(rs, fs, iobs, ldp=ldp)
 
 # The parameters of the planet:
 r = 5.0      # The radius of the planet in Jupter radii.
@@ -34,17 +36,20 @@ i = 0.1      # The relative observation angle for this planet in degrees.
 system.add_planet(r, a, e, T, phi, i)
 
 # Compute some synthetic data.
-time = 365.0 * np.random.rand(100)
-ferr = 50 * np.random.rand(len(time))  # The uncertainties.
+time = 365.0 * np.random.rand(1000)
+ferr = 5 * np.random.rand(len(time))  # The uncertainties.
 flux = system.lightcurve(time) + ferr * np.random.randn(len(time))
 
-# import matplotlib.pyplot as pl
-# pl.plot(time % T, flux, ".k")
-# pl.savefig("data.png")
-# assert 0
+# Decrease the number of bins in LDP.
+ldp.bins = (np.linspace(0.0, 1.0, 11) ** 0.3)[1:]
+ldp.gamma1, ldp.gamma2 = 0.5, 0.2
+r, ir = ldp.bins, ldp.intensity
+ir[0] = 1.0
+system.ldp = bart.LimbDarkening(r, ir)
 
 # Fit it.
 chain = system.fit(time, flux, ferr,
-                   pars=["fs", "T", "a", "r", "gamma1", "gamma2"])
+                   pars=["fs", "T", "a", "r", "ldp"])
 
-system.plot_fit(truths=[fs, T, a, r, gamma1, gamma2])
+system.plot_fit(  # truths=[fs, T, a, r, gamma1, gamma2],
+                true_ldp=true_ldp)
