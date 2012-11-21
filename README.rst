@@ -11,7 +11,14 @@ The core light curve routines are written in Fortran and wrapped in Python.
 Installation
 ------------
 
-Install the prerequisites:
+First, clone:
+
+::
+
+    git clone https://github.com/dfm/bart.git
+    cd bart
+
+Then, install the prerequisites:
 
 ::
 
@@ -19,12 +26,10 @@ Install the prerequisites:
     pip install scipy matplotlib
     pip install -r requirements.txt
 
-and then clone, install and profit:
+Finally, install and profit:
 
 ::
 
-    git clone https://github.com/dfm/bart.git
-    cd bart
     python setup.py install
 
 You'll need ``numpy`` and a Fortran compiler.
