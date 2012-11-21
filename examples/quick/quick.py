@@ -43,13 +43,14 @@ flux = system.lightcurve(time) + ferr * np.random.randn(len(time))
 # Decrease the number of bins in LDP.
 ldp.bins = (np.linspace(0.0, 1.0, 11) ** 0.3)[1:]
 ldp.gamma1, ldp.gamma2 = 0.5, 0.2
-r, ir = ldp.bins, ldp.intensity
+rbins, ir = ldp.bins, ldp.intensity
+ir = 1.0 / (1 + rbins)
 ir[0] = 1.0
-system.ldp = bart.LimbDarkening(r, ir)
+system.ldp = bart.LimbDarkening(rbins, ir)
 
 # Fit it.
 chain = system.fit(time, flux, ferr,
                    pars=["fs", "T", "a", "r", "ldp"])
 
-system.plot_fit(  # truths=[fs, T, a, r, gamma1, gamma2],
+system.plot_fit(truths={"fs": fs, "T0": T, "a0": a, "r0": r},
                 true_ldp=true_ldp)

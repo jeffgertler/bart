@@ -122,10 +122,6 @@ class BART(object):
         if np.any(ldp.intensity < 0) or np.any(ldp.intensity > 1):
             return -np.inf
 
-        # LDP must be monotonically decreasing.
-        # if np.any(ldp.intensity[1:] > ldp.intensity[:-1]):
-        #     return -np.inf
-
         # The gammas in the quadratic case must sum to less than one and be
         # greater than or equal to zero.
         if hasattr(ldp, "gamma1") and hasattr(ldp, "gamma2"):
@@ -175,6 +171,7 @@ class BART(object):
                 tex, attr = r"$a_{0}$", "ap"
 
             for i in range(n):
+                # NOTE: closure is broken here for multiple planets.
                 getter = lambda ps: getattr(ps, attr)[i]
 
                 def setter(ps, val):
@@ -223,14 +220,15 @@ class BART(object):
         np.testing.assert_almost_equal(p0, self.to_vector())
 
         # Set up emcee.
-        nwalkers, ndim = 300, len(p0)
+        nwalkers, ndim = 500, len(p0)
         self._sampler = emcee.EnsembleSampler(nwalkers, ndim, self)
 
         # Sample the parameters.
         p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
 
-        for i in range(2):
-            p0, lprob, state = self._sampler.run_mcmc(p0, 100)
+        for i in range(1):
+            p0, lprob, state = self._sampler.run_mcmc(p0, 1000,
+                                                      storechain=False)
 
             # Cluster to get rid of crap.
             mix = mog.MixtureModel(4, np.atleast_2d(lprob).T)
@@ -256,7 +254,7 @@ class BART(object):
                 self._sampler.reset()
 
         # Reset and rerun.
-        self._sampler.run_mcmc(p0, 500, thin=50)
+        self._sampler.run_mcmc(p0, 1000, thin=100)
 
         # Let's see some stats.
         print("Acceptance fraction: {0:.2f} %"
@@ -310,11 +308,17 @@ class BART(object):
             if "ldp" not in k:
                 inds.append(i)
 
+        if truths is not None:
+            truths = [truths.get(k)
+                    for i, (k, p) in enumerate(self._pars.iteritems())
+                    if i in inds]
+            print truths
+
         triangle.corner(plotchain[:, inds].T, labels=[str(p)
                                 for k, p in self._pars.iteritems()], bins=20,
                                 truths=truths)
-        pl.savefig("parameters.png")
 
+        pl.savefig("parameters.png")
 
 
 class LimbDarkening(object):
