@@ -18,9 +18,12 @@ if "interface" in sys.argv:
 f_ext = Extension("bart._bart", ["bart/bart.pyf", "src/lightcurve.f90",
                                  "src/ld.f90", "src/orbit.f90"])
 
+# Define the K-means C extension.
+c_ext = Extension("bart._algorithms", ["bart/_algorithms.c", ])
+
 setup(
     name="bart",
     author="Dan Foreman-Mackey",
     packages=["bart"],
-    ext_modules=[f_ext],
+    ext_modules=[f_ext, c_ext],
 )
