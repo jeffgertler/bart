@@ -5,7 +5,6 @@ __version__ = "0.0.1"
 
 
 import numpy as np
-import scipy.special as sp
 
 import matplotlib.pyplot as pl
 from matplotlib.ticker import MaxNLocator
@@ -57,7 +56,7 @@ def hist2d(x, y, *args, **kwargs):
     Y = np.linspace(extent[1][0], extent[1][1], bins + 1)
     H, X, Y = np.histogram2d(x.flatten(), y.flatten(), bins=(X, Y))
 
-    V = sp.erf(np.arange(0.5, 2.1, 0.5) / np.sqrt(2))
+    V = np.array([0.38292492, 0.68268949, 0.8663856, 0.95449974])
     Hflat = H.flatten()
     inds = np.argsort(Hflat)[::-1]
     Hflat = Hflat[inds]

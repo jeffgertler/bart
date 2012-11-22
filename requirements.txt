@@ -1,5 +1,3 @@
 numpy>=1.6.2
-scipy>=0.11.0
 matplotlib>=1.2.0
--e git+https://github.com/dfm/triangle.py.git#egg=triangle.py-dev
 -e git+https://github.com/dfm/mog.git#egg=mog-dev
