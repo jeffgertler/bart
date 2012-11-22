@@ -8,7 +8,6 @@ import numpy as np
 import emcee
 
 import _bart
-import triangle
 import mog
 
 
@@ -227,7 +226,7 @@ class BART(object):
         p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
 
         for i in range(1):
-            p0, lprob, state = self._sampler.run_mcmc(p0, 1000,
+            p0, lprob, state = self._sampler.run_mcmc(p0, 500,
                                                       storechain=False)
 
             # Cluster to get rid of crap.
@@ -249,9 +248,9 @@ class BART(object):
                 while np.isinf(lp):
                     p0[n] = np.random.multivariate_normal(mu, cov)
                     lp = self.lnprob(p0[n])
-            if np.sum(~inds) > 0:
-                print("Rejected {0} walkers.".format(np.sum(~inds)))
-                self._sampler.reset()
+
+            print("Rejected {0} walkers.".format(np.sum(~inds)))
+            self._sampler.reset()
 
         # Reset and rerun.
         self._sampler.run_mcmc(p0, 1000, thin=100)
@@ -263,6 +262,7 @@ class BART(object):
         return self._sampler.flatchain
 
     def plot_fit(self, bp="", truths=None, true_ldp=None):
+        import triangle
         import matplotlib.pyplot as pl
 
         assert self._data is not None and self._sampler is not None, \
