@@ -1,30 +1,56 @@
 import os
 import sys
-
 import numpy as np
-import matplotlib.pyplot as pl
-import pyfits
 
-dirname = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(dirname, "..", ".."))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+                                                os.path.abspath(__file__)))))
 import bart
 
 
-if __name__ == "__main__":
-    f = pyfits.open(os.path.join(dirname, "data.fits"))
-    lc = np.array(f[1].data)
-    f.close()
+# The radius in Solar radii and the un-occulted flux of the star.
+rs, fs = 1.5, 1000.0
 
-    t = lc["TIME"]
-    f, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
+# The oservation angle of the planetary disk in degrees (zero is edge-on
+# just to be difficult).
+iobs = 0.0
 
-    model = bart.fit_lightcurve(t, f, ferr, rs=1.487, p=0.357, T=3.2135,
-                                            a=0.04558)
-    t, f, ivar = model._data
+# The limb-darkening parameters.
+ld_type = "quad"
+nbins, gamma1, gamma2 = 100, 0.39, 0.1
+ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
+true_ldp = ldp.plot()
+print len(true_ldp[0]), len(true_ldp[1])
 
-    fit = model.lightcurve()
-    T = model.tp[0]
+# Initialize the planetary system.
+system = bart.BART(rs, fs, iobs, ldp=ldp)
 
-    pl.plot(t % T, f, ".k")
-    pl.plot(t % T, fit, "+r")
-    pl.savefig("kepler4b.png")
+# The parameters of the planet:
+r = 5.0      # The radius of the planet in Jupter radii.
+a = 0.05     # The semi-major axis of the orbit in AU.
+e = 0.01     # The eccentricity of the orbit.
+T = 3.21346      # The period of the orbit in days.
+phi = np.pi  # The phase of the orbit in radians.
+i = 90.0 - 89.76  # The relative observation angle for this planet in degrees.
+
+# Add the planet.
+system.add_planet(r, a, e, T, phi, i)
+
+# Compute some synthetic data.
+time = 365.0 * np.random.rand(1000)
+ferr = 5 * np.random.rand(len(time))  # The uncertainties.
+flux = system.lightcurve(time) + ferr * np.random.randn(len(time))
+
+# Decrease the number of bins in LDP.
+ldp.bins = (np.linspace(0.0, 1.0, 11) ** 0.3)[1:]
+ldp.gamma1, ldp.gamma2 = 0.5, 0.2
+rbins, ir = ldp.bins, ldp.intensity
+ir = 1.0 / (1 + rbins)
+ir[0] = 1.0
+system.ldp = bart.LimbDarkening(rbins, ir)
+
+# Fit it.
+chain = system.fit(time, flux, ferr,
+                   pars=["fs", "T", "a", "r", "ldp"])
+
+system.plot_fit(truths={"fs": fs, "T0": T, "a0": a, "r0": r},
+                true_ldp=true_ldp)

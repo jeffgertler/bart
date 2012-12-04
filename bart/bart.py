@@ -3,62 +3,22 @@ __all__ = ["BART", "LimbDarkening", "QuadraticLimbDarkening",
 
 
 from collections import OrderedDict
+from multiprocessing import Process
 
 import numpy as np
+import matplotlib.pyplot as pl
 import emcee
 
-import _bart
-import mog
-
-
-def fit_lightcurve(t, f, ferr, rs=1.0, p=None, a=0.01, T=1.0):
-    # Deal with masked and problematic data points.
-    inds = ~(np.isnan(t) + np.isnan(f) + np.isnan(ferr)
-           + np.isinf(t) + np.isinf(f) + np.isinf(ferr)
-           + (t < 0) + (f < 0) + (ferr <= 0))
-    t, f, ivar = t[inds], f[inds], 1.0 / ferr[inds] / ferr[inds]
-
-    # Make a guess at the initialization.
-    fs, iobs = np.median(f), 0.0
-    e, phi, i = 0.001, np.pi, 0.0
-
-    # Estimate the planetary radius from the bottom of the lightcurve.
-    # Make sure to convert to Jupiter radii.
-    if p is None:
-        p = rs * np.sqrt(1.0 - np.min(f) / fs) / 9.94493e-2
-
-    # Initialize the system.
-    ps = BART(rs, fs, iobs, ldp=[50, 0.4, 0.1], ldptype="quad")
-    ps.add_planet(p, a, e, T, phi, i)
-    ps._data = (t, f, ivar)
-
-    # Check the parameter conversions.
-    p0 = ps.to_vector()
-    ps.from_vector(p0)
-    np.testing.assert_almost_equal(p0, ps.to_vector())
-
-    # Optimize.
-    # p1 = op.minimize(ps.chi2, p0)
-    # ps.from_vector(p1.x)
-    # return ps
-
-    # Sample.
-    ndim, nwalkers = len(p0), 100
-    initial_position = [p0 * (1 + 0.1 * np.random.randn(ndim))
-                                                for i in range(nwalkers)]
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, ps)
-    pos, lnprob, state = sampler.run_mcmc(initial_position, 100)
-    sampler.reset()
-    sampler.run_mcmc(pos, 100, lnprob0=lnprob)
-    return sampler
+from . import _bart
+from . import mog
+from . import triangle
 
 
 class BART(object):
 
-    def __init__(self, rs, fs, iobs, ldp):
+    def __init__(self, fs, iobs, ldp):
         self._data = None
 
-        self.rs = rs
         self.fs = fs
         self.iobs = iobs
 
@@ -69,6 +29,13 @@ class BART(object):
         self._pars = OrderedDict()
 
         self.ldp = ldp
+
+        self._processes = []
+
+    def __del__(self):
+        if hasattr(self, u"_processes"):
+            for p in self._processes:
+                p.join()
 
     @property
     def nplanets(self):
@@ -87,7 +54,7 @@ class BART(object):
         v = []
 
         for k, p in self._pars.iteritems():
-            v.append(p.conv(p.getter(self)))
+            v.append(p.getter(self))
 
         return np.array(v)
 
@@ -95,7 +62,7 @@ class BART(object):
         ind, n = 0, self.nplanets
 
         for i, (k, p) in enumerate(self._pars.iteritems()):
-            p.setter(self, p.iconv(v[i]))
+            p.setter(self, v[i])
 
         return self
 
@@ -145,20 +112,18 @@ class BART(object):
         if t is None:
             assert self._data is not None
             t = self._data[0]
-        return _bart.lightcurve(t, self.rs, self.fs, self.iobs,
+        return _bart.lightcurve(t, self.fs, self.iobs,
                                 self.rp, self.ap, self.ep, self.tp, self.php,
                                 self.ip, self.ldp.bins, self.ldp.intensity)
 
     def fit_for(self, *args):
-        [self.fit_for_parameter(p) for p in args]
+        [self._fit_for(p) for p in args]
 
-    def fit_for_parameter(self, var):
+    def _fit_for(self, var):
         n = self.nplanets
         if var == "fs":
-            getter = lambda ps: getattr(ps, "fs")
-            setter = lambda ps, val: setattr(ps, "fs", val)
-            self._pars["fs"] = Parameter(r"$f_s$", getter, setter,
-                                        conv=np.log, iconv=np.exp)
+            self._pars["fs"] = Parameter(r"$f_s$", "fs")
+
         elif var in ["T", "r", "a", "phi"]:
             if var == "T":
                 tex, attr = r"$T_{0}$", "tp"
@@ -170,33 +135,14 @@ class BART(object):
                 tex, attr = r"$a_{0}$", "ap"
 
             for i in range(n):
-                # NOTE: closure is broken here for multiple planets.
-                getter = lambda ps: getattr(ps, attr)[i]
+                self._pars["{0}{1}".format(var, i)] = LogParameter(
+                    tex.format(i + 1), attr, i)
 
-                def setter(ps, val):
-                    getattr(ps, attr)[i] = val
-
-                self._pars["{0}{1}".format(var, i)] = Parameter(
-                    tex.format(i + 1), getter, setter,
-                    conv=np.log, iconv=np.exp)
-        elif var in ["gamma1", "gamma2"]:
-            getter = lambda ps: getattr(ps.ldp, var)
-            setter = lambda ps, val: setattr(ps.ldp, var, val)
-            self._pars[var] = Parameter(r"$\gamma_{0}$".format(var[-1]),
-                                        getter, setter)
         elif var == "ldp":
             for i in range(len(self.ldp.intensity) - 1):
-                def getter(j):
-                    return lambda ps: ps.ldp.intensity[j] \
-                                    - ps.ldp.intensity[j + 1]
+                self._pars["ldp_{0}".format(i)] = LDPParameter(
+                        r"$\Delta I_{{{0}}}$".format(i), ind=i)
 
-                def setter(j):
-                    return lambda ps, val: ps.ldp.intensity.__setitem__(
-                                  j + 1, ps.ldp.intensity[j] - val)
-
-                self._pars["ldp_{0}".format(i)] = Parameter(
-                        r"$\Delta I_{{{0}}}$".format(i), getter(i), setter(i),
-                        conv=np.log, iconv=np.exp)
         else:
             raise RuntimeError("Unknown parameter {0}".format(var))
 
@@ -219,15 +165,15 @@ class BART(object):
         np.testing.assert_almost_equal(p0, self.to_vector())
 
         # Set up emcee.
-        nwalkers, ndim = 500, len(p0)
-        self._sampler = emcee.EnsembleSampler(nwalkers, ndim, self)
+        nwalkers, ndim = 200, len(p0)
+        self._sampler = None
+        s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=10)
 
         # Sample the parameters.
         p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
 
-        for i in range(1):
-            p0, lprob, state = self._sampler.run_mcmc(p0, 500,
-                                                      storechain=False)
+        for i in range(0):
+            p0, lprob, state = s.run_mcmc(p0, 500, storechain=False)
 
             # Cluster to get rid of crap.
             mix = mog.MixtureModel(4, np.atleast_2d(lprob).T)
@@ -250,24 +196,24 @@ class BART(object):
                     lp = self.lnprob(p0[n])
 
             print("Rejected {0} walkers.".format(np.sum(~inds)))
-            self._sampler.reset()
+            s.reset()
 
         # Reset and rerun.
-        self._sampler.run_mcmc(p0, 1000, thin=100)
+        s.run_mcmc(p0, 100, thin=10)
 
         # Let's see some stats.
         print("Acceptance fraction: {0:.2f} %"
-                .format(np.mean(self._sampler.acceptance_fraction)))
+                .format(np.mean(s.acceptance_fraction)))
 
+        self._sampler = s
         return self._sampler.flatchain
 
-    def plot_fit(self, bp="", truths=None, true_ldp=None):
-        import triangle
-        import matplotlib.pyplot as pl
+    def plot_fit(self, true_ldp=None):
+        p = Process(target=_async_plot, args=("_lc_and_ldp", self, true_ldp))
+        p.start()
+        self._processes.append(p)
 
-        assert self._data is not None and self._sampler is not None, \
-                "You have to fit some data first."
-
+    def _lc_and_ldp(self, true_ldp):
         chain = self._sampler.flatchain
 
         # Compute the best fit period.
@@ -300,25 +246,42 @@ class BART(object):
             pl.plot(*true_ldp, color="k", lw=2)
         pl.savefig("ld.png")
 
+    def plot_triangle(self, truths=None):
+        p = Process(target=_async_plot, args=("_triangle", self, truths))
+        p.start()
+        self._processes.append(p)
+
+    def _triangle(self, truths):
+        assert self._data is not None and self._sampler is not None, \
+                u"You have to fit some data first."
+
+        chain = self._sampler.flatchain
+
         # Plot the parameter histograms.
         plotchain = self._sampler.flatchain
         inds = []
         for i, (k, p) in enumerate(self._pars.iteritems()):
             plotchain[:, i] = p.iconv(chain[:, i])
-            if "ldp" not in k:
+            if u"ldp" not in k:
                 inds.append(i)
 
         if truths is not None:
             truths = [truths.get(k)
                     for i, (k, p) in enumerate(self._pars.iteritems())
                     if i in inds]
-            print truths
+
+        print np.median(plotchain[:, inds], axis=0)
+        print truths
 
         triangle.corner(plotchain[:, inds].T, labels=[str(p)
                                 for k, p in self._pars.iteritems()], bins=20,
                                 truths=truths)
 
-        pl.savefig("parameters.png")
+        pl.savefig(u"triangle.png")
+
+
+def _async_plot(pltype, ps, *args):
+    return getattr(ps, pltype)(*args)
 
 
 class LimbDarkening(object):
@@ -366,12 +329,48 @@ class NonlinearLimbDarkening(LimbDarkening):
 
 class Parameter(object):
 
-    def __init__(self, name, getter, setter, conv=None, iconv=None):
+    def __init__(self, name, attr=None, ind=None):
         self.name = name
-        self.getter = getter
-        self.setter = setter
-        self.conv = conv if conv is not None else lambda x: x
-        self.iconv = iconv if iconv is not None else lambda x: x
+        self.attr = attr
+        self.ind = ind
 
     def __str__(self):
         return self.name
+
+    def conv(self, val):
+        return val
+
+    def iconv(self, val):
+        return val
+
+    def getter(self, ps):
+        if self.ind is None:
+            return self.conv(getattr(ps, self.attr))
+        return self.conv(getattr(ps, self.attr)[self.ind])
+
+    def setter(self, ps, val):
+        if self.ind is None:
+            setattr(ps, self.attr, self.iconv(val))
+        else:
+            getattr(ps, self.attr).__setitem__(self.ind, self.iconv(val))
+
+
+class LogParameter(Parameter):
+
+    def conv(self, val):
+        return np.log(val)
+
+    def iconv(self, val):
+        return np.exp(val)
+
+
+class LDPParameter(LogParameter):
+
+    def getter(self, ps):
+        return self.conv(ps.ldp.intensity[self.ind]
+                         - ps.ldp.intensity[self.ind + 1])
+
+    def setter(self, ps, val):
+        j = self.ind
+        ps.ldp.intensity.__setitem__(j + 1,
+                                     ps.ldp.intensity[j] - self.iconv(val))

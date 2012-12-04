@@ -1,29 +1,5 @@
-      subroutine rj2rs(rj, rs)
-
-        ! Convert Jupiter radii to Solar radii.
-
-        implicit none
-
-        double precision, intent(in) :: rj
-        double precision, intent(out) :: rs
-        rs = 9.94493d-2 * rj
-
-      end subroutine
-
-      subroutine au2rs(au, rs)
-
-        ! Convert AU to Solar radii.
-
-        implicit none
-
-        double precision, intent(in) :: au
-        double precision, intent(out) :: rs
-        rs = 2.150856d2 * au
-
-      end subroutine
-
       subroutine lightcurve(n, t, &
-                            rs, fs, iobs, &
+                            fs, iobs, &
                             np, rp, ap, ep, tp, php, ip, &
                             nld, rld, ild, &
                             flux)
@@ -36,9 +12,6 @@
         ! :param t: (double precision(n))
         !   The times where the lightcurve should be evaluated.
         !
-        ! :param rs: (double precision)
-        !   The radius of the star in Solar radii.
-        !
         ! :param fs: (double precision)
         !   The un-occulted flux of the star.
         !
@@ -49,10 +22,11 @@
         !   The number of planets in the system.
         !
         ! :param rp: (double precision(np))
-        !   The sizes of the planets in Jupiter radii.
+        !   The sizes of the planets in units of the star's radius.
         !
         ! :param ap: (double precision(np))
-        !   The semi-major axes of the orbits in AU.
+        !   The semi-major axes of the orbits in units of the star's
+        !   radius.
         !
         ! :param ep: (double precision(np))
         !   The eccentricities of the orbits.
@@ -93,7 +67,7 @@
         double precision, dimension(n), intent(in) :: t
 
         ! The properties of the star and the system.
-        double precision, intent(in) :: rs, fs, iobs
+        double precision, intent(in) :: fs, iobs
 
         ! The planets.
         integer, intent(in) :: np
@@ -110,7 +84,6 @@
         integer :: i, j
         double precision, dimension(3,n) :: pos
         double precision, dimension(n) :: b, tmp
-        double precision :: a, r
 
         ! Initialize the full lightcurve to the un-occulted stellar
         ! flux.
@@ -120,12 +93,11 @@
         ! profiles.
         do i=1,np
 
-          call au2rs(ap(i), a)
           call solve_orbit(n, t, &
-                           ep(i), a, tp(i), php(i), &
+                           ep(i), ap(i), tp(i), php(i), &
                            (iobs+ip(i)) / 180.d0 * pi, pos)
 
-          b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:)) / rs
+          b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:))
 
           ! HACK: deal with positions behind star.
           do j=1,n
@@ -134,8 +106,7 @@
             endif
           enddo
 
-          call rj2rs(rp(i), r)
-          call ldlc(r / rs, nld, rld, ild, n, b, tmp)
+          call ldlc(rp(i), nld, rld, ild, n, b, tmp)
           flux = flux * tmp
 
         enddo
