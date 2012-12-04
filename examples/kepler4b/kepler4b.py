@@ -20,7 +20,6 @@ ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
 
 if True:
     ldp.bins = np.sqrt(np.linspace(0.0, 1.0, 15)[1:])
-    # ldp.bins = np.log(np.linspace(0.0, 1.0, 15)[1:]) / 5.0 + 1
     rbins, ir = ldp.bins, ldp.intensity
     ir *= 1.0 / ir[0]
     ldp = bart.LimbDarkening(rbins, ir)
@@ -43,6 +42,7 @@ system.add_planet(r, a, e, T, phi, i)
 
 # Fit it.
 # print(system.optimize(time, flux, ferr, pars=[u"phi"]))
-system.fit(time, flux, ferr, pars=[u"fs", u"phi", u"T", u"a", u"r", u"ldp"])
+system.fit(time, flux, ferr, pars=[u"fs", u"phi", u"T", u"a", u"r",
+                                   u"i", u"ldp"])
 system.plot_fit()
 system.plot_triangle()

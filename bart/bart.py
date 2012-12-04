@@ -157,6 +157,12 @@ class BART(object):
                 self._pars[u"phi{0}".format(i)] = ConstrainedParameter(
                     [0.0, 2 * np.pi], tex.format(i + 1), attr=attr, ind=i)
 
+        elif var == u"incl":
+            tex, attr = r"$i_{0}$", u"ip"
+            for i in range(n):
+                self._pars[u"i{0}".format(i)] = Parameter(
+                    tex.format(i + 1), attr=attr, ind=i)
+
         elif var == u"gamma":
             self._pars[u"gamma1"] = Parameter(r"$\gamma_1$", attr=u"ldp",
                                               ind=u"gamma1")
