@@ -95,7 +95,7 @@
 
           call solve_orbit(n, t, &
                            ep(i), ap(i), tp(i), php(i), &
-                           (iobs+ip(i)) / 180.d0 * pi, pos)
+                           (90.d0 - iobs - ip(i)) / 180.d0 * pi, pos)
 
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:))
 

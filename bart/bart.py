@@ -1,11 +1,12 @@
-__all__ = ["BART", "LimbDarkening", "QuadraticLimbDarkening",
-           "NonlinearLimbDarkening"]
+__all__ = [u"BART", u"LimbDarkening", u"QuadraticLimbDarkening",
+           u"NonlinearLimbDarkening"]
 
 
 from collections import OrderedDict
 from multiprocessing import Process
 
 import numpy as np
+import scipy.optimize as op
 import matplotlib.pyplot as pl
 import emcee
 
@@ -56,7 +57,7 @@ class BART(object):
         for k, p in self._pars.iteritems():
             v.append(p.getter(self))
 
-        return np.array(v)
+        return np.array(v, dtype=np.float64)
 
     def from_vector(self, v):
         ind, n = 0, self.nplanets
@@ -70,13 +71,26 @@ class BART(object):
         return self.lnprob(p)
 
     def lnprob(self, p):
-        self.from_vector(p)
+        # Make sure that we catch all the over/under-flows.
+        np.seterr(all=u"raise")
+        try:
+            self.from_vector(p)
 
-        lnp = self.lnprior()
-        if np.isinf(lnp) or np.isnan(lnp):
+            # Compute the prior.
+            lnp = self.lnprior()
+            if np.isinf(lnp) or np.isnan(lnp):
+                return -np.inf
+
+            # Compute the likelihood.
+            lnl = self.lnlike()
+            if np.isinf(lnl) or np.isnan(lnl):
+                return -np.inf
+
+        except FloatingPointError:
+            print(u"Failed on: ", p)
             return -np.inf
 
-        return self.lnlike() + lnp
+        return lnl + lnp
 
     def lnprior(self):
         lnp = 0.0
@@ -90,7 +104,7 @@ class BART(object):
 
         # The gammas in the quadratic case must sum to less than one and be
         # greater than or equal to zero.
-        if hasattr(ldp, "gamma1") and hasattr(ldp, "gamma2"):
+        if hasattr(ldp, u"gamma1") and hasattr(ldp, u"gamma2"):
             g1, g2 = ldp.gamma1, ldp.gamma2
             sm = g1 + g2
             if not 0 < sm < 1 or g1 < 0 or g2 < 0:
@@ -117,36 +131,47 @@ class BART(object):
                                 self.ip, self.ldp.bins, self.ldp.intensity)
 
     def fit_for(self, *args):
+        self._pars = OrderedDict()
         [self._fit_for(p) for p in args]
 
     def _fit_for(self, var):
         n = self.nplanets
-        if var == "fs":
-            self._pars["fs"] = Parameter(r"$f_s$", "fs")
+        if var == u"fs":
+            self._pars[u"fs"] = Parameter(r"$f_s$", u"fs")
 
-        elif var in ["T", "r", "a", "phi"]:
+        elif var in [u"T", u"r", u"a"]:
             if var == "T":
-                tex, attr = r"$T_{0}$", "tp"
+                tex, attr = r"$T_{0}$", u"tp"
             elif var == "r":
-                tex, attr = r"$r_{0}$", "rp"
-            elif var == "phi":
-                tex, attr = r"$\phi_{0}$", "php"
+                tex, attr = r"$r_{0}$", u"rp"
             elif var == "a":
-                tex, attr = r"$a_{0}$", "ap"
+                tex, attr = r"$a_{0}$", u"ap"
 
             for i in range(n):
-                self._pars["{0}{1}".format(var, i)] = LogParameter(
+                self._pars[u"{0}{1}".format(var, i)] = LogParameter(
                     tex.format(i + 1), attr, i)
 
-        elif var == "ldp":
+        elif var == u"phi":
+            tex, attr = r"$\phi_{0}$", u"php"
+            for i in range(n):
+                self._pars[u"phi{0}".format(i)] = ConstrainedParameter(
+                    [0.0, 2 * np.pi], tex.format(i + 1), attr=attr, ind=i)
+
+        elif var == u"gamma":
+            self._pars[u"gamma1"] = Parameter(r"$\gamma_1$", attr=u"ldp",
+                                              ind=u"gamma1")
+            self._pars[u"gamma2"] = Parameter(r"$\gamma_2$", attr=u"ldp",
+                                              ind=u"gamma2")
+
+        elif var == u"ldp":
             for i in range(len(self.ldp.intensity) - 1):
-                self._pars["ldp_{0}".format(i)] = LDPParameter(
+                self._pars[u"ldp_{0}".format(i)] = LDPParameter(
                         r"$\Delta I_{{{0}}}$".format(i), ind=i)
 
         else:
-            raise RuntimeError("Unknown parameter {0}".format(var))
+            raise RuntimeError(u"Unknown parameter {0}".format(var))
 
-    def fit(self, t, f, ferr, pars=["fs", "T", "r", "a", "phi"]):
+    def _prepare_data(self, t, f, ferr):
         # Deal with masked and problematic data points.
         inds = ~(np.isnan(t) + np.isnan(f) + np.isnan(ferr)
             + np.isinf(t) + np.isinf(f) + np.isinf(ferr)
@@ -156,7 +181,8 @@ class BART(object):
         # Store the data.
         self._data = [t, f, ivar]
 
-        # Fitting parameters.
+    def optimize(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"]):
+        self._prepare_data(t, f, ferr)
         self.fit_for(*pars)
 
         # Check vector conversions.
@@ -164,16 +190,30 @@ class BART(object):
         self.from_vector(p0)
         np.testing.assert_almost_equal(p0, self.to_vector())
 
+        # Optimize.
+        result = op.minimize(self, p0)
+
+        assert result.success
+
+        self.from_vector(result.x)
+        return result.x
+
+    def fit(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"],
+            threads=10, ntrim=2, nburn=300, niter=500, thin=50):
+        self._prepare_data(t, f, ferr)
+        self.fit_for(*pars)
+        p0 = self.to_vector()
+
         # Set up emcee.
-        nwalkers, ndim = 200, len(p0)
+        nwalkers, ndim = 100, len(p0)
         self._sampler = None
-        s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=10)
+        s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
         # Sample the parameters.
         p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
 
-        for i in range(0):
-            p0, lprob, state = s.run_mcmc(p0, 500, storechain=False)
+        for i in range(ntrim):
+            p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
 
             # Cluster to get rid of crap.
             mix = mog.MixtureModel(4, np.atleast_2d(lprob).T)
@@ -195,21 +235,21 @@ class BART(object):
                     p0[n] = np.random.multivariate_normal(mu, cov)
                     lp = self.lnprob(p0[n])
 
-            print("Rejected {0} walkers.".format(np.sum(~inds)))
+            print(u"Rejected {0} walkers.".format(np.sum(~inds)))
             s.reset()
 
         # Reset and rerun.
-        s.run_mcmc(p0, 100, thin=10)
+        s.run_mcmc(p0, niter, thin=thin)
 
         # Let's see some stats.
-        print("Acceptance fraction: {0:.2f} %"
+        print(u"Acceptance fraction: {0:.2f} %"
                 .format(np.mean(s.acceptance_fraction)))
 
         self._sampler = s
         return self._sampler.flatchain
 
     def plot_fit(self, true_ldp=None):
-        p = Process(target=_async_plot, args=("_lc_and_ldp", self, true_ldp))
+        p = Process(target=_async_plot, args=(u"_lc_and_ldp", self, true_ldp))
         p.start()
         self._processes.append(p)
 
@@ -217,7 +257,10 @@ class BART(object):
         chain = self._sampler.flatchain
 
         # Compute the best fit period.
-        T = np.exp(np.median(chain[:, self._pars.keys().index("T0")]))
+        if u"T0" in self._pars:
+            T = np.exp(np.median(chain[:, self._pars.keys().index(u"T0")]))
+        else:
+            T = self.tp[0]
 
         # Generate light curve samples.
         t = np.linspace(0, T, 500)
@@ -233,21 +276,20 @@ class BART(object):
         # Plot the fit.
         time, flux, ivar = self._data
         pl.figure(figsize=(6, 4))
-        pl.plot(t, f, "#4682b4", alpha=0.1, zorder=1)
-        pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=".k",
-                    zorder=2)
+        pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=u".k")
+        pl.plot(t, f, u"#4682b4", alpha=0.05)
 
-        pl.savefig("lc.png")
+        pl.savefig(u"lc.pdf")
 
         # Plot the limb-darkening.
         pl.clf()
-        pl.plot(*ld, color="#4682b4", alpha=0.1)
+        pl.plot(*ld, color=u"#4682b4", alpha=0.1)
         if true_ldp is not None:
-            pl.plot(*true_ldp, color="k", lw=2)
-        pl.savefig("ld.png")
+            pl.plot(*true_ldp, color=u"k", lw=2)
+        pl.savefig(u"ld.pdf")
 
     def plot_triangle(self, truths=None):
-        p = Process(target=_async_plot, args=("_triangle", self, truths))
+        p = Process(target=_async_plot, args=(u"_triangle", self, truths))
         p.start()
         self._processes.append(p)
 
@@ -270,14 +312,11 @@ class BART(object):
                     for i, (k, p) in enumerate(self._pars.iteritems())
                     if i in inds]
 
-        print np.median(plotchain[:, inds], axis=0)
-        print truths
-
         triangle.corner(plotchain[:, inds].T, labels=[str(p)
                                 for k, p in self._pars.iteritems()], bins=20,
                                 truths=truths)
 
-        pl.savefig(u"triangle.png")
+        pl.savefig(u"triangle.pdf")
 
 
 def _async_plot(pltype, ps, *args):
@@ -305,6 +344,12 @@ class QuadraticLimbDarkening(LimbDarkening):
         dr = 1.0 / nbins
         self.bins = np.arange(0, 1, dr) + dr
         self.gamma1, self.gamma2 = gamma1, gamma2
+
+    def __getitem__(self, k):
+        return getattr(self, k)
+
+    def __setitem__(self, k, v):
+        setattr(self, k, v)
 
     @property
     def intensity(self):
@@ -362,6 +407,19 @@ class LogParameter(Parameter):
 
     def iconv(self, val):
         return np.exp(val)
+
+
+class ConstrainedParameter(Parameter):
+
+    def __init__(self, bounds, *args, **kwargs):
+        super(ConstrainedParameter, self).__init__(*args, **kwargs)
+        self.bounds = sorted(bounds)
+
+    def setter(self, ps, val):
+        v0 = self.iconv(val)
+        while not self.bounds[0] < v0 < self.bounds[1]:
+            v0 = self.bounds[0] + v0 % (self.bounds[1] - self.bounds[0])
+        return super(ConstrainedParameter, self).setter(ps, self.conv(v0))
 
 
 class LDPParameter(LogParameter):
