@@ -213,7 +213,7 @@ class BART(object):
         return result.x
 
     def fit(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"],
-            threads=10, ntrim=2, nburn=300, niter=500, thin=50,
+            threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
             filename=u"./mcmc.h5"):
 
         assert niter % thin == 0
@@ -240,8 +240,9 @@ class BART(object):
             g.attrs[u"thin"] = thin
 
             N = int(niter / thin)
-            c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim))
-            lp_ds = g.create_dataset(u"lnp", (nwalkers, N))
+            c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
+                                    dtype=np.float64)
+            lp_ds = g.create_dataset(u"lnp", (nwalkers, N), dtype=np.float64)
 
         # Sample the parameters.
         p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
