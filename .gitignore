@@ -8,3 +8,4 @@ bart/_bart*
 *.pyf
 *.pdf
 venv
+*.h5

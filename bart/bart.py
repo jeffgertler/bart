@@ -4,10 +4,12 @@ __all__ = [u"BART", u"LimbDarkening", u"QuadraticLimbDarkening",
 
 from collections import OrderedDict
 from multiprocessing import Process
+import cPickle as pickle
 
 import numpy as np
 import scipy.optimize as op
 import matplotlib.pyplot as pl
+import h5py
 import emcee
 
 from . import _bart
@@ -151,13 +153,19 @@ class BART(object):
                 self._pars[u"{0}{1}".format(var, i)] = LogParameter(
                     tex.format(i + 1), attr, i)
 
+        elif var == u"e":
+            tex, attr = r"$e_{0}$", u"ep"
+            for i in range(n):
+                self._pars[u"e{0}".format(i)] = Parameter(
+                                tex.format(i + 1), attr=attr, ind=i)
+
         elif var == u"phi":
             tex, attr = r"$\phi_{0}$", u"php"
             for i in range(n):
                 self._pars[u"phi{0}".format(i)] = ConstrainedParameter(
                     [0.0, 2 * np.pi], tex.format(i + 1), attr=attr, ind=i)
 
-        elif var == u"incl":
+        elif var == u"i":
             tex, attr = r"$i_{0}$", u"ip"
             for i in range(n):
                 self._pars[u"i{0}".format(i)] = Parameter(
@@ -205,7 +213,11 @@ class BART(object):
         return result.x
 
     def fit(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"],
-            threads=10, ntrim=2, nburn=300, niter=500, thin=50):
+            threads=10, ntrim=2, nburn=300, niter=500, thin=50,
+            filename=u"./mcmc.h5"):
+
+        assert niter % thin == 0
+
         self._prepare_data(t, f, ferr)
         self.fit_for(*pars)
         p0 = self.to_vector()
@@ -214,6 +226,22 @@ class BART(object):
         nwalkers, ndim = 100, len(p0)
         self._sampler = None
         s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
+
+        # Create the file for saving the MCMC results.
+        with h5py.File(filename, u"w") as f:
+            f.create_dataset(u"data", data=np.vstack(self._data))
+
+            g = f.create_group(u"mcmc")
+            g.attrs[u"pars"] = u", ".join(pars)
+            g.attrs[u"threads"] = threads
+            g.attrs[u"ntrim"] = ntrim
+            g.attrs[u"nburn"] = nburn
+            g.attrs[u"niter"] = niter
+            g.attrs[u"thin"] = thin
+
+            N = int(niter / thin)
+            c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim))
+            lp_ds = g.create_dataset(u"lnp", (nwalkers, N))
 
         # Sample the parameters.
         p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
@@ -245,7 +273,22 @@ class BART(object):
             s.reset()
 
         # Reset and rerun.
-        s.run_mcmc(p0, niter, thin=thin)
+        for i, (pos, lnprob, state) in enumerate(s.sample(p0,
+                                                        thin=thin,
+                                                        iterations=niter)):
+            if i % thin == 0:
+                with h5py.File(filename, u"a") as f:
+                    g = f[u"mcmc"]
+                    c_ds = g[u"chain"]
+                    lp_ds = g[u"lnp"]
+
+                    g.attrs[u"iterations"] = s.iterations
+                    g.attrs[u"naccepted"] = s.naccepted
+                    g.attrs[u"state"] = pickle.dumps(state)
+
+                    ind = int(i / thin)
+                    c_ds[:, ind, :] = pos
+                    lp_ds[:, ind] = lnprob
 
         # Let's see some stats.
         print(u"Acceptance fraction: {0:.2f} %"
