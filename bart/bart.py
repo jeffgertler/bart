@@ -89,7 +89,6 @@ class BART(object):
                 return -np.inf
 
         except FloatingPointError:
-            print(u"Failed on: ", p)
             return -np.inf
 
         return lnl + lnp
@@ -422,12 +421,45 @@ class NonlinearLimbDarkening(LimbDarkening):
                                             for i in range(len(c))])
 
 
+class Prior(object):
+
+    def __init__(self, *pars):
+        self._pars = pars
+
+
+class UniformPrior(Prior):
+
+    def __call__(self, x):
+        mn, mx = self._pars
+        if mn <= x < mx:
+            return 0.0
+        return -np.inf
+
+    def sample(self, N=1):
+        mn, mx = self._pars
+        return mn + (mx - mn) * np.random.rand(N)
+
+
+class GaussianPrior(Prior):
+
+    def __call__(self, x):
+        mu, std = self._pars
+        v = std * std
+        return -0.5 * np.sum(((x - mu) / std) ** 2) \
+               - 0.5 * np.log(2 * np.pi * v)
+
+    def sample(self, N=1):
+        mu, std = self._pars
+        return mu + std * np.random.randn(N)
+
+
 class Parameter(object):
 
-    def __init__(self, name, attr=None, ind=None):
+    def __init__(self, name, attr=None, ind=None, prior=None):
         self.name = name
         self.attr = attr
         self.ind = ind
+        self.prior = prior
 
     def __str__(self):
         return self.name
