@@ -43,6 +43,7 @@ system.add_planet(r, a, e, T, phi, i)
 # Fit it.
 # print(system.optimize(time, flux, ferr, pars=[u"phi"]))
 system.fit(time, flux, ferr, pars=[u"fs", u"phi", u"T", u"a", u"r",
-                                   u"i", u"e", u"ldp"])
+                                   u"i", u"e", u"ldp"],
+                        niter=2000, thin=10)
 system.plot_fit()
 system.plot_triangle()

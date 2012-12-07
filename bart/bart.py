@@ -328,14 +328,14 @@ class BART(object):
         pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=u".k")
         pl.plot(t, f, u"#4682b4", alpha=0.05)
 
-        pl.savefig(u"lc.pdf")
+        pl.savefig(u"lc.png")
 
         # Plot the limb-darkening.
         pl.clf()
         pl.plot(*ld, color=u"#4682b4", alpha=0.1)
         if true_ldp is not None:
             pl.plot(*true_ldp, color=u"k", lw=2)
-        pl.savefig(u"ld.pdf")
+        pl.savefig(u"ld.png")
 
     def plot_triangle(self, truths=None):
         p = Process(target=_async_plot, args=(u"_triangle", self, truths))
@@ -365,7 +365,7 @@ class BART(object):
                                 for k, p in self._pars.iteritems()], bins=20,
                                 truths=truths)
 
-        pl.savefig(u"triangle.pdf")
+        pl.savefig(u"triangle.png")
 
 
 def _async_plot(pltype, ps, *args):

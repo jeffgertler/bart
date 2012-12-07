@@ -56,7 +56,7 @@ def hist2d(x, y, *args, **kwargs):
     Y = np.linspace(extent[1][0], extent[1][1], bins + 1)
     H, X, Y = np.histogram2d(x.flatten(), y.flatten(), bins=(X, Y))
 
-    V = np.array([0.38292492, 0.68268949, 0.8663856, 0.95449974])
+    V = np.array([0.38292492, 0.68268949, 0.8663856, 0.95449974]) ** 2
     Hflat = H.flatten()
     inds = np.argsort(Hflat)[::-1]
     Hflat = Hflat[inds]
