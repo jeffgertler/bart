@@ -3,7 +3,7 @@
 *.png
 build
 *.so
-bart/_bart*
+_*module.c
 *.dat
 *.pyf
 *.pdf
