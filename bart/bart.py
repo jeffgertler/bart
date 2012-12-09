@@ -149,20 +149,23 @@ class BART(object):
                 tex, attr = r"$a_{0}$", u"ap"
 
             for i in range(n):
+                prior = Prior(0.001)
                 self._pars[u"{0}{1}".format(var, i)] = LogParameter(
-                    tex.format(i + 1), attr, i)
+                    tex.format(i + 1), prior, attr, i)
 
         elif var == u"e":
             tex, attr = r"$e_{0}$", u"ep"
             for i in range(n):
+                prior = UniformPrior(0.0, 1.0)
                 self._pars[u"e{0}".format(i)] = Parameter(
-                                tex.format(i + 1), attr=attr, ind=i)
+                                tex.format(i + 1), prior, attr=attr, ind=i)
 
         elif var == u"phi":
             tex, attr = r"$\phi_{0}$", u"php"
             for i in range(n):
-                self._pars[u"phi{0}".format(i)] = ConstrainedParameter(
-                    [0.0, 2 * np.pi], tex.format(i + 1), attr=attr, ind=i)
+                prior = UniformPrior(0.0, 2 * np.pi)
+                self._pars[u"phi{0}".format(i)] = Parameter(
+                    tex.format(i + 1), prior, attr=attr, ind=i)
 
         elif var == u"i":
             tex, attr = r"$i_{0}$", u"ip"
@@ -426,6 +429,13 @@ class Prior(object):
     def __init__(self, *pars):
         self._pars = pars
 
+    def __call__(self, x):
+        return 0.0
+
+    def sample(self, curr, N=1):
+        srel = self._pars[0]
+        return curr * (1 + srel * np.random.randn(N))
+
 
 class UniformPrior(Prior):
 
@@ -435,7 +445,7 @@ class UniformPrior(Prior):
             return 0.0
         return -np.inf
 
-    def sample(self, N=1):
+    def sample(self, curr, N=1):
         mn, mx = self._pars
         return mn + (mx - mn) * np.random.rand(N)
 
@@ -448,18 +458,18 @@ class GaussianPrior(Prior):
         return -0.5 * np.sum(((x - mu) / std) ** 2) \
                - 0.5 * np.log(2 * np.pi * v)
 
-    def sample(self, N=1):
+    def sample(self, curr, N=1):
         mu, std = self._pars
         return mu + std * np.random.randn(N)
 
 
 class Parameter(object):
 
-    def __init__(self, name, attr=None, ind=None, prior=None):
+    def __init__(self, name, prior, attr=None, ind=None):
         self.name = name
+        self.prior = prior
         self.attr = attr
         self.ind = ind
-        self.prior = prior
 
     def __str__(self):
         return self.name
