@@ -9,7 +9,7 @@ from multiprocessing import Pool
 import numpy as np
 import scipy.optimize as op
 
-import _periodogram
+import _period
 
 _default_order = 12
 
@@ -37,7 +37,7 @@ class _fit_wrapper(object):
         self.order = order
 
     def calc(self, omega, t, f, ferr):
-        a, chi2, info = _periodogram.get_chi2(omega, t, f, ferr, self.order)
+        a, chi2, info = _period.get_chi2(omega, t, f, ferr, self.order)
 
         if info != 0:
             print(u"Fit failed")
@@ -78,7 +78,7 @@ class _op_wrapper(object):
         self.order = order
 
     def chi(self, w):
-        return sum([_periodogram.get_chi(w, self.time[k], self.flux[k],
+        return sum([_period.get_chi(w, self.time[k], self.flux[k],
                 self.ferr[k], self.order)[1] for k in self.time])
 
     def __call__(self, omega):
@@ -97,13 +97,18 @@ def find_period(time, flux, ferr=None, order=None, N=30, Ts=[0.2, 1.3],
         order = _default_order
 
     # Set up a grid to do a grid search in frequency space.
-    domega = 0.2 / min([time[k].max() - time[k].min() for k in time])
+    if isinstance(time, dict):
+        domega = 0.2 / min([time[k].max() - time[k].min() for k in time])
+    else:
+        domega = 0.2 / (time.max() - time.min())
+
     omegas = 2 * np.pi * np.arange(1 / max(Ts), 1 / min(Ts), domega)
 
     # Do a parallel grid search.
     if pool is None:
         pool = Pool()
     chi2 = pool.map(_fit_wrapper(time, flux, ferr, order), omegas)
+    print(chi2)
 
     # Sort the results by chi2.
     inds = np.argsort(chi2)
