@@ -49,6 +49,8 @@ class _fit_wrapper(object):
         if a[0] < 0 or np.any(amp[0] < amp[1:]):
             return np.inf
 
+        print(omega, chi2)
+
         return chi2
 
     def __call__(self, omega):
