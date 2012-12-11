@@ -51,7 +51,11 @@
         do i=1,n
 
           manom = 2 * pi * t(i) / period + phi
-          call wt2psi(manom, e, psi)
+          if (e .gt. 1.e-6) then
+            call wt2psi(manom, e, psi)
+          else
+            psi = manom
+          endif
           cpsi = dcos(psi)
           d = 1.0d0 - e * cpsi
           cth = (cpsi - e) / d
