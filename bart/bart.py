@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __all__ = [u"BART", u"LimbDarkening", u"QuadraticLimbDarkening",
            u"NonlinearLimbDarkening"]
 
@@ -204,9 +206,16 @@ class BART(object):
         np.testing.assert_almost_equal(p0, self.to_vector())
 
         # Optimize.
-        result = op.minimize(self, p0)
+        nll = lambda p: -self.lnprob(p)
 
-        assert result.success
+        try:
+            result = op.minimize(nll, p0)
+        except FloatingPointError:
+            print(u"Optimization failed. Returning last evaluated point.")
+            return self.to_vector()
+
+        if not result.success:
+            print(u"Optimization was not successful.")
 
         self.from_vector(result.x)
         return result.x

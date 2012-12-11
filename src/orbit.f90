@@ -50,7 +50,9 @@
 
         do i=1,n
 
-          manom = 2 * pi * t(i) / period + phi
+          manom = 2 * pi * t(i) / period - phi
+
+          ! MAGIC: zero tolerance for eccentricity?
           if (e .gt. 1.e-6) then
             call wt2psi(manom, e, psi)
           else
