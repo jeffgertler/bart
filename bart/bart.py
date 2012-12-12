@@ -28,8 +28,8 @@ class BART(object):
         self.iobs = iobs
 
         self._nplanets = 0
-        self.rp, self.ap, self.ep, self.tp, self.php, self.ip = \
-                                            [np.array([]) for i in range(6)]
+        self.rp, self.ap, self.ep, self.tp, self.php, self.pop, self.ip = \
+                                            [np.array([]) for i in range(7)]
 
         self._pars = OrderedDict()
 
@@ -47,13 +47,14 @@ class BART(object):
     def nplanets(self):
         return self._nplanets
 
-    def add_planet(self, r, a, e, T, phi, i):
+    def add_planet(self, r, a, e, T, phi, pomega, i):
         self._nplanets += 1
         self.rp = np.append(self.rp, r)
         self.ap = np.append(self.ap, a)
         self.ep = np.append(self.ep, e)
         self.tp = np.append(self.tp, T)
         self.php = np.append(self.php, phi)
+        self.pop = np.append(self.pop, pomega)
         self.ip = np.append(self.ip, i)
 
     def to_vector(self):
@@ -132,7 +133,8 @@ class BART(object):
             t = self._data[0]
         return _bart.lightcurve(t, self.fs, self.iobs,
                                 self.rp, self.ap, self.ep, self.tp, self.php,
-                                self.ip, self.ldp.bins, self.ldp.intensity)
+                                self.pop, self.ip,
+                                self.ldp.bins, self.ldp.intensity)
 
     def fit_for(self, *args):
         self._pars = OrderedDict()
@@ -161,10 +163,13 @@ class BART(object):
                 self._pars[u"e{0}".format(i)] = Parameter(
                                 tex.format(i + 1), attr=attr, ind=i)
 
-        elif var == u"phi":
-            tex, attr = r"$\phi_{0}$", u"php"
+        elif var in [u"phi", u"pomega"]:
+            if var == u"phi":
+                tex, attr = r"$\phi_{0}$", u"php"
+            elif var == u"pomega":
+                tex, attr = r"$\varpi_{0}$", u"pop"
             for i in range(n):
-                self._pars[u"phi{0}".format(i)] = ConstrainedParameter(
+                self._pars[u"{0}{1}".format(var, i)] = ConstrainedParameter(
                     [0.0, 2 * np.pi], tex.format(i + 1), attr=attr, ind=i)
 
         elif var == u"i":
