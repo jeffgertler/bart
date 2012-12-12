@@ -36,15 +36,12 @@ class BART(object):
         self.ldp = ldp
 
         self._processes = []
+        self.p0 = None
 
     def __del__(self):
         if hasattr(self, u"_processes"):
             for p in self._processes:
                 p.join()
-
-    @classmethod
-    def from_file(cls, fn):
-        pass
 
     @property
     def nplanets(self):
@@ -226,68 +223,83 @@ class BART(object):
 
     def fit(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"],
             threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
-            filename=u"./mcmc.h5"):
+            filename=u"./mcmc.h5", restart=True):
+
+        nwalkers = 100
+
+        if restart:
+            with h5py.File(filename, u"r") as f:
+                self._data = f[u"data"]
+
+                g = f[u"mcmc"]
+                pars = g.attrs[u"pars"].split(u", ")
+                threads = g.attrs[u"threads"]
+                thin = g.attrs[u"thin"]
+
+                p0 = g[u"chain"][:, -1, :]
+
+                ndim = p0.shape[-1]
+                N = int(niter / thin)
+                c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
+                                        dtype=np.float64)
+                lp_ds = g.create_dataset(u"lnp", (nwalkers, N),
+                                        dtype=np.float64)
+
+        else:
+            self._prepare_data(t, f, ferr)
+            p0 = self.to_vector()
+            p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
+
+            with h5py.File(filename, u"w") as f:
+                f.create_dataset(u"data", data=np.vstack(self._data))
+
+                g = f.create_group(u"mcmc")
+                g.attrs[u"pars"] = u", ".join(pars)
+                g.attrs[u"threads"] = threads
+                g.attrs[u"ntrim"] = ntrim
+                g.attrs[u"nburn"] = nburn
+                g.attrs[u"niter"] = niter
+                g.attrs[u"thin"] = thin
+
+                ndim = len(p0)
+                N = int(niter / thin)
+                c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
+                                        dtype=np.float64)
+                lp_ds = g.create_dataset(u"lnp", (nwalkers, N),
+                                        dtype=np.float64)
 
         assert niter % thin == 0
-
-        self._prepare_data(t, f, ferr)
         self.fit_for(*pars)
-        p0 = self.to_vector()
-
-        # Set up emcee.
-        nwalkers, ndim = 100, len(p0)
         self._sampler = None
         s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
-        # Create the file for saving the MCMC results.
-        with h5py.File(filename, u"w") as f:
-            f.create_dataset(u"data", data=np.vstack(self._data))
+        if not restart:
+            for i in range(ntrim):
+                p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
 
-            g = f.create_group(u"mcmc")
-            g.attrs[u"pars"] = u", ".join(pars)
-            g.attrs[u"threads"] = threads
-            g.attrs[u"ntrim"] = ntrim
-            g.attrs[u"nburn"] = nburn
-            g.attrs[u"niter"] = niter
-            g.attrs[u"thin"] = thin
+                # Cluster to get rid of crap.
+                mix = mog.MixtureModel(4, np.atleast_2d(lprob).T)
+                mix.run_kmeans()
+                rs, rmx = mix.kmeans_rs, np.argmax(mix.means.flatten())
 
-            N = int(niter / thin)
-            c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
-                                    dtype=np.float64)
-            lp_ds = g.create_dataset(u"lnp", (nwalkers, N), dtype=np.float64)
+                # Choose the "good" walkers.
+                inds = rs == rmx
+                good = p0[inds].T
 
-        # Sample the parameters.
-        if self.p0 is not None:
-            p0 = np.array(self.p0)
-            self.p0 = None
-        else:
-            p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
+                # Sample from the multi-dimensional Gaussian.
+                mu, cov = np.mean(good, axis=1), np.cov(good)
+                p0[~inds] = np.random.multivariate_normal(mu, cov,
+                                                          np.sum(~inds))
 
-        for i in range(ntrim):
-            p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
-
-            # Cluster to get rid of crap.
-            mix = mog.MixtureModel(4, np.atleast_2d(lprob).T)
-            mix.run_kmeans()
-            rs, rmx = mix.kmeans_rs, np.argmax(mix.means.flatten())
-
-            # Choose the "good" walkers.
-            inds = rs == rmx
-            good = p0[inds].T
-
-            # Sample from the multi-dimensional Gaussian.
-            mu, cov = np.mean(good, axis=1), np.cov(good)
-            p0[~inds] = np.random.multivariate_normal(mu, cov, np.sum(~inds))
-
-            for n in np.arange(len(p0))[~inds]:
-                lp = self.lnprob(p0[n])
-                # NOTE: this _could_ go on forever.
-                while np.isinf(lp):
-                    p0[n] = np.random.multivariate_normal(mu, cov)
+                for n in np.arange(len(p0))[~inds]:
                     lp = self.lnprob(p0[n])
+                    # NOTE: this _could_ go on forever.
+                    while np.isinf(lp):
+                        p0[n] = np.random.multivariate_normal(mu, cov)
+                        lp = self.lnprob(p0[n])
 
-            print(u"Rejected {0} walkers.".format(np.sum(~inds)))
-            s.reset()
+                print(u"Rejected {0} walkers.".format(np.sum(~inds)))
+                s.reset()
 
         # Reset and rerun.
         for i, (pos, lnprob, state) in enumerate(s.sample(p0,
