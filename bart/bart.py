@@ -42,6 +42,10 @@ class BART(object):
             for p in self._processes:
                 p.join()
 
+    @classmethod
+    def from_file(cls, fn):
+        pass
+
     @property
     def nplanets(self):
         return self._nplanets
@@ -253,7 +257,11 @@ class BART(object):
             lp_ds = g.create_dataset(u"lnp", (nwalkers, N), dtype=np.float64)
 
         # Sample the parameters.
-        p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
+        if self.p0 is not None:
+            p0 = np.array(self.p0)
+            self.p0 = None
+        else:
+            p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
 
         for i in range(ntrim):
             p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
