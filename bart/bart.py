@@ -221,59 +221,53 @@ class BART(object):
         self.from_vector(result.x)
         return result.x
 
-    def fit(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"],
+    def fit(self, t=None, f=None, ferr=None,
+            pars=[u"fs", u"T", u"r", u"a", u"phi"],
             threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
-            filename=u"./mcmc.h5", restart=True):
+            filename=u"./mcmc.h5", restart=None):
 
         nwalkers = 100
 
-        if restart:
-            with h5py.File(filename, u"r") as f:
-                self._data = f[u"data"]
+        if restart is not None:
+            with h5py.File(restart, u"r") as f:
+                self._data = tuple(f[u"data"])
 
                 g = f[u"mcmc"]
                 pars = g.attrs[u"pars"].split(u", ")
                 threads = g.attrs[u"threads"]
-                thin = g.attrs[u"thin"]
 
                 p0 = g[u"chain"][:, -1, :]
-
                 ndim = p0.shape[-1]
-                N = int(niter / thin)
-                c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
-                                        dtype=np.float64)
-                lp_ds = g.create_dataset(u"lnp", (nwalkers, N),
-                                        dtype=np.float64)
 
         else:
             self._prepare_data(t, f, ferr)
             p0 = self.to_vector()
             p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
+            ndim = len(p0)
 
-            with h5py.File(filename, u"w") as f:
-                f.create_dataset(u"data", data=np.vstack(self._data))
+        with h5py.File(filename, u"w") as f:
+            f.create_dataset(u"data", data=np.vstack(self._data))
 
-                g = f.create_group(u"mcmc")
-                g.attrs[u"pars"] = u", ".join(pars)
-                g.attrs[u"threads"] = threads
-                g.attrs[u"ntrim"] = ntrim
-                g.attrs[u"nburn"] = nburn
-                g.attrs[u"niter"] = niter
-                g.attrs[u"thin"] = thin
+            g = f.create_group(u"mcmc")
+            g.attrs[u"pars"] = u", ".join(pars)
+            g.attrs[u"threads"] = threads
+            g.attrs[u"ntrim"] = ntrim
+            g.attrs[u"nburn"] = nburn
+            g.attrs[u"niter"] = niter
+            g.attrs[u"thin"] = thin
 
-                ndim = len(p0)
-                N = int(niter / thin)
-                c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
-                                        dtype=np.float64)
-                lp_ds = g.create_dataset(u"lnp", (nwalkers, N),
-                                        dtype=np.float64)
+            N = int(niter / thin)
+            c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
+                                    dtype=np.float64)
+            lp_ds = g.create_dataset(u"lnp", (nwalkers, N),
+                                    dtype=np.float64)
 
         assert niter % thin == 0
         self.fit_for(*pars)
         self._sampler = None
         s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
-        if not restart:
+        if restart is None:
             for i in range(ntrim):
                 p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
 
