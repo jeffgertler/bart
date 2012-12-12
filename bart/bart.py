@@ -224,9 +224,8 @@ class BART(object):
     def fit(self, t=None, f=None, ferr=None,
             pars=[u"fs", u"T", u"r", u"a", u"phi"],
             threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
+            nwalkers=100,
             filename=u"./mcmc.h5", restart=None):
-
-        nwalkers = 100
 
         if restart is not None:
             with h5py.File(restart, u"r") as f:
@@ -236,14 +235,18 @@ class BART(object):
                 pars = g.attrs[u"pars"].split(u", ")
                 threads = g.attrs[u"threads"]
 
-                p0 = g[u"chain"][:, -1, :]
-                ndim = p0.shape[-1]
+                chain0 = g[u"chain"][...]
+                lnp0 = g[u"lnp"][...]
+
+                p0 = chain0[:, -1, :]
+                nwalkers, i0, ndim = chain0.shape
 
         else:
             self._prepare_data(t, f, ferr)
             p0 = self.to_vector()
             p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
             ndim = len(p0)
+            i0 = 0
 
         with h5py.File(filename, u"w") as f:
             f.create_dataset(u"data", data=np.vstack(self._data))
@@ -256,11 +259,15 @@ class BART(object):
             g.attrs[u"niter"] = niter
             g.attrs[u"thin"] = thin
 
-            N = int(niter / thin)
+            N = i0 + int(niter / thin)
             c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
                                     dtype=np.float64)
             lp_ds = g.create_dataset(u"lnp", (nwalkers, N),
                                     dtype=np.float64)
+
+            if restart is not None:
+                c_ds[:, :i0, :] = chain0
+                lp_ds[:, :i0] = lnp0
 
         assert niter % thin == 0
         self.fit_for(*pars)
@@ -309,7 +316,7 @@ class BART(object):
                     g.attrs[u"naccepted"] = s.naccepted
                     g.attrs[u"state"] = pickle.dumps(state)
 
-                    ind = int(i / thin)
+                    ind = i0 + int(i / thin)
                     c_ds[:, ind, :] = pos
                     lp_ds[:, ind] = lnprob
 
