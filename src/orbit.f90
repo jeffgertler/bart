@@ -32,7 +32,7 @@
 
       end subroutine
 
-      subroutine solve_orbit(n, t, e, a, period, phi, incl, pos)
+      subroutine solve_orbit(n, t, e, a, period, phi, pomega, incl, pos)
 
         ! Solve Kepler's equations for the 3D position of a point mass
         ! eccetrically orbiting a larger mass.
@@ -42,11 +42,11 @@
         double precision :: pi=3.141592653589793238462643D0
         integer, intent(in) :: n
         double precision, dimension(n), intent(in) :: t
-        double precision, intent(in) :: e, a, period, phi, incl
+        double precision, intent(in) :: e, a, period, phi, pomega, incl
         double precision, dimension(3,n), intent(out) :: pos
 
         integer :: i
-        double precision :: manom, psi, cpsi, d, cth, r, x, y
+        double precision :: manom, psi, cpsi, d, cth, r, x, y, xp, yp
 
         do i=1,n
 
@@ -67,9 +67,13 @@
           x = r * cth
           y = r * dsign(dsqrt(1 - cth * cth), dsin(psi))
 
-          pos(1,i) = x * dcos(incl)
-          pos(2,i) = y
-          pos(3,i) = x * dsin(incl)
+          ! Rotate by pomega.
+          xp = x * dcos(pomega) + y * dsin(pomega)
+          yp = -x * dsin(pomega) + y * dcos(pomega)
+
+          pos(1,i) = xp * dcos(incl)
+          pos(2,i) = yp
+          pos(3,i) = xp * dsin(incl)
 
         enddo
 

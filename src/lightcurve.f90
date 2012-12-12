@@ -1,6 +1,6 @@
       subroutine lightcurve(n, t, &
                             fs, iobs, &
-                            np, rp, ap, ep, tp, php, ip, &
+                            np, rp, ap, ep, tp, php, pop, ip, &
                             nld, rld, ild, &
                             flux)
 
@@ -37,6 +37,9 @@
         ! :param php: (double precision(np))
         !   The phases of the orbits in radians.
         !
+        ! :param pop: (double precision(np))
+        !   The pomegas of the orbits in radians.
+        !
         ! :param ip: (double precision(np))
         !   The inclinations of the orbits in degrees.
         !
@@ -72,7 +75,7 @@
         ! The planets.
         integer, intent(in) :: np
         double precision, dimension(np), intent(in) :: &
-                                              rp,ap,ep,tp,php,ip
+                                              rp,ap,ep,tp,php,pop,ip
 
         ! The limb-darkening profile.
         integer, intent(in) :: nld
@@ -94,7 +97,7 @@
         do i=1,np
 
           call solve_orbit(n, t, &
-                           ep(i), ap(i), tp(i), php(i), &
+                           ep(i), ap(i), tp(i), php(i), pop(i), &
                            (90.d0 - iobs - ip(i)) / 180.d0 * pi, pos)
 
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:))
