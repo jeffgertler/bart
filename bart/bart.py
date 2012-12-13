@@ -127,11 +127,12 @@ class BART(object):
         delta = self._data[1] - model
 
         # Add in the jitter.
-        ivar = self._data[2]
+        ivar = np.array(self._data[2])
         inds = ivar > 0
         ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
 
         chi2 = np.sum(delta * delta * ivar)
+
         return -0.5 * chi2
 
     def lightcurve(self, t=None):
@@ -258,15 +259,29 @@ class BART(object):
                 nwalkers, i0, ndim = chain0.shape
 
             self.fit_for(*pars)
+            s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
         else:
             self._prepare_data(t, f, ferr)
             self.fit_for(*pars)
-            p0 = self.to_vector()
+            p_init = self.to_vector()
             ndim = len(pars)
 
-            p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
+            size = 1e-6
+            p0 = emcee.utils.sample_ball(p_init, size * p_init, size=nwalkers)
             i0 = 0
+
+            s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
+
+            lp = s._get_lnprob(p0)[0]
+            dlp = np.var(lp)
+            while dlp > 2:
+                size *= 0.5
+                p0 = emcee.utils.sample_ball(p_init, size * p_init,
+                                                size=nwalkers)
+
+                lp = s._get_lnprob(p0)[0]
+                dlp = np.var(lp)
 
         with h5py.File(filename, u"w") as f:
             f.create_dataset(u"data", data=np.vstack(self._data))
@@ -289,9 +304,7 @@ class BART(object):
                 c_ds[:, :i0, :] = chain0
                 lp_ds[:, :i0] = lnp0
 
-        assert niter % thin == 0
         self._sampler = None
-        s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
         if restart is None:
             for i in range(ntrim):
@@ -326,6 +339,7 @@ class BART(object):
                                                         thin=thin,
                                                         iterations=niter)):
             if i % thin == 0:
+                print(np.mean(s.acceptance_fraction))
                 with h5py.File(filename, u"a") as f:
                     g = f[u"mcmc"]
                     c_ds = g[u"chain"]
