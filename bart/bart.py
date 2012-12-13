@@ -21,11 +21,12 @@ from . import triangle
 
 class BART(object):
 
-    def __init__(self, fs, iobs, ldp):
+    def __init__(self, fs, iobs, ldp, jitter=0.01):
         self._data = None
 
         self.fs = fs
         self.iobs = iobs
+        self.jitter = jitter
 
         self._nplanets = 0
         self.rp, self.ap, self.ep, self.tp, self.php, self.pop, self.ip = \
@@ -124,7 +125,13 @@ class BART(object):
         assert self._data is not None
         model = self.lightcurve()
         delta = self._data[1] - model
-        chi2 = np.sum(delta * delta * self._data[2])
+
+        # Add in the jitter.
+        ivar = self._data[2]
+        inds = ivar > 0
+        ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
+
+        chi2 = np.sum(delta * delta * ivar)
         return -0.5 * chi2
 
     def lightcurve(self, t=None):
@@ -189,6 +196,9 @@ class BART(object):
                 self._pars[u"ldp_{0}".format(i)] = LDPParameter(
                         r"$\Delta I_{{{0}}}$".format(i), ind=i)
 
+        elif var == u"jitter":
+            self._pars[u"jitter"] = LogParameter(u"$s^2$", u"jitter")
+
         else:
             raise RuntimeError(u"Unknown parameter {0}".format(var))
 
@@ -200,7 +210,8 @@ class BART(object):
         t, f, ivar = t[inds], f[inds], 1.0 / ferr[inds] / ferr[inds]
 
         # Store the data.
-        self._data = [t, f, ivar]
+        mu = np.median(f)
+        self._data = [t - np.mean(t), f / mu, ivar * mu * mu]
 
     def optimize(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"]):
         self._prepare_data(t, f, ferr)
@@ -246,11 +257,15 @@ class BART(object):
                 p0 = chain0[:, -1, :]
                 nwalkers, i0, ndim = chain0.shape
 
+            self.fit_for(*pars)
+
         else:
             self._prepare_data(t, f, ferr)
+            self.fit_for(*pars)
             p0 = self.to_vector()
+            ndim = len(pars)
+
             p0 = emcee.utils.sample_ball(p0, 0.001 * p0, size=nwalkers)
-            ndim = len(p0)
             i0 = 0
 
         with h5py.File(filename, u"w") as f:
@@ -275,7 +290,6 @@ class BART(object):
                 lp_ds[:, :i0] = lnp0
 
         assert niter % thin == 0
-        self.fit_for(*pars)
         self._sampler = None
         s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
