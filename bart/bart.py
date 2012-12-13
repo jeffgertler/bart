@@ -133,6 +133,8 @@ class BART(object):
 
         chi2 = np.sum(delta * delta * ivar)
 
+        # FIXME: regularization for jitter.
+
         return -0.5 * chi2
 
     def lightcurve(self, t=None):
