@@ -21,7 +21,7 @@ from . import triangle
 
 class BART(object):
 
-    def __init__(self, fs, iobs, ldp, jitter=0.01):
+    def __init__(self, fs, iobs, ldp, jitter=0.0):
         self._data = None
 
         self.fs = fs
@@ -214,7 +214,7 @@ class BART(object):
 
         # Store the data.
         mu = np.median(f)
-        self._data = [t - np.mean(t), f / mu, ivar * mu * mu]
+        self._data = [t, f / mu, ivar * mu * mu]
 
     def optimize(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"]):
         self._prepare_data(t, f, ferr)
@@ -267,7 +267,7 @@ class BART(object):
             self._prepare_data(t, f, ferr)
             self.fit_for(*pars)
             p_init = self.to_vector()
-            ndim = len(pars)
+            ndim = len(p_init)
 
             size = 1e-6
             p0 = emcee.utils.sample_ball(p_init, size * p_init, size=nwalkers)
@@ -341,7 +341,7 @@ class BART(object):
                                                         thin=thin,
                                                         iterations=niter)):
             if i % thin == 0:
-                print(np.mean(s.acceptance_fraction))
+                print(i, np.mean(s.acceptance_fraction))
                 with h5py.File(filename, u"a") as f:
                     g = f[u"mcmc"]
                     c_ds = g[u"chain"]
@@ -357,7 +357,13 @@ class BART(object):
 
         # Let's see some stats.
         print(u"Acceptance fraction: {0:.2f} %"
-                .format(np.mean(s.acceptance_fraction)))
+                .format(100 * np.mean(s.acceptance_fraction)))
+
+        try:
+            print(u"Autocorrelation time: {0}".format(
+                    thin * s.acor))
+        except RuntimeError:
+            print(u"Autocorrelation time: too short")
 
         self._sampler = s
         return self._sampler.flatchain
