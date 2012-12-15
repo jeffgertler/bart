@@ -396,14 +396,14 @@ class BART(object):
         # Plot the fit.
         time, flux, ivar = self._data
         pl.figure(figsize=(6, 4))
-        pl.errorbar(time % T, flux, yerr=1.0 / np.sqrt(ivar), fmt=u".k")
-        pl.plot(t, f, u"#4682b4", alpha=0.05)
+        pl.plot(time % T, flux, u".k", alpha=0.1)
+        pl.plot(t, f, u"#4682b4", alpha=0.08)
 
         pl.savefig(u"lc.png")
 
         # Plot the limb-darkening.
         pl.clf()
-        pl.plot(*ld, color=u"#4682b4", alpha=0.1)
+        pl.plot(*ld, color=u"#4682b4", alpha=0.08)
         if true_ldp is not None:
             pl.plot(*true_ldp, color=u"k", lw=2)
         pl.savefig(u"ld.png")
@@ -427,13 +427,22 @@ class BART(object):
             if u"ldp" not in k:
                 inds.append(i)
 
+        labels = [str(p) for i, (k, p) in enumerate(self._pars.iteritems())
+                            if i in inds]
+
+        # Add the log-prob values too.
+        print(plotchain.shape, self._sampler.lnprobability.flatten().shape)
+        plotchain = np.hstack([plotchain,
+                    np.atleast_2d(self._sampler.lnprobability.flatten()).T])
+        inds.append(plotchain.shape[1] - 1)
+        labels.append(u"log-prob")
+
         if truths is not None:
             truths = [truths.get(k)
                     for i, (k, p) in enumerate(self._pars.iteritems())
                     if i in inds]
 
-        triangle.corner(plotchain[:, inds].T, labels=[str(p)
-                                for k, p in self._pars.iteritems()], bins=20,
+        triangle.corner(plotchain[:, inds].T, labels=labels, bins=20,
                                 truths=truths)
 
         pl.savefig(u"triangle.png")
