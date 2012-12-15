@@ -14,7 +14,7 @@ interfaces_exist = [os.path.exists(p) for p in [u"bart/bart.pyf",
 if u"interface" in sys.argv or not all(interfaces_exist):
     # Generate the Fortran signature/interface.
     cmd = u"cd src;"
-    cmd += u"f2py lightcurve.f90 orbit.f90 -m _bart -h ../bart/bart.pyf"
+    cmd += u"f2py lightcurve.f90 orbit.f90 ld.f90 -m _bart -h ../bart/bart.pyf"
     cmd += u" --overwrite-signature"
     os.system(cmd)
 
