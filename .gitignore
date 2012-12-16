@@ -9,3 +9,5 @@ _*module.c
 *.pdf
 venv
 *.h5
+MANIFEST
+dist

@@ -10,9 +10,19 @@ import cPickle as pickle
 
 import numpy as np
 import scipy.optimize as op
-import matplotlib.pyplot as pl
-import h5py
 import emcee
+
+try:
+    import matplotlib.pyplot as pl
+    pl = pl
+except ImportError:
+    pl = None
+
+try:
+    import h5py
+    h5py = h5py
+except ImportError:
+    h5py = None
 
 from . import _bart
 from . import mog
