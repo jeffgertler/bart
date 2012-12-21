@@ -219,7 +219,7 @@ class BART(object):
         # Deal with masked and problematic data points.
         inds = ~(np.isnan(t) + np.isnan(f) + np.isnan(ferr)
             + np.isinf(t) + np.isinf(f) + np.isinf(ferr)
-            + (t < 0) + (f < 0) + (ferr <= 0))
+            + (f < 0) + (ferr <= 0))
         t, f, ivar = t[inds], f[inds], 1.0 / ferr[inds] / ferr[inds]
 
         # Store the data.
@@ -384,6 +384,7 @@ class BART(object):
         self._processes.append(p)
 
     def _lc_and_ldp(self, true_ldp):
+        time, flux, ivar = self._data
         chain = self._sampler.flatchain
 
         # Compute the best fit period.
@@ -394,29 +395,49 @@ class BART(object):
 
         # Generate light curve samples.
         t = np.linspace(0, T, 500)
+        t2 = np.linspace(time.min(), time.max(),
+                int(100 * (time.max() - time.min() / T)))
         f = np.empty((len(chain), len(t)))
+        f2 = np.zeros(len(t2))
         ld = [self.ldp.plot()[0],
               np.empty((len(chain), 2 * len(self.ldp.bins)))]
         for ind, v in enumerate(chain):
             f[ind, :] = self.from_vector(v).lightcurve(t)
+            f2 += self.lightcurve(t2)
             ld[1][ind, :] = self.ldp.plot()[1]
         f = f.T
+        f2 = f2.T / len(chain)
         ld[1] = ld[1].T
 
         # Plot the fit.
-        time, flux, ivar = self._data
-        pl.figure(figsize=(6, 4))
-        pl.plot(time % T, flux, u".k", alpha=0.1)
-        pl.plot(t, f, u"#4682b4", alpha=0.08)
+        mu = np.median(flux)
+        pl.figure()
+        ax = pl.axes([0.15, 0.15, 0.8, 0.8])
+        ax.plot(time % T, 1000 * (flux / mu - 1), u".k", alpha=0.5)
+        ax.set_xlabel(u"Phase [days]")
+        ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
+        pl.savefig(u"lc.png", dpi=300)
 
-        pl.savefig(u"lc.png")
+        ax.plot(t, 1000 * (f / mu - 1), u"#4682b4", alpha=0.04)
+        pl.savefig(u"lc_fit.png", dpi=300)
+
+        # Plot the full fit.
+        pl.clf()
+        ax = pl.axes([0.15, 0.15, 0.8, 0.8])
+        ax.plot(time, 1000 * (flux / mu - 1), u".k", alpha=0.5)
+        ax.set_xlabel(u"Time [days]")
+        ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
+        pl.savefig(u"lc_full.png", dpi=300)
+
+        ax.plot(t2, 1000 * (f2 / mu - 1), u"#4682b4")
+        pl.savefig(u"lc_full_fit.png", dpi=300)
 
         # Plot the limb-darkening.
         pl.clf()
         pl.plot(*ld, color=u"#4682b4", alpha=0.08)
         if true_ldp is not None:
             pl.plot(*true_ldp, color=u"k", lw=2)
-        pl.savefig(u"ld.png")
+        pl.savefig(u"ld.png", dpi=300)
 
     def plot_triangle(self, truths=None):
         p = Process(target=_async_plot, args=(u"_triangle", self, truths))

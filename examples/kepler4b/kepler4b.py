@@ -22,7 +22,7 @@ time = time - t0
 
 # Plot the raw data.
 ax = pl.axes([0.15, 0.15, 0.8, 0.8])
-ax.plot(time - np.min(time[~np.isnan(time)]),
+ax.plot(time,
         1000 * (flux_raw / np.median(flux_raw[~np.isnan(flux_raw)]) - 1),
         ".k", alpha=0.5)
 ax.set_xlabel("Time [days]")
@@ -50,7 +50,7 @@ r = 0.0247
 a = 6.47
 e = 0.0
 T = 3.21346
-phi = 2.90765788
+phi = 4.65
 pomega = 0.0
 i = 89.76
 
@@ -58,9 +58,7 @@ i = 89.76
 system.add_planet(r, a, e, T, phi, pomega, i)
 
 # Fit it.
-print(system.optimize(time, flux, ferr, pars=[u"phi"]))
-system.fit(time, flux, ferr, pars=[u"fs", u"phi", u"T", u"a", u"r",
-                                   u"i", u"e", u"ldp"],
-                        niter=200, thin=1, ntrim=0, nwalkers=64)
+system.fit(time, flux, ferr, pars=[u"fs", u"phi", u"T", u"a", u"r", u"ldp"],
+                        niter=5000, thin=100, ntrim=1, nwalkers=64)
 system.plot_fit()
 system.plot_triangle()
