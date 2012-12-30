@@ -1,0 +1,1 @@
+Search.setIndex({objects:{},terms:{softwar:0,bart:0,see:0,file:0,contributor:0,happen:0,hogg:0,hacker:0,develop:0,welcom:0,copyright:0,author:0,support:0,detail:0,avail:0,under:0,mit:0,foreman:0,contribut:0,dan:0,free:0,github:0,cooper:0,pull:0,made:0,hous:0,mackei:0,patrick:0,request:0,david:0,licens:0,summari:0},objtypes:{},titles:["Bart"],objnames:{},filenames:["index"]})
