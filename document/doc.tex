@@ -107,12 +107,13 @@ the primary star to light emitted and reflected by the heterogeneous planet surf
 to stellar rotation, surface convection, oblateness, and sunspots.
 
 Up to now, most eclipse modeling has made use of extremely useful and fast analytic
-approximations (\citealt{mandel}).  However, these approximations only permit certain
-kinds of limb darkening effects and require the evaluation of special
-functions.  Here we present a new approach to modeling planetary transits, based on
-a numerical annular model for limb darkening.  We describe and publish high performance
-open-source code and also apply it to real data to demonstrate its use in probabilistic
-inference.
+approximations \citep{mandel}.  However, these approximations only permit
+certain kinds of limb darkening effects and require the evaluation of special
+functions.  Here we present a new approach to modeling planetary transits,
+based on a numerical annular model for limb darkening.  We describe and
+publish high performance open-source code and also apply it to real data to
+demonstrate its use in probabilistic inference.
+
 
 \section{Lightcurves}
 
@@ -131,45 +132,86 @@ integral:
 where $r$ is distance from the center of the star and $A_\mathrm{occ}$ is the
 area (in the plane of the sky) where the planet overlaps the star.
 
-For uniform $I(r) = 1$,
-\[
-\lambda (R, p, b) = \left\{ \begin{array}{ll} 0 & R+p<b \\ R^2 \kappa_R + p^2 \kappa_p - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}    & |R-p| < b \leq R+p \\ \pi p^2 & b \leq R-a \\ \pi R^2 & b \leq a-R \end{array} \right.
-\]
-with $\kappa_R = \mathrm{cos}^{-1}((-p^2+b^2+R^2)/2 \, b)$ and $\kappa_p = \mathrm{cos}^{-1}((p^2+b^2-R^2)/2\, p \, b)$. The derivation for this formula can be found in the appendix.
+For a uniformly illuminated star, $I(r) = 1$ and the occulted fraction of
+light is given by
+\begin{eqnarray}\eqlabel{uniform-occ}
+    \lambda_\mathrm{uniform} (R, p, b) = \left \{ \begin{array}{ll}
+            0 & R + p < b \\
+            R^2 \, \kappa_1 + p^2 \, \kappa_2 - \kappa_3
+                & |R - p| < b \leq R + p \\
+            \pi \, p^2 & b \leq R - a \\
+            \pi R^2 & b \leq a - R
+        \end{array} \right.
+\end{eqnarray}
+where
+\begin{eqnarray}
+    \kappa_1 & = & \arccos \left ( \frac{-p^2 + b^2 + R^2}{2 \, b} \right ) \\
+    \kappa_2 & = & \arccos \left ( \frac{p^2 + b^2 - R^2}{2\, p \, b}
+                           \right ) \\
+    \kappa_3 & = & \frac{1}{2} \sqrt{[R + p + b] \, [R - p + b]
+                        \, [-R + p + b] \, [R + p - b]} \quad.
+\end{eqnarray}
+This is similar to Equation (1) from \citet{mandel} but we've explicitly
+computed $\lambda_\mathrm{uniform}$ as a function of the stellar radius in
+anticipation of the next section. The derivation of \eq{uniform-occ} can be
+found in the Appendix.
+
+
 \section{Limb-darkening}
 
-\citet{mandel} provide the commonly used analytic expressions for the effects
-of limb-darkening for three simple stellar profiles $I(r)$. Here, we present
-an approximation to a fully general stellar profile. We approximate the
-surface of the star as a piecewise constant function of (normalized) radius:
+In reality, stars are not uniformly bright illuminated on the plane of the
+sky. Instead, they dim towards the edges. This effect is called
+\emph{limb-darkening}. \citet{mandel} provide analytic expressions for the
+effects of limb-darkening for three simple stellar profiles $I(r)$.
+Implementations of these results have been ported to most programming
+languages and they are used for most---if not all---applications of exoplanet
+transit modeling. Instead of asserting a specific form for the limb-darkening
+profile (LDP) and relying on these analytic solutions, we use a numerical
+approach that can reach high precision with reasonable computational
+efficiency---first-order convergence---for \emph{any} LDP.
+
+To achieve this, we approximate the surface of the star as a piecewise
+constant function of radius:
 \begin{eqnarray}
     I(r) = \left \{ \begin{array}{ll}
         I_0, & 0 \le r < r_0 \\
         I_1, & r_0 \le r < r_1 \\
         \cdots & \\
-        I_{N-1}, & r_{N-1} \le r < 1 \\
+        I_{N-1}, & r_{N-1} \le r < R \\
+        0, & r > R
     \end{array}\right . \quad.
 \end{eqnarray}
 In this approximation, the integral in \eq{general-occ} simplifies to the sum
-\begin{eqnarray}
-    \lambda(a, b) & = & \sum_{n=1}^N w_n (a, b) \, I_n \\
-                  & = & \bvec{w} (a, b) \cdot \bvec{I}
+\begin{eqnarray}\eqlabel{numerical-occ}
+    \lambda_\mathrm{numer} (R, p, b) & = & \sum_{n=1}^N w_n (p, b) \, I_n \\
+                                     & = & \bvec{w} (p, b) \cdot \bvec{I}
 \end{eqnarray}
-where $w_n(a, b)$ encapsulates all the geometry. The specific form of $w_n$ is
+where $w_n(a, b)$ encapsulates all the geometry. The specific form of $w_n$
+can be computed using \eq{uniform-occ}
 \begin{eqnarray}
-    w_n (a, b) & = & 2 \, \int_0 ^\pi \int_{r_{\mathrm{in},n} (a, b, \theta)}
-        ^{r_{\mathrm{out},n} (a, b, \theta)} r \, \dd r \, \dd \theta \\
-    & = & \int_0 ^\pi [ r_{\mathrm{out},n} (a, b, \theta) ]^2  -
-        [ r_{\mathrm{in},n} (a, b, \theta) ]^2 \, \dd \theta
-    \quad.
+    w_n (p, b) & = & \lambda_\mathrm{uniform} (r_{n}, p, b)
+                   - \lambda_\mathrm{uniform} (r_{n-1}, p, b)
+\end{eqnarray}
+if we define $r_{-1} \equiv 0$ and $r_N \equiv R$.
+
+The lightcurve produced by \eq{numerical-occ} is very general because there is
+no constraint on the positions of the bin edges $r_n$ or on the intensity
+levels $I_n$. It is also a good idea to use this method for several reasons:
+\begin{enumerate}
+    {\item a reason}
+    {\item another reason}
+\end{enumerate}
+
+One remaining issue with \eq{numerical-occ} is the question of normalization.
+There is currently an infinite degeneracy between the overall normalization of
+the LDP and the flux of the star itself. To break this degeneracy, we add one
+constraint on the intensity values. Namely, the surface integral of $I(r)$
+should be equal to one
+\begin{eqnarray}
+    \sum_{n=1}^{N} I_n \, \left [ r_n^2 - r_{n-1}^2 \right ]
+    & \equiv & \frac{1}{\pi} \quad.
 \end{eqnarray}
 
-At given $(a, b, \theta)$, the radii of the edges of the planet are given
-(using the cosine rule) by
-\begin{eqnarray}
-    r_\pm (a, b, \theta) & = & b \, \cos \theta \pm \sqrt{a^2 -
-        b^2\,\sin^2\theta}
-\end{eqnarray}
 
 \section{Kepler KOI XXX}
 
