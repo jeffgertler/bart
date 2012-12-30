@@ -6,10 +6,8 @@ import sys
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-
-import bart
+# sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# import bart
 
 
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx",
@@ -27,8 +25,8 @@ master_doc = "index"
 # General information about the project.
 project = u"Bart"
 copyright = u"2012, Dan Foreman-Mackey"
-version = bart.__version__
-release = bart.__version__
+# version = bart.__version__
+# release = bart.__version__
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
