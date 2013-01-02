@@ -28,6 +28,7 @@
 \newcommand{\project}[1]{{\sffamily #1}}
 \newcommand{\Python}{\project{Python}}
 \newcommand{\numpy}{\project{numpy}}
+\newcommand{\bart}{\project{Bart}}
 \newcommand{\license}{MIT License}
 
 \newcommand{\foreign}[1]{\emph{#1}}
@@ -174,6 +175,17 @@ computed $\lambda_\mathrm{uniform}$ as a function of the stellar radius in
 anticipation of the next section. The derivation of \eq{uniform-occ} can be
 found in the Appendix.
 
+The impact parameter $b$ in the equations above can be computed from the
+physical and observational parameters of the system by solving for the orbit
+and then ``observing'' the system from infinity. To be explicit, we will
+briefly explain the parameterization that we use for the orbital elements in
+\bart. The host star's mass $M_\star$ and inclination of the mean orbital
+plane of the planets $i$ are the only stellar properties that enter
+the orbit computation. Then, for each each planet $k$, its orbit is
+specified by 6 parameters: the semi-major axis $a^{(k)}$, the orbital
+eccentricity $e^{(k)}$, the relative inclination $\delta i^{(k)}$, the time of
+a reference transit $t_0^{(k)}$, \ldots
+
 
 \subsection{Limb darkening}
 
@@ -242,7 +254,7 @@ What is so good about what we have done?
 What are the limitations of what we have done?
 
 We didn't do anything beyond limb darkening:  No sunspots or convection.
-How could we (in principle) make those changes within the \project{Bart} framework?
+How could we (in principle) make those changes within the \bart framework?
 
 Related to the above, are there elliptical generalizations of any of the above?
 
