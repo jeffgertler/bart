@@ -1,6 +1,6 @@
       subroutine lightcurve(n, t, &
-                            fs, iobs, &
-                            np, rp, ap, ep, tp, php, pop, ip, &
+                            fs, mstar, rstar, iobs, &
+                            np, r, a, e, t0, pomega, incl, &
                             nld, rld, ild, &
                             flux)
 
@@ -10,38 +10,42 @@
         !   The number of points in the lightcurve.
         !
         ! :param t: (double precision(n))
-        !   The times where the lightcurve should be evaluated.
+        !   The times where the lightcurve should be evaluated in days.
         !
         ! :param fs: (double precision)
-        !   The un-occulted flux of the star.
+        !   The un-occulted flux of the star in arbitrary units.
+        !
+        ! :param mstar: (double precision)
+        !   The mass of the star in Solar masses.
+        !
+        ! :param rstar: (double precision)
+        !   The radius of the star in Solar radii.
         !
         ! :param iobs: (double precision)
-        !   The observation angle in degrees.
+        !   The observation angle in degrees (90deg corresponds to edge
+        !   on).
         !
         ! :param np: (integer)
         !   The number of planets in the system.
         !
-        ! :param rp: (double precision(np))
+        ! :param r: (double precision(np))
         !   The sizes of the planets in units of the star's radius.
         !
-        ! :param ap: (double precision(np))
+        ! :param a: (double precision(np))
         !   The semi-major axes of the orbits in units of the star's
         !   radius.
         !
-        ! :param ep: (double precision(np))
+        ! :param e: (double precision(np))
         !   The eccentricities of the orbits.
         !
-        ! :param tp: (double precision(np))
-        !   The periods of the orbits in days.
+        ! :param t0: (double precision(np))
+        !   The time of a reference pericenter passage in days.
         !
-        ! :param php: (double precision(np))
-        !   The phases of the orbits in radians.
-        !
-        ! :param pop: (double precision(np))
+        ! :param pomegas: (double precision(np))
         !   The pomegas of the orbits in radians.
         !
-        ! :param ip: (double precision(np))
-        !   The inclinations of the orbits in degrees.
+        ! :param incl: (double precision(np))
+        !   The relative inclinations of the orbits in degrees.
         !
         ! :param nld: (integer)
         !   The number of radial bins in the limb-darkening profile.
@@ -70,12 +74,12 @@
         double precision, dimension(n), intent(in) :: t
 
         ! The properties of the star and the system.
-        double precision, intent(in) :: fs, iobs
+        double precision, intent(in) :: fs, mstar, rstar, iobs
 
         ! The planets.
         integer, intent(in) :: np
         double precision, dimension(np), intent(in) :: &
-                                              rp,ap,ep,tp,php,pop,ip
+                                          r, a, e, t0, pomega, incl
 
         ! The limb-darkening profile.
         integer, intent(in) :: nld
@@ -85,7 +89,7 @@
         double precision, dimension(n), intent(out) :: flux
 
         integer :: i, j
-        double precision, dimension(3,n) :: pos
+        double precision, dimension(3, n) :: pos
         double precision, dimension(n) :: b, tmp
 
         ! Initialize the full lightcurve to the un-occulted stellar
@@ -94,22 +98,22 @@
 
         ! Loop over the planets and solve for their orbits and transit
         ! profiles.
-        do i=1,np
+        do i=1, np
 
-          call solve_orbit(n, t, &
-                           ep(i), ap(i), tp(i), php(i), pop(i), &
-                           (90.d0 - iobs - ip(i)) / 180.d0 * pi, pos)
+          call solve_orbit(n, t, mstar, &
+                           e(i), a(i) * rstar, t0(i), pomega(i), &
+                           (90.d0 - iobs - incl(i)) / 180.d0 * pi, pos)
 
-          b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:))
+          b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:)) / rstar
 
           ! HACK: deal with positions behind star.
-          do j=1,n
-            if (pos(1,j) .le. 0.0d0) then
-              b(j) = 1.1d0 + rp(i)
+          do j=1, n
+            if (pos(1, j) .le. 0.0d0) then
+              b(j) = 1.1d0 + r(i)
             endif
           enddo
 
-          call ldlc(rp(i), nld, rld, ild, n, b, tmp)
+          call ldlc(r(i), nld, rld, ild, n, b, tmp)
           flux = flux * tmp
 
         enddo
