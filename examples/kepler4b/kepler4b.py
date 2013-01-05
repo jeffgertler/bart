@@ -61,7 +61,7 @@ system = bart.BART(fstar, mstar, rstar, iobs, ldp)
 system.add_planet(r, a, e, t0, pomega, i)
 
 # Fit it.
-system.fit(time, flux, ferr, pars=[u"fs", u"phi", u"T", u"a", u"r", u"ldp"],
-                        niter=5000, thin=100, ntrim=1, nwalkers=64)
+system.fit(time, flux, ferr, pars=[u"fstar", u"t0", u"a", u"r", u"ldp"],
+                        niter=1000, thin=100, ntrim=1, nwalkers=64)
 system.plot_fit()
 system.plot_triangle()

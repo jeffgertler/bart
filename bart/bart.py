@@ -191,7 +191,7 @@ class BART(object):
             self._pars[u"fstar"] = Parameter(r"$f_\star$", u"fstar")
 
         elif var in [u"t0", u"r", u"a"]:
-            if var == "T":
+            if var == "t0":
                 tex, attr = r"$t_0^{{({0})}}$", u"t0"
             elif var == "r":
                 tex, attr = r"$r^{{({0})}}$", u"r"
