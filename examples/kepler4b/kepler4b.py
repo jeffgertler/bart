@@ -41,21 +41,24 @@ if True:
     ldp = bart.LimbDarkening(rbins, ir)
 
 # Initialize the planetary system.
-fs = 1.0
+fstar = 1.0
+mstar = 1.0
 iobs = 0.0
-system = bart.BART(fs, iobs, ldp)
 
 # The parameters of the planet:
 r = 0.0247
 a = 6.47
 e = 0.0
 T = 3.21346
-phi = 4.65
+t0 = 0.4
 pomega = 0.0
 i = 89.76
 
+rstar = bart.get_mstar(a, T)
+
 # Add the planet.
-system.add_planet(r, a, e, T, phi, pomega, i)
+system = bart.BART(fstar, mstar, rstar, iobs, ldp)
+system.add_planet(r, a, e, t0, pomega, i)
 
 # Fit it.
 system.fit(time, flux, ferr, pars=[u"fs", u"phi", u"T", u"a", u"r", u"ldp"],

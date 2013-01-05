@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __all__ = [u"BART", u"LimbDarkening", u"QuadraticLimbDarkening",
-           u"NonlinearLimbDarkening"]
+           u"NonlinearLimbDarkening", u"get_period", u"get_mstar"]
 
 
 from collections import OrderedDict
@@ -29,25 +29,52 @@ from . import mog
 from . import triangle
 
 
+_G = 2945.4625385377644
+
+
+def get_period(a, mstar):
+    """
+    Get the period of a planet orbiting a star with a semi-major axis ``a``
+    (in Solar radii). The star has a mass of ``mstar`` Solar masses.
+
+    """
+    return 2 * np.pi * np.sqrt(a * a * a / _G / mstar)
+
+
+def get_mstar(a, T):
+    """
+    Get the mass of the star given a semi-major axis ``a`` and the period
+    ``T``.
+
+    """
+    return a * a * a * 4 * np.pi * np.pi / _G / T
+
+
 class BART(object):
 
-    def __init__(self, fs, iobs, ldp, jitter=0.0):
+    def __init__(self, fstar, mstar, rstar, iobs, ldp, jitter=0.0):
         self._data = None
 
-        self.fs = fs
+        # The properties of the system as a whole.
+        self.fstar = fstar
+        self.mstar = mstar
+        self.rstar = rstar
         self.iobs = iobs
         self.jitter = jitter
 
+        # The planets.
         self._nplanets = 0
-        self.rp, self.ap, self.ep, self.tp, self.php, self.pop, self.ip = \
-                                            [np.array([]) for i in range(7)]
+        self.r, self.a, self.e, self.t0, self.pomega, self.incl = \
+                                            [np.array([]) for i in range(6)]
 
+        # The fit parameters.
         self._pars = OrderedDict()
 
+        # The limb darkening profile.
         self.ldp = ldp
 
+        # Process management book keeping.
         self._processes = []
-        self.p0 = None
 
     def __del__(self):
         if hasattr(self, u"_processes"):
@@ -58,15 +85,14 @@ class BART(object):
     def nplanets(self):
         return self._nplanets
 
-    def add_planet(self, r, a, e, T, phi, pomega, i):
+    def add_planet(self, r, a, e, t0, pomega, i):
         self._nplanets += 1
-        self.rp = np.append(self.rp, r)
-        self.ap = np.append(self.ap, a)
-        self.ep = np.append(self.ep, e)
-        self.tp = np.append(self.tp, T)
-        self.php = np.append(self.php, phi)
-        self.pop = np.append(self.pop, pomega)
-        self.ip = np.append(self.ip, i)
+        self.r = np.append(self.r, r)
+        self.a = np.append(self.a, a)
+        self.e = np.append(self.e, e)
+        self.t0 = np.append(self.t0, t0)
+        self.pomega = np.append(self.pomega, pomega)
+        self.incl = np.append(self.incl, i)
 
     def to_vector(self):
         v = []
@@ -126,7 +152,7 @@ class BART(object):
             if not 0 < sm < 1 or g1 < 0 or g2 < 0:
                 return -np.inf
 
-        if np.any(self.ep < 0) or np.any(self.ep > 1):
+        if np.any(self.e < 0) or np.any(self.e > 1):
             return -np.inf
 
         return lnp
@@ -141,9 +167,7 @@ class BART(object):
         inds = ivar > 0
         ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
 
-        chi2 = np.sum(delta * delta * ivar)
-
-        # FIXME: regularization for jitter.
+        chi2 = np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
 
         return -0.5 * chi2
 
@@ -151,9 +175,10 @@ class BART(object):
         if t is None:
             assert self._data is not None
             t = self._data[0]
-        return _bart.lightcurve(t, self.fs, self.iobs,
-                                self.rp, self.ap, self.ep, self.tp, self.php,
-                                self.pop, self.ip,
+        return _bart.lightcurve(t,
+                                self.fstar, self.mstar, self.rstar, self.iobs,
+                                self.r, self.a, self.e, self.t0, self.pomega,
+                                self.incl,
                                 self.ldp.bins, self.ldp.intensity)
 
     def fit_for(self, *args):
@@ -162,38 +187,35 @@ class BART(object):
 
     def _fit_for(self, var):
         n = self.nplanets
-        if var == u"fs":
-            self._pars[u"fs"] = Parameter(r"$f_s$", u"fs")
+        if var == u"fstar":
+            self._pars[u"fstar"] = Parameter(r"$f_\star$", u"fstar")
 
-        elif var in [u"T", u"r", u"a"]:
+        elif var in [u"t0", u"r", u"a"]:
             if var == "T":
-                tex, attr = r"$T_{0}$", u"tp"
+                tex, attr = r"$t_0^{{({0})}}$", u"t0"
             elif var == "r":
-                tex, attr = r"$r_{0}$", u"rp"
+                tex, attr = r"$r^{{({0})}}$", u"r"
             elif var == "a":
-                tex, attr = r"$a_{0}$", u"ap"
+                tex, attr = r"$a^{{({0})}}$", u"a"
 
             for i in range(n):
-                self._pars[u"{0}{1}".format(var, i)] = LogParameter(
+                self._pars[u"{0}^{{({1})}}".format(var, i)] = LogParameter(
                     tex.format(i + 1), attr, i)
 
         elif var == u"e":
-            tex, attr = r"$e_{0}$", u"ep"
+            tex, attr = r"$e^{{({0})}}$", u"e"
             for i in range(n):
                 self._pars[u"e{0}".format(i)] = Parameter(
                                 tex.format(i + 1), attr=attr, ind=i)
 
-        elif var in [u"phi", u"pomega"]:
-            if var == u"phi":
-                tex, attr = r"$\phi_{0}$", u"php"
-            elif var == u"pomega":
-                tex, attr = r"$\varpi_{0}$", u"pop"
+        elif var == u"pomega":
+            tex, attr = r"$\varpi^{{({0})}}$", u"pomoega"
             for i in range(n):
                 self._pars[u"{0}{1}".format(var, i)] = ConstrainedParameter(
                     [0.0, 2 * np.pi], tex.format(i + 1), attr=attr, ind=i)
 
         elif var == u"i":
-            tex, attr = r"$i_{0}$", u"ip"
+            tex, attr = r"$i^{{({0})}}$", u"incl"
             for i in range(n):
                 self._pars[u"i{0}".format(i)] = Parameter(
                     tex.format(i + 1), attr=attr, ind=i)
@@ -226,7 +248,8 @@ class BART(object):
         mu = np.median(f)
         self._data = [t, f / mu, ivar * mu * mu]
 
-    def optimize(self, t, f, ferr, pars=[u"fs", u"T", u"r", u"a", u"phi"]):
+    def optimize(self, t, f, ferr,
+                 pars=[u"fstar", u"t0", u"r", u"a", u"pomega"]):
         self._prepare_data(t, f, ferr)
         self.fit_for(*pars)
 
@@ -251,7 +274,7 @@ class BART(object):
         return result.x
 
     def fit(self, t=None, f=None, ferr=None,
-            pars=[u"fs", u"T", u"r", u"a", u"phi"],
+            pars=[u"fstar", u"t0", u"r", u"a", u"pomega"],
             threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
             nwalkers=100,
             filename=u"./mcmc.h5", restart=None):
@@ -388,10 +411,12 @@ class BART(object):
         chain = self._sampler.flatchain
 
         # Compute the best fit period.
-        if u"T0" in self._pars:
-            T = np.exp(np.median(chain[:, self._pars.keys().index(u"T0")]))
+        if u"a0" in self._pars:
+            a = np.exp(np.median(chain[:, self._pars.keys().index(u"a0")]))
         else:
-            T = self.tp[0]
+            a = self.a[0]
+
+        T = get_period(a * self.rstar, self.mstar)
 
         # Generate light curve samples.
         t = np.linspace(0, T, 500)

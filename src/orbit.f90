@@ -70,7 +70,8 @@
         !   observer in radians.
         !
         ! :param incl: (double precision)
-        !   The inclination of the orbit relative to the observer.
+        !   The inclination of the orbit relative to the observer in
+        !   radians.
         !
         ! :returns pos: (double precision(3, n))
         !   The output array of positions (x,y,z) in solar radii.

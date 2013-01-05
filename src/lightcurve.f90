@@ -1,5 +1,5 @@
       subroutine lightcurve(n, t, &
-                            fs, mstar, rstar, iobs, &
+                            fstar, mstar, rstar, iobs, &
                             np, r, a, e, t0, pomega, incl, &
                             nld, rld, ild, &
                             flux)
@@ -12,7 +12,7 @@
         ! :param t: (double precision(n))
         !   The times where the lightcurve should be evaluated in days.
         !
-        ! :param fs: (double precision)
+        ! :param fstar: (double precision)
         !   The un-occulted flux of the star in arbitrary units.
         !
         ! :param mstar: (double precision)
@@ -63,7 +63,7 @@
         !
         ! :returns flux: (double precision(n))
         !   The observed flux at each time ``t`` in the same units as
-        !   the input ``fs``.
+        !   the input ``fstar``.
 
         implicit none
 
@@ -74,7 +74,7 @@
         double precision, dimension(n), intent(in) :: t
 
         ! The properties of the star and the system.
-        double precision, intent(in) :: fs, mstar, rstar, iobs
+        double precision, intent(in) :: fstar,mstar,rstar,iobs
 
         ! The planets.
         integer, intent(in) :: np
@@ -94,7 +94,7 @@
 
         ! Initialize the full lightcurve to the un-occulted stellar
         ! flux.
-        flux(:) = fs
+        flux(:) = fstar
 
         ! Loop over the planets and solve for their orbits and transit
         ! profiles.
@@ -102,7 +102,7 @@
 
           call solve_orbit(n, t, mstar, &
                            e(i), a(i) * rstar, t0(i), pomega(i), &
-                           (90.d0 - iobs - incl(i)) / 180.d0 * pi, pos)
+                           (90.d0 - iobs + incl(i)) / 180.d0 * pi, pos)
 
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:)) / rstar
 
