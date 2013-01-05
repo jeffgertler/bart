@@ -2,21 +2,24 @@ import numpy as np
 import _bart
 import matplotlib.pyplot as pl
 
-e, a, T, i = 0.65, 14.0, 1.1, 0.0
-phi = 0.07 * np.pi
+import astropy.units as u
+from astropy.constants import si
+G = si.G.to(u.R_sun ** 3 / (u.M_sun * u.day ** 2)).value
+
+mstar = 1.0
+e, a, i = 0.6, 14.0, 0
+t0 = 0.15
 pomega = 0.1 * np.pi
+
+T = 2 * np.pi * np.sqrt(a * a * a / G / mstar)
 t = np.linspace(0, T, 10000)
 
-pos = _bart.solve_orbit(t, e, a, T, phi, pomega, i)
-pphi = _bart.solve_orbit(phi * T / 2 / np.pi, e, a, T, phi, pomega, i)
-
+pos = _bart.solve_orbit(t, mstar, e, a, t0, pomega, i)
+pphi = _bart.solve_orbit(t0, mstar, e, a, t0, pomega, i)
 ee = np.arccos((e + np.cos(pomega)) / (1 + e * np.cos(pomega)))
-t0 = (ee - e * np.sin(ee) + phi) * T / 2 / np.pi
 
-ppom = _bart.solve_orbit(t0, e, a, T, phi, pomega, i)
-
-pl.axis("equal")
-ax = pl.gca()
+ax = pl.figure().add_axes((0, 0, 1, 1), frameon=False,
+                        xticks=[], yticks=[], aspect="equal")
 
 ax.plot(pos[0], pos[1], "k")
 
@@ -31,17 +34,19 @@ xax = np.array([[-(a + f) * np.cos(pomega), (a + f) * np.sin(pomega)],
 ax.plot(xax[:, 0], xax[:, 1], "k")
 
 # Plot phi axis.
-phiax = a * (1 - e * e) / (1 + e * np.cos(pomega + phi)) * np.array([[0, 0],
-                [np.sin(0.5 * np.pi - pomega - phi),
-                 -np.cos(0.5 * np.pi - pomega - phi)]])
-ax.plot(phiax[:, 0], phiax[:, 1], "k")
+# phiax = 5 * np.array([[0, 0],
+#                   [np.cos(0.25 * np.pi + phi), -np.sin(0.25 * np.pi + phi)]])
+# ax.plot(phiax[:, 0], phiax[:, 1], "k")
 
 # Plot key points.
 ax.plot(pos[0, 0], pos[1, 0], "or")
 ax.plot(pphi[0], pphi[1], "og")
-ax.plot(ppom[0], ppom[1], "ob")
+# ax.plot(ppom[0], ppom[1], "ob")
 
 ax.axhline(0, color="k")
 ax.axvline(0, color="k")
+
+ax.set_ylim(1.1 * np.array(ax.get_ylim()))
+ax.set_xlim(np.array([1.1, 1.2]) * np.array(ax.get_xlim()))
 
 pl.savefig("orbit.png")

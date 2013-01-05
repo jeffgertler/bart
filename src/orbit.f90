@@ -2,6 +2,15 @@
 
         ! Solve for the eccentric anomaly given a mean anomaly and an
         ! eccentricity using Halley's method.
+        !
+        ! :param wt: (double precision)
+        !   The mean anomaly.
+        !
+        ! :param e: (double precision)
+        !   The eccentricity of the orbit.
+        !
+        ! :returns psi: (double precision)
+        !   The eccentric anomaly.
 
         implicit none
 
@@ -18,6 +27,7 @@
           fp = 1.d0 - e * cos(psi0)
           fpp = e * sin(psi0)
 
+          ! Take a second order step.
           psi = psi0 - 2.d0 * f * fp / (2.d0 * fp * fp - f * fpp)
 
           if (abs(psi - psi0) .le. tol) then
@@ -32,32 +42,60 @@
 
       end subroutine
 
-      subroutine solve_orbit(n, t, e, a, period, phi, pomega, incl, pos)
+      subroutine solve_orbit(n, t, mstar, e, a, t0, pomega, incl, pos)
 
         ! Solve Kepler's equations for the 3D position of a point mass
         ! eccetrically orbiting a larger mass.
+        !
+        ! :param n: (integer)
+        !   The number of samples in the time series.
+        !
+        ! :param t: (double precision(n))
+        !   The time series points in days.
+        !
+        ! :param mstar: (double precision)
+        !   The mass of the central body in solar masses.
+        !
+        ! :param e: (double precision)
+        !   The eccentricity of the orbit.
+        !
+        ! :param a: (double precision)
+        !   The semi-major axis of the orbit in solar radii.
+        !
+        ! :param t0: (double precision)
+        !   The time of a reference pericenter passage in days.
+        !
+        ! :param pomega: (double precision)
+        !   The angle between the major axis of the orbit and the
+        !   observer in radians.
+        !
+        ! :param incl: (double precision)
+        !   The inclination of the orbit relative to the observer.
+        !
+        ! :returns pos: (double precision(3, n))
+        !   The output array of positions (x,y,z) in solar radii.
+        !   The x-axis points to the observer.
 
         implicit none
 
-        double precision :: pi=3.141592653589793238462643D0
+        double precision :: pi=3.141592653589793238462643d0
+        double precision :: G=2945.4625385377644d0
+
         integer, intent(in) :: n
         double precision, dimension(n), intent(in) :: t
-        double precision, intent(in) :: e, a, period, phi, pomega, incl
-        double precision, dimension(3,n), intent(out) :: pos
+        double precision, intent(in) :: mstar,e,a,t0,pomega,incl
+        double precision, dimension(3, n), intent(out) :: pos
 
         integer :: i
-        double precision :: manom, psi, cpsi, d, cth, r, x, y, xp, yp
+        double precision :: period,manom,psi,cpsi,d,cth,r,x,y,xp,yp
+
+        period = 2 * pi * dsqrt(a * a * a / G / mstar)
 
         do i=1,n
 
-          manom = 2 * pi * t(i) / period - phi
+          manom = 2 * pi * (t(i) - t0) / period
 
-          ! MAGIC: zero tolerance for eccentricity?
-          if (e .gt. 1.e-6) then
-            call wt2psi(manom, e, psi)
-          else
-            psi = manom
-          endif
+          call wt2psi(manom, e, psi)
           cpsi = dcos(psi)
           d = 1.0d0 - e * cpsi
           cth = (cpsi - e) / d
