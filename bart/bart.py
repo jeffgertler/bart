@@ -356,6 +356,7 @@ class BART(object):
 
                 # Sample from the multi-dimensional Gaussian.
                 mu, cov = np.mean(good, axis=1), np.cov(good)
+                print(mu, cov)
                 p0[~inds] = np.random.multivariate_normal(mu, cov,
                                                           np.sum(~inds))
 
