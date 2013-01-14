@@ -108,7 +108,7 @@
 
           ! HACK: deal with positions behind star.
           do j=1, n
-            if (pos(1, j) .le. 0.0d0) then
+            if (pos(1,j) .ge. 0.0d0) then
               b(j) = 1.1d0 + r(i)
             endif
           enddo

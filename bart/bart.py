@@ -47,7 +47,7 @@ def get_mstar(a, T):
     ``T``.
 
     """
-    return a * a * a * 4 * np.pi * np.pi / _G / T
+    return a * a * a * 4 * np.pi * np.pi / _G / T / T
 
 
 class BART(object):
@@ -190,17 +190,25 @@ class BART(object):
         if var == u"fstar":
             self._pars[u"fstar"] = Parameter(r"$f_\star$", u"fstar")
 
+        elif var in [u"mstar", u"rstar"]:
+            if var == "mstar":
+                tex = r"$M_\star$"
+            elif var == "rstar":
+                tex = r"$R_\star$"
+
+            self._pars[var] = LogParameter(tex, var)
+
         elif var in [u"t0", u"r", u"a"]:
             if var == "t0":
-                tex, attr = r"$t_0^{{({0})}}$", u"t0"
+                tex = r"$t_0^{{({0})}}$"
             elif var == "r":
-                tex, attr = r"$r^{{({0})}}$", u"r"
+                tex = r"$r^{{({0})}}$"
             elif var == "a":
-                tex, attr = r"$a^{{({0})}}$", u"a"
+                tex = r"$a^{{({0})}}$"
 
             for i in range(n):
-                self._pars[u"{0}^{{({1})}}".format(var, i)] = LogParameter(
-                    tex.format(i + 1), attr, i)
+                self._pars[u"{0}{1}".format(var, i)] = LogParameter(
+                    tex.format(i + 1), var, i)
 
         elif var == u"e":
             tex, attr = r"$e^{{({0})}}$", u"e"
@@ -343,20 +351,23 @@ class BART(object):
 
         if restart is None:
             for i in range(ntrim):
+                print(u"Trimming pass {0}...".format(i + 1))
                 p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
 
                 # Cluster to get rid of crap.
                 mix = mog.MixtureModel(4, np.atleast_2d(lprob).T)
                 mix.run_kmeans()
-                rs, rmx = mix.kmeans_rs, np.argmax(mix.means.flatten())
+                rs, rmxs = mix.kmeans_rs, np.argsort(mix.means.flatten())
 
                 # Choose the "good" walkers.
-                inds = rs == rmx
-                good = p0[inds].T
+                for rmx in rmxs[::-1]:
+                    inds = rs == rmx
+                    good = p0[inds].T
+                    if np.shape(good)[1] > 0:
+                        break
 
                 # Sample from the multi-dimensional Gaussian.
                 mu, cov = np.mean(good, axis=1), np.cov(good)
-                print(mu, cov)
                 p0[~inds] = np.random.multivariate_normal(mu, cov,
                                                           np.sum(~inds))
 
@@ -412,51 +423,55 @@ class BART(object):
         chain = self._sampler.flatchain
 
         # Compute the best fit period.
-        if u"a0" in self._pars:
-            a = np.exp(np.median(chain[:, self._pars.keys().index(u"a0")]))
-        else:
-            a = self.a[0]
+        for i in range(self.nplanets):
+            if u"a{0}".format(i) in self._pars:
+                a = np.exp(np.median(chain[:,
+                                self._pars.keys().index(u"a{0}".format(i))]))
+            else:
+                a = self.a[i]
 
-        T = get_period(a * self.rstar, self.mstar)
+            T = get_period(a * self.rstar, self.mstar)
 
-        # Generate light curve samples.
-        t = np.linspace(0, T, 500)
-        t2 = np.linspace(time.min(), time.max(),
-                int(100 * (time.max() - time.min() / T)))
-        f = np.empty((len(chain), len(t)))
-        f2 = np.zeros(len(t2))
-        ld = [self.ldp.plot()[0],
-              np.empty((len(chain), 2 * len(self.ldp.bins)))]
-        for ind, v in enumerate(chain):
-            f[ind, :] = self.from_vector(v).lightcurve(t)
-            f2 += self.lightcurve(t2)
-            ld[1][ind, :] = self.ldp.plot()[1]
-        f = f.T
-        f2 = f2.T / len(chain)
-        ld[1] = ld[1].T
+            # Generate light curve samples.
+            t = np.linspace(0, T, 500)
+            t2 = np.linspace(time.min(), time.max(),
+                    int(100 * (time.max() - time.min() / T)))
+            f = np.empty((len(chain), len(t)))
+            f2 = np.zeros(len(t2))
+            ld = [self.ldp.plot()[0],
+                  np.empty((len(chain), 2 * len(self.ldp.bins)))]
+            for ind, v in enumerate(chain):
+                f[ind, :] = self.from_vector(v).lightcurve(t)
+                f2 += self.lightcurve(t2)
+                ld[1][ind, :] = self.ldp.plot()[1]
+            f = f.T
+            f2 = f2.T / len(chain)
+            ld[1] = ld[1].T
 
-        # Plot the fit.
-        mu = np.median(flux)
-        pl.figure()
-        ax = pl.axes([0.15, 0.15, 0.8, 0.8])
-        ax.plot(time % T, 1000 * (flux / mu - 1), u".k", alpha=0.5)
-        ax.set_xlabel(u"Phase [days]")
-        ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
-        pl.savefig(u"lc.png", dpi=300)
+            # Plot the fit.
+            mu = np.median(flux)
+            pl.figure()
+            ax = pl.axes([0.15, 0.15, 0.8, 0.8])
+            ax.plot(time % T, 1000 * (flux / mu - 1), u".k", alpha=0.5)
+            ax.set_xlabel(u"Phase [days]")
+            ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
+            pl.savefig(u"lc_{0}.png".format(i), dpi=300)
 
-        ax.plot(t, 1000 * (f / mu - 1), u"#4682b4", alpha=0.04)
-        pl.savefig(u"lc_fit.png", dpi=300)
+            ax.plot(t, 1000 * (f / mu - 1), u"#4682b4", alpha=0.04)
+            pl.savefig(u"lc_fit_{0}.png".format(i), dpi=300)
 
-        # Plot the full fit.
-        pl.clf()
-        ax = pl.axes([0.15, 0.15, 0.8, 0.8])
-        ax.plot(time, 1000 * (flux / mu - 1), u".k", alpha=0.5)
-        ax.set_xlabel(u"Time [days]")
-        ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
-        pl.savefig(u"lc_full.png", dpi=300)
+            if i == 0:
+                # Plot the full fit.
+                pl.clf()
+                ax = pl.axes([0.15, 0.15, 0.8, 0.8])
+                ax.plot(time, 1000 * (flux / mu - 1), u".k", alpha=0.5)
+                ax.set_xlabel(u"Time [days]")
+                ax.set_ylabel(r"Relative Brightness Variation "
+                              r"[$\times 10^{-3}$]")
+                pl.savefig(u"lc_full.png", dpi=300)
 
-        ax.plot(t2, 1000 * (f2 / mu - 1), u"#4682b4")
-        pl.savefig(u"lc_full_fit.png", dpi=300)
+                ax.plot(t2, 1000 * (f2 / mu - 1), u"#4682b4")
+                pl.savefig(u"lc_full_fit.png", dpi=300)
 
         # Plot the limb-darkening.
         pl.clf()
@@ -488,11 +503,12 @@ class BART(object):
                             if i in inds]
 
         # Add the log-prob values too.
-        print(plotchain.shape, self._sampler.lnprobability.flatten().shape)
+        lp = self._sampler.lnprobability.flatten()
+        lp /= np.max(lp)
         plotchain = np.hstack([plotchain,
-                    np.atleast_2d(self._sampler.lnprobability.flatten()).T])
+                    np.atleast_2d(lp).T])
         inds.append(plotchain.shape[1] - 1)
-        labels.append(u"log-prob")
+        labels.append(r"$\propto$ log-prob")
 
         if truths is not None:
             truths = [truths.get(k)

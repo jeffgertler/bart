@@ -1,6 +1,5 @@
 import pyfits
 import numpy as np
-import matplotlib.pyplot as pl
 
 import os
 import sys
@@ -21,13 +20,13 @@ t0 = int(np.median(time[~np.isnan(time)]))
 time = time - t0
 
 # Plot the raw data.
-ax = pl.axes([0.15, 0.15, 0.8, 0.8])
-ax.plot(time,
-        1000 * (flux_raw / np.median(flux_raw[~np.isnan(flux_raw)]) - 1),
-        ".k", alpha=0.5)
-ax.set_xlabel("Time [days]")
-ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
-pl.savefig("kepler4b_raw.png", dpi=300)
+# ax = pl.axes([0.15, 0.15, 0.8, 0.8])
+# ax.plot(time,
+#         1000 * (flux_raw / np.median(flux_raw[~np.isnan(flux_raw)]) - 1),
+#         ".k", alpha=0.5)
+# ax.set_xlabel("Time [days]")
+# ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
+# pl.savefig("kepler4b_raw.png", dpi=300)
 
 # The limb-darkening parameters.
 nbins, gamma1, gamma2 = 100, 0.39, 0.1
@@ -42,7 +41,7 @@ if True:
 
 # Initialize the planetary system.
 fstar = 1.0
-mstar = 1.0
+rstar = 1.0
 iobs = 0.0
 
 # The parameters of the planet:
@@ -50,18 +49,19 @@ r = 0.0247
 a = 6.47
 e = 0.0
 T = 3.21346
-t0 = 0.0
+t0 = 2.38
 pomega = 0.0
 i = 89.76
 
-rstar = bart.get_mstar(a, T)
+mstar = bart.get_mstar(a, T)
 
 # Add the planet.
 system = bart.BART(fstar, mstar, rstar, iobs, ldp)
 system.add_planet(r, a, e, t0, pomega, i)
 
 # Fit it.
-system.fit(time, flux, ferr, pars=[u"fstar", u"t0", u"a", u"r", u"ldp"],
-                        niter=1000, thin=100, ntrim=1, nwalkers=64)
+system.fit(time, flux, ferr, pars=[u"fstar", u"t0", u"a", u"r"],
+                        niter=5000, thin=500, nburn=1000, ntrim=1,
+                        nwalkers=64)
 system.plot_fit()
 system.plot_triangle()
