@@ -14,8 +14,8 @@ pomega = 0.1 * np.pi
 T = 2 * np.pi * np.sqrt(a * a * a / G / mstar)
 t = np.linspace(0, T, 10000)
 
-pos = _bart.solve_orbit(t, mstar, e, a, t0, pomega, i)
-pphi = _bart.solve_orbit(t0, mstar, e, a, t0, pomega, i)
+pos = _bart.solve_orbit(t, mstar, e, a, t0, pomega, i, 0.0)
+pphi = _bart.solve_orbit(t0, mstar, e, a, t0, pomega, i, 0.0)
 ee = np.arccos((e + np.cos(pomega)) / (1 + e * np.cos(pomega)))
 
 ax = pl.figure().add_axes((0, 0, 1, 1), frameon=False,
