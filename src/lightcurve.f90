@@ -101,8 +101,9 @@
         do i=1, np
 
           call solve_orbit(n, t, mstar, &
-                           e(i), a(i) * rstar, t0(i), pomega(i), &
-                           (90.d0 - iobs + incl(i)) / 180.d0 * pi, pos)
+                           e(i), a(i) * rstar, t0(i), pomega(i),&
+                           (90.d0 - iobs + incl(i)) / 180.d0 * pi, 0.0,&
+                           pos)
 
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:)) / rstar
 

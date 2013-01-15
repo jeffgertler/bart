@@ -42,7 +42,7 @@
 
       end subroutine
 
-      subroutine solve_orbit(n, t, mstar, e, a, t0, pomega, incl, pos)
+      subroutine solve_orbit(n, t, mstar, e, a, t0, pomega, ix, iy, pos)
 
         ! Solve Kepler's equations for the 3D position of a point mass
         ! eccetrically orbiting a larger mass.
@@ -69,8 +69,12 @@
         !   The angle between the major axis of the orbit and the
         !   observer in radians.
         !
-        ! :param incl: (double precision)
+        ! :param ix: (double precision)
         !   The inclination of the orbit relative to the observer in
+        !   radians.
+        !
+        ! :param iy: (double precision)
+        !   The inclination of the orbit in the plane of the sky in
         !   radians.
         !
         ! :returns pos: (double precision(3, n))
@@ -84,11 +88,11 @@
 
         integer, intent(in) :: n
         double precision, dimension(n), intent(in) :: t
-        double precision, intent(in) :: mstar,e,a,t0,pomega,incl
+        double precision, intent(in) :: mstar,e,a,t0,pomega,ix,iy
         double precision, dimension(3, n), intent(out) :: pos
 
         integer :: i
-        double precision :: period,manom,psi,cpsi,d,cth,r,x,y,xp,yp
+        double precision :: period,manom,psi,cpsi,d,cth,r,x,y,xp,yp,xsx
 
         period = 2 * pi * dsqrt(a * a * a / G / mstar)
 
@@ -110,9 +114,11 @@
           xp = x * dcos(pomega) + y * dsin(pomega)
           yp = -x * dsin(pomega) + y * dcos(pomega)
 
-          pos(1,i) = xp * dcos(incl)
-          pos(2,i) = yp
-          pos(3,i) = xp * dsin(incl)
+          ! Rotate by the inclination angles.
+          xsx = xp * dsin(ix)
+          pos(1,i) = xp * dcos(ix)
+          pos(2,i) = yp * dcos(iy) - xsx * dsin(iy)
+          pos(3,i) = yp * dsin(iy) + xsx * dcos(iy)
 
         enddo
 
