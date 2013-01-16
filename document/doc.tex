@@ -31,6 +31,8 @@
 \newcommand{\bart}{\project{Bart}}
 \newcommand{\license}{MIT License}
 
+\newcommand{\paper}{\emph{Article}}
+
 \newcommand{\foreign}[1]{\emph{#1}}
 \newcommand{\etal}{\foreign{et\,al.}}
 \newcommand{\etc}{\foreign{etc.}}
@@ -80,19 +82,19 @@
 \begin{abstract}
 With enormous numbers of transiting exoplanets being discovered by
 \project{Kepler}, it is finally becoming possible to hierarchically infer the
-parameters of the entire population of exoplanets. A necessary component of these
-analyses is a tool for high performance probabilistic transit
+parameters of the entire population of exoplanets. A necessary component of
+these analyses is a tool for high performance probabilistic transit
 modeling---sampling the posterior PDF for the parameters of an arbitrary
-multi-planet exoplanet system given stellar light-curve data and parameterized priors. We
-present a computationally efficient and extremely flexible system called
-\project{Bart} for performing these inferences.
+multi-planet exoplanet system given stellar light-curve data and parameterized
+priors. We present a computationally efficient and extremely flexible system
+called \project{Bart} for performing these inferences.
 \project{Bart} uses a non-parametric limb-darkening law
 for each star; it is much more flexible than the classic analytic
 results in current use, at minimal computational cost.
 We apply \project{Bart} to all NNN planets observed in the
 \project{Kepler} photometric time series for the system Kepler-XXXXX
-and the IR light curve of BLAH observed by \project{Spitzer}. The code is designed so that Radial
-velocity and astrometric observations can be easily
+and the IR light curve of BLAH observed by \project{Spitzer}. The code is
+designed so that radial velocity and astrometric observations can be easily
 incorporated as further constraints for a joint analysis when available.
 
 \project{Bart} is implemented in Python and it is available under the
@@ -148,22 +150,26 @@ The enormous challenge for this program of hierarchical inference is
 that it involves the marginalization out of the parameters of now
 thousands of exoplanets in datasets that contain millions to billions
 of data point (DFM FIX NUMBERS).  Given the non-triviality of the
-relevant noise models and the nonlinearity of exoplanet fitting, the
-only approaches that are not disastrously approximate involve Markov
-Chain Monte Carlo (MCMC; DFM CITE).  Even this well-developed and
-seriously engineered set of techniques has almost never been applied
-to a problem as large in scope as all of the world's exoplanet data.
-We are not daunted.
+relevant noise models and the nonlinearity of exoplanet fitting, this
+marginalization is impossible analytically so we must use computationally
+expensive approximate methods. A popular class of algorithm for these sorts
+of computations is called Markov chain Monte Carlo (MCMC; DFM CITE).
+The computational cost of an accurate Monte Carlo marginalization is very
+high but the existence of efficient MCMC algorithms---such as Foreman-Mackey
+et al. (DFM)---and optimized likelihood computations makes the prospects for
+ambitious hierarchical inference on the ensemble of known exoplanets very
+good.
 
-Though we aren't daunted, we recognize that a hierarchical inference
-with the world's entire set of exoplanet data---or even just the
-\project{Kepler} set---will require extremely high-performance, fast,
-accurate modeling of exoplanet transit light curves.  In this context,
-``modeling'' means sampling the posterior PDF for the exoplanet
-parameters given the data and a parameterized prior PDF.  Here we
-describe and publish high performance open-source code---\bart---for performing
-this modeling, and also apply it to real data to demonstrate its use
-and value.
+In this \paper, we lay the groundwork for high-performance numerical
+marginalization of planetary parameters conditioned on the light curve of
+planetary transits. We recognize that a hierarchical inference
+with the set of all known exoplanet data---or even just the
+\project{Kepler} set---will require extremely fast and accurate modeling of
+exoplanet transit light curves.  In this context, ``modeling'' means sampling
+the posterior PDF for the exoplanet parameters given the data and a
+parameterized prior PDF. Here we describe and publish high performance
+open-source code---\bart---for performing this modeling, and also apply it to
+real data to demonstrate its use and value.
 
 In addition to meeting our needs for hierarchical inference, \bart\ is
 also flexible in treating stellar limb darkening.  Up to now, most
