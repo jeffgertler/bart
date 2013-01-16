@@ -82,20 +82,22 @@
 \begin{abstract}
 With enormous numbers of transiting exoplanets being discovered by
 \project{Kepler}, it is finally becoming possible to hierarchically infer the
-parameters of the entire population of exoplanets. A necessary component of
-these analyses is a tool for high performance probabilistic transit
-modeling---sampling the posterior PDF for the parameters of an arbitrary
-multi-planet exoplanet system given stellar light-curve data and parameterized
-priors. We present a computationally efficient and extremely flexible system
+parameters of the entire population of exoplanets.
+A necessary component of these analyses is a tool for high performance
+probabilistic transit modeling---sampling the posterior PDF for the
+parameters of an arbitrary multi-planet exoplanet system given stellar
+light-curve data and parameterized priors.
+We present a computationally efficient and extremely flexible system
 called \project{Bart} for performing these inferences.
 \project{Bart} uses a non-parametric limb-darkening law
 for each star; it is much more flexible than the classic analytic
 results in current use, at minimal computational cost.
 We apply \project{Bart} to all NNN planets observed in the
 \project{Kepler} photometric time series for the system Kepler-XXXXX
-and the IR light curve of BLAH observed by \project{Spitzer}. The code is
-designed so that radial velocity and astrometric observations can be easily
-incorporated as further constraints for a joint analysis when available.
+and the IR light curve of BLAH observed by \project{Spitzer}.
+The code is designed so that radial velocity and astrometric observations can
+be easily incorporated as further constraints for a joint analysis when
+available.
 
 \project{Bart} is implemented in Python and it is available under the
 \license\ online at \url{http://dan.iel.fm/bart}.
@@ -113,46 +115,52 @@ keywords: made-up-by-Hogg
 
 The NASA \project{Kepler} mission (DFM CITE) has discovered and
 characterized thousands of transiting planets and planet
-candidates.  Radial-velocity surveys have discovered hundreds (DFM
+candidates.
+Radial-velocity surveys have discovered hundreds (DFM
 CITE), a handful have been directly imaged (DFM CITE, including
 Oppenheimer et al), and the ESA \project{Gaia} mission (DFM CITE) is
-expected to discover many thousands more astrometrically.  Each
-technique has different sensitivity to exoplanets with different
+expected to discover many thousands more astrometrically
+Each technique has different sensitivity to exoplanets with different
 properties; each technique finds a different subset of the total
-exoplanet population; none is complete.  Not even any simple
-combination of techniques is expected to return a complete census of
-exoplanets.
+exoplanet population; none is complete.
+Not even any simple combination of techniques is expected to return a
+complete census of exoplanets.
 
 For probabilistic reasoners---``Bayesians'' in some contexts---the
 right way to approach these problems is \emph{hierarchical} (DFM CITE
-GELMAN OR SOMEONE).  The properties of the overall exoplanet
-population is parameterized with ``hyperparameters''; at any setting
-of these hyperparameters, the overall population plus the modeled
-selection effects relevant to each observational program provides
-the prior probability distribution for the parameters of any
-individual observed or observable exoplanet system.  When inference is
-being performed to obtain the properties of the population as a whole,
-the properties of every individual exoplanet are marginalized out,
+GELMAN OR SOMEONE).
+The properties of the overall exoplanet population is parameterized with
+``hyperparameters''; at any setting of these hyperparameters, the overall
+population plus the modeled selection effects relevant to each observational
+program provides the prior probability distribution for the parameters of any
+individual observed or observable exoplanet system.
+When inference is being performed to obtain the properties of the population
+as a whole, the properties of every individual exoplanet are marginalized out,
 leaving a marginalized likelihood function or posterior probability
 distribution function (posterior PDF) for the population
-hyperparameters.  When inference is being performed to obtain the
+hyperparameters.
+When inference is being performed to obtain the
 properties of any individual exoplanetary system, the posterior PDF
 for that system is obtained by marginalizing out all \emph{other}
-systems and the hyperparameters themselves.  Hierarchical inference
+systems and the hyperparameters themselves.
+Hierarchical inference
 best uses knowledge about \emph{every} observed system to inform
 inferences about each \emph{individual} system, and effectively
 provides \emph{noise-deconvolved} inferences about the parent
-population.  We have implemented a simple hierarchical population
+population.
+We have implemented a simple hierarchical population
 inference previously and demonstrated these properties of hierarchical
 inference in this context (DFM CITE HOGG, BOVY, MYERS).
 
 The enormous challenge for this program of hierarchical inference is
 that it involves the marginalization out of the parameters of now
 thousands of exoplanets in datasets that contain millions to billions
-of data point (DFM FIX NUMBERS).  Given the non-triviality of the
+of data point (DFM FIX NUMBERS).
+Given the non-triviality of the
 relevant noise models and the nonlinearity of exoplanet fitting, this
 marginalization is impossible analytically so we must use computationally
-expensive approximate methods. A popular class of algorithm for these sorts
+expensive approximate methods.
+A popular class of algorithm for these sorts
 of computations is called Markov chain Monte Carlo (MCMC; DFM CITE).
 The computational cost of an accurate Monte Carlo marginalization is very
 high but the existence of efficient MCMC algorithms---such as Foreman-Mackey
@@ -162,36 +170,42 @@ good.
 
 In this \paper, we lay the groundwork for high-performance numerical
 marginalization of planetary parameters conditioned on the light curve of
-planetary transits. We recognize that a hierarchical inference
+planetary transits.
+We recognize that a hierarchical inference
 with the set of all known exoplanet data---or even just the
 \project{Kepler} set---will require extremely fast and accurate modeling of
-exoplanet transit light curves.  In this context, ``modeling'' means sampling
-the posterior PDF for the exoplanet parameters given the data and a
-parameterized prior PDF. Here we describe and publish high performance
-open-source code---\bart---for performing this modeling, and also apply it to
-real data to demonstrate its use and value.
+exoplanet transit light curves.
+In this context, ``modeling'' means sampling the posterior PDF for the
+exoplanet parameters given the data and a parameterized prior PDF.
+Here we describe and publish high performance open-source code---\bart---for
+performing this modeling, and also apply it to real data to demonstrate its
+use and value.
 
 In addition to meeting our needs for hierarchical inference, \bart\ is
-also flexible in treating stellar limb darkening.  Up to now, most
-eclipse modeling has made use of extremely useful analytic
-approximations \citep{mandel}.  However, these approximations only
-permit certain kinds of limb-darkening effects and require the
-(computationally expensive) evaluation of special functions.
-\bart\ avoids these problems by making use of a numerical annular
-model for limb darkening.
+also flexible in treating stellar limb darkening.
+Up to now, most eclipse modeling has made use of extremely useful analytic
+approximations \citep{mandel}.
+However, these approximations only permit certain kinds of limb-darkening
+effects and require the (computationally expensive) evaluation of special
+functions.
+\bart\ avoids these problems by making use of a non-parametric model for limb
+darkening.
+
 
 \section{How to fit an exoplanet transit}
 
 The procedure for finding the physical parameters of an exoplanetary system
 that are consistent with an observed time series is a fairly classic type of
-inference problem. For a given set of physical parameters---including the
+inference problem.
+For a given set of physical parameters---including the
 planet radii, orbital eccentricities, the observers viewing angle, and other
 parameters---we have a ``physical'' description of the data generation
 procedure by combining Kepler's equation and some (simplistic) noise model for
-the optics and detector. A generative model like this provides an excellent
-likelihood function for the data given those particular parameters. In this
-paper, we will assume that the noise is Gaussian so the observation at a
-particular time $t_n$ are generated by
+the optics and detector.
+A generative model like this provides an excellent
+likelihood function for the data given those particular parameters.
+In this \paper, we will assume that the noise is Gaussian so the observation
+at a particular time $t_n$ are generated by
 \begin{eqnarray}
     f_{\mathrm{obs},n} & = & f_\mathrm{model} (t_n) + \epsilon_n
 \end{eqnarray}
@@ -202,14 +216,14 @@ and limb darkening and $\epsilon_n$ is the stochastic noise model.
 
 The light curve of a transit of a planet in front of a star can be computed by
 integrating the amount of stellar light that is occulted by the planet---and
-vice-versa---for
-each position in the orbit. Assuming that the system is sufficiently distant
-that we can neglect three-dimensional effects, the geometry can be specified
-by three parameters, the radius of the star $R$, the radius of the planet $p$
-and the impact parameter (in the plane of the sky) $b$. The geometry
-of this system (as seen by the observer) is shown in \fig{geom}. In the plane
-of the sky, the amount of occulted stellar light can be computed by the area
-integral
+vice-versa---for each position in the orbit.
+Assuming that the system is sufficiently distant that we can neglect
+three-dimensional effects, the geometry can be specified by three parameters,
+the radius of the star $R$, the radius of the planet $p$ and the impact
+parameter (in the plane of the sky) $b$.
+The geometry of this system (as seen by the observer) is shown in \fig{geom}.
+In the plane of the sky, the amount of occulted stellar light can be computed
+by the area integral
 \begin{eqnarray}\eqlabel{general-occ}
     \lambda (R, p, b) & = & \int_{A_\mathrm{occ}} I(r) \, \dd A
 \end{eqnarray}
@@ -237,16 +251,18 @@ where
 \end{eqnarray}
 This is similar to Equation (1) from \citet{mandel} but we've explicitly
 computed $\lambda_\mathrm{uniform}$ as a function of the stellar radius in
-anticipation of the next section. The derivation of \eq{uniform-occ} can be
-found in the Appendix.
+anticipation of the next section.
+The derivation of \eq{uniform-occ} can be found in the Appendix.
 
 The impact parameter $b$ in the equations above can be computed from the
 physical and observational parameters of the system by solving for the orbit
-and then ``observing'' the system from infinity. To be explicit, we will
-briefly explain the parameterization that we use for the orbital elements in
-\bart. The host star's mass $M_\star$ and inclination of the mean orbital
+and then ``observing'' the system from infinity.
+To be explicit, we will briefly explain the parameterization that we use for
+the orbital elements in \bart.
+The host star's mass $M_\star$ and inclination of the mean orbital
 plane of the planets $i$ are the only stellar properties that enter
-the orbit computation. Then, for each each planet $k$, its orbit is
+the orbit computation.
+Then, for each each planet $k$, its orbit is
 specified by 6 parameters: the semi-major axis $a^{(k)}$, the orbital
 eccentricity $e^{(k)}$, the relative inclination $\delta i^{(k)}$, the time of
 a reference pericentre passage $t_0^{(k)}$, the longitude of the periapsis
@@ -256,12 +272,15 @@ $\varpi^{(k)}$ AND ONE OTHER ANGLE.
 \subsection{Limb darkening}
 
 In reality, stars are not uniformly bright illuminated on the plane of the
-sky. Instead, they dim towards the edges. This effect is called
-\emph{limb darkening}. \citet{mandel} provide analytic expressions for the
+sky.
+Instead, they dim towards the edges.
+This effect is called \emph{limb darkening}.
+\citet{mandel} provide analytic expressions for the
 effects of limb darkening for three simple stellar profiles $I(r)$.
 Implementations of these results have been ported to most programming
 languages and they are used for most---if not all---applications of exoplanet
-transit modeling. Instead of asserting a specific form for the limb darkening
+transit modeling.
+Instead of asserting a specific form for the limb darkening
 profile (LDP) and relying on these analytic solutions, we use a numerical
 approach that can reach high precision with reasonable computational
 efficiency---first-order convergence---for \emph{any} LDP.
@@ -282,7 +301,8 @@ In this approximation, the integral in \eq{general-occ} simplifies to the sum
     \lambda_\mathrm{numer} (R, p, b) & = & \sum_{n=1}^N w_n (p, b) \, I_n \\
                                      & = & \bvec{w} (p, b) \cdot \bvec{I}
 \end{eqnarray}
-where $w_n(a, b)$ encapsulates all the geometry. The specific form of $w_n$
+where $w_n(a, b)$ encapsulates all the geometry.
+The specific form of $w_n$
 can be computed using \eq{uniform-occ}
 \begin{eqnarray}
     w_n (p, b) & = & \lambda_\mathrm{uniform} (r_{n}, p, b)
@@ -292,7 +312,8 @@ if we define $r_{-1} \equiv 0$ and $r_N \equiv R$.
 
 The light curve produced by \eq{numerical-occ} is very general because there is
 no constraint on the positions of the bin edges $r_n$ or on the intensity
-levels $I_n$. It is also a good idea to use this method for several reasons:
+levels $I_n$.
+It is also a good idea to use this method for several reasons:
 \begin{enumerate}
     {\item a reason}
     {\item another reason}
@@ -300,8 +321,9 @@ levels $I_n$. It is also a good idea to use this method for several reasons:
 
 One remaining issue with \eq{numerical-occ} is the question of normalization.
 There is currently an infinite degeneracy between the overall normalization of
-the LDP and the flux of the star itself. To break this degeneracy, we add one
-constraint on the intensity values. Namely, the surface integral of $I(r)$
+the LDP and the flux of the star itself.
+To break this degeneracy, we add one constraint on the intensity values.
+Namely, the surface integral of $I(r)$
 should be equal to one
 \begin{eqnarray}
     \sum_{n=1}^{N} I_n \, \left [ r_n^2 - r_{n-1}^2 \right ]
@@ -335,70 +357,78 @@ Please use our code.  It is available at XXX.
 
 \section{Appendix}
 
-The first case, $R+p < b$, corresponds to the case when the impact parameter of
-the planet is greater than the combined radii of the star and planet. Hence no
-flux is occulted.  The third case, $b \leq R-p$, corresponds to the scenario
-where the entire planet is within the observers perception of the star.  Hence
-the planet's entire area, $\pi \, p^2$, is occulted.  The last case, $b \leq p-R$ implies
-$p-R \geq 0$ since $b$ is positive by definition, thus the apparent radius of the
-planet is larger than the star.  Also, with $b$ less than the difference between
-between the planet's radius and the stellar radius, the entire area
-of the star is occulted, hence $\lambda = \pi R^2$.  Thus the only non-trivial
-case is the second, $|R-p| < b \leq R+p$.
+The first case, $R+p < b$, corresponds to the case when the impact parameter
+of the planet is greater than the combined radii of the star and planet.
+Hence no flux is occulted.
+The third case, $b \leq R-p$, corresponds to the scenario where the entire
+planet is within the observers perception of the star.
+Hence the planet's entire area, $\pi \, p^2$, is occulted.
+The last case, $b \leq p-R$ implies $p-R \geq 0$ since $b$ is positive by
+definition, thus the apparent radius of the planet is larger than the star.
+Also, with $b$ less than the difference between between the planet's radius
+and the stellar radius, the entire area of the star is occulted, hence
+$\lambda = \pi R^2$.
+Thus the only non-trivial case is the second, $|R-p| < b \leq R+p$.
 
-the derivation of this formula comes in two parts, first we need to find the area of
-a generalized circular cap, and then use that formula twice to find the asymmetrical
-lense occulted in figure x (yo dan, how do you command your robot to display geometrical sexiness?)
+The derivation of this formula comes in two parts, first we need to find the
+area of a generalized circular cap, and then use that formula twice to find
+the asymmetrical lens occulted in figure x (yo dan, how do you command your
+robot to display geometrical sexiness?)
 
 %\include{dan's sexiness}
 
-We would like to find the shaded area as a function of the radius of the circle (R)
-as well as the distance from the bottom of the cap to the center of circle (r).
+We would like to find the shaded area as a function of the radius of the
+circle (R) as well as the distance from the bottom of the cap to the center
+of circle (r).
 First note that the length of the chord (a) is given by
-\[
-a = 2 \, r \, \mathrm{tan} \left( \frac{\theta}{2} \right) = 2 \, r \,
-\left( \frac{\sqrt{R^2 - r^2}}{r} \right) = 2 \, \sqrt{R^2 - r^2}
-\]
-also we note that the arclength s is given by
-\[
-s = R \, \theta = R \, \left( 2 \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right) \right)
-\]
-The area of the circular cap is then the total area of the wedge of angle $\theta$
-less the area of the isosceles triangle of base a.
-\[
-A(R,r) = (\pi \, R^2) \left( \frac{\theta}{2 \, \pi} \right) - \frac{1}{2} a \,
-r = \frac{1}{2} R \, (R \, \theta) - \frac{1}{2} r \, ( 2 \, \sqrt{R^2 - r^2} )
-\]
-\[
- = \frac{1}{2} R \, s - r \, \sqrt{R^2 - r^2} = \frac{1}{2} R \, \left( 2 \, R
- \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right) \right) - r \, \sqrt{R^2 - r^2}
- = R^2 \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right) - r \, \sqrt{R^2 - r^2}
-\]
-Now we need only compute the proper r for each half of the asymmetrical lense,
-the occulted area will follow. The equations of the two circles are $x^2 + y^2 = R$
-and $(x-b)^2 + y^2 = p^2$.  Subtracting these two formulas and solving for x yields
-\[
-x = \frac{b^2 + R^2 - p^2}{2 \, b}
-\]
-\[
-b - x = \frac{b^2 + p^2 - R^2}{2 \, b}
-\]
-The heights of the isoceles triangles needed to calculate the area of their respective
-circular caps are then given by $r_R = x$ and $r_p = b-x$.  The occulted area is
-simply the sum of these two caps
-\[
-\lambda(R,p,b) = A(R,r_R) + A(p,r_p) =
-\]
-\[
- = \mathrm{cos}^{-1} \left( \frac{b^2 + R^2 - p^2}{2 \, b } \right) + p^2
- \, \mathrm{cos}^{-1} \left( \frac{b^2 + p^2 - R^2}{2 \, p \, b} \right)
-\]
-\[
-- \frac{b^2 + R^2 - p^2}{2 \, b} \sqrt{R^2 - \left( \frac{b^2 + R^2 - p^2}{2 \, b}
-\right)^2 } - \frac{b^2 + p^2 -R^2}{2 \, b} \sqrt{ p^2 - \left( \frac{b^2 + p^2
-- R^2}{2 \, b} \right)^2 }
-\]
-In the second line above, one can factor by completing the squares to show that
+\begin{eqnarray}
+    a & = & 2 \, r \, \mathrm{tan} \left( \frac{\theta}{2} \right) = 2 \, r \,
+        \left( \frac{\sqrt{R^2 - r^2}}{r} \right) = 2 \, \sqrt{R^2 - r^2}
+\end{eqnarray}
+also we note that the arclength $s$ is given by
+\begin{eqnarray}
+    s & = & R \, \theta = R \, \left( 2 \, \mathrm{cos}^{-1}
+                          \left( \frac{r}{R} \right) \right)
+\end{eqnarray}
+The area of the circular cap is then the total area of the wedge of angle
+$\theta$ less the area of the isosceles triangle of base $a$.
+\begin{eqnarray}
+    A(R,r) & = & (\pi \, R^2) \left( \frac{\theta}{2 \, \pi} \right)
+                                    - \frac{1}{2} a \, r \\
+           & = & \frac{1}{2} R \, (R \, \theta) - \frac{1}{2} r \, ( 2 \,
+                                    \sqrt{R^2 - r^2} ) \\
+           & = & \frac{1}{2} R \, s - r \, \sqrt{R^2 - r^2} = \frac{1}{2} R
+                                    \, \left( 2 \, R \, \mathrm{cos}^{-1}
+                                    \left( \frac{r}{R} \right) \right)
+                                    - r \, \sqrt{R^2 - r^2} \\
+           & = & R^2 \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right)
+                                    - r \, \sqrt{R^2 - r^2}
+\end{eqnarray}
+Now we need only compute the proper $r$ for each half of the asymmetrical
+lens, the occulted area will follow.
+The equations of the two circles are $x^2 + y^2 = R$ and $(x-b)^2 + y^2 = p^2$.
+Subtracting these two formulas and solving for x yields
+\begin{eqnarray}
+    x & = & \frac{b^2 + R^2 - p^2}{2 \, b} \\
+    b - x & = & \frac{b^2 + p^2 - R^2}{2 \, b}
+\end{eqnarray}
+The heights of the isoceles triangles needed to calculate the area of their
+respective circular caps are then given by $r_R = x$ and $r_p = b-x$.  The
+occulted area is simply the sum of these two caps
+\begin{eqnarray}
+    \lambda(R,p,b) & = & A(R,r_R) + A(p,r_p) \\
+                   & = & \mathrm{cos}^{-1} \left( \frac{b^2 + R^2 - p^2}{2
+                                                        \, b } \right) + p^2
+                         \, \mathrm{cos}^{-1} \left( \frac{b^2 + p^2
+                                                - R^2}{2 \, p \, b} \right)
+            && - \frac{b^2 + R^2 - p^2}{2 \, b} \sqrt{R^2 -
+                    \left( \frac{b^2 + R^2 - p^2}{2 \, b}
+                    \right)^2 } - \frac{b^2 + p^2 -R^2}{2 \, b}
+                    \sqrt{ p^2 - \left( \frac{b^2 + p^2 - R^2}{2 \, b}
+                    \right)^2 }
+\end{eqnarray}
+In the second line above, one can factor by completing the squares to show
+that
 \[
 \sqrt{R^2 - \left( \frac{b^2 + R^2 - p^2}{2 \, b} \right)^2 } =  \sqrt{ p^2 -
 \left( \frac{b^2 + p^2 - R^2}{2 \, b} \right)^2 } =
