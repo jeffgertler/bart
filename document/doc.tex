@@ -60,7 +60,7 @@
 
 \begin{document}
 
-\title{Fast \& flexible exoplanet transit modeling using Bart}
+\title{Flexible and rapid exoplanet transit modeling with Bart}
 
 \newcommand{\nyu}{2}
 \newcommand{\mpia}{3}
@@ -78,26 +78,25 @@
                         K\"onigstuhl 17, D-69117 Heidelberg, Germany}
 
 \begin{abstract}
-
 With enormous numbers of transiting exoplanets being discovered by
 \project{Kepler}, it is finally becoming possible to hierarchically infer the
-parameters of the population of exoplanets. A necessary component of these
-analyses is a tool for high performance probabilistic transit modeling. We
-present a computationally efficient and extremely flexible algorithm called
-\project{Bart} for accurately inferring and marginalizing over the physical
-parameters of a planetary system conditioned on an observed light curve.
-In particular, \project{Bart} uses a general non-parametric limb-darkening law
-for the star. This model is much more flexible than the classic analytic
-results from Madel \& Agol (2002) at minimal computational cost. As a
-demonstration, we apply \project{Bart} to all N planets observed in the
-\project{Kepler} optical photometric time series of the system Kepler-XXXXX
-and the IR light curve of BLAH observed by \project{Spitzer}. Radial
-velocity and astrometric observations of planetary systems can also be easily
+parameters of the entire population of exoplanets. A necessary component of these
+analyses is a tool for high performance probabilistic transit
+modeling---sampling the posterior PDF for the parameters of an arbitrary
+multi-planet exoplanet system given stellar light-curve data and parameterized priors. We
+present a computationally efficient and extremely flexible system called
+\project{Bart} for performing these inferences.
+\project{Bart} uses a non-parametric limb-darkening law
+for each star; it is much more flexible than the classic analytic
+results in current use, at minimal computational cost.
+We apply \project{Bart} to all NNN planets observed in the
+\project{Kepler} photometric time series for the system Kepler-XXXXX
+and the IR light curve of BLAH observed by \project{Spitzer}. The code is designed so that Radial
+velocity and astrometric observations can be easily
 incorporated as further constraints for a joint analysis when available.
 
 \project{Bart} is implemented in Python and it is available under the
 \license\ online at \url{http://dan.iel.fm/bart}.
-
 \end{abstract}
 
 \keywords{%
@@ -110,21 +109,70 @@ keywords: made-up-by-Hogg
 
 \section{Introduction}
 
-In the age of \project{Kepler}, accurate modeling of transit light curves---making
-predictions of the flux as a function of time for a star partially (or totally)
-eclipsed by a planet---is of great importance.  Many things can matter in principle,
-from the angular sizes and velocities of the star and planet to limb darkening of
-the primary star to light emitted and reflected by the heterogeneous planet surface
-to stellar rotation, surface convection, oblateness, and sunspots.
+The NASA \project{Kepler} mission (DFM CITE) has discovered and
+characterized thousands of transiting planets and planet
+candidates.  Radial-velocity surveys have discovered hundreds (DFM
+CITE), a handful have been directly imaged (DFM CITE, including
+Oppenheimer et al), and the ESA \project{Gaia} mission (DFM CITE) is
+expected to discover many thousands more astrometrically.  Each
+technique has different sensitivity to exoplanets with different
+properties; each technique finds a different subset of the total
+exoplanet population; none is complete.  Not even any simple
+combination of techniques is expected to return a complete census of
+exoplanets.
 
-Up to now, most eclipse modeling has made use of extremely useful and fast analytic
-approximations \citep{mandel}.  However, these approximations only permit
-certain kinds of limb darkening effects and require the evaluation of special
-functions.  Here we present a new approach to modeling planetary transits,
-based on a numerical annular model for limb darkening.  We describe and
-publish high performance open-source code and also apply it to real data to
-demonstrate its use in probabilistic inference.
+For probabilistic reasoners---``Bayesians'' in some contexts---the
+right way to approach these problems is \emph{hierarchical} (DFM CITE
+GELMAN OR SOMEONE).  The properties of the overall exoplanet
+population is parameterized with ``hyperparameters''; at any setting
+of these hyperparameters, the overall population plus the modeled
+selection effects relevant to each observational program provides
+the prior probability distribution for the parameters of any
+individual observed or observable exoplanet system.  When inference is
+being performed to obtain the properties of the population as a whole,
+the properties of every individual exoplanet are marginalized out,
+leaving a marginalized likelihood function or posterior probability
+distribution function (posterior PDF) for the population
+hyperparameters.  When inference is being performed to obtain the
+properties of any individual exoplanetary system, the posterior PDF
+for that system is obtained by marginalizing out all \emph{other}
+systems and the hyperparameters themselves.  Hierarchical inference
+best uses knowledge about \emph{every} observed system to inform
+inferences about each \emph{individual} system, and effectively
+provides \emph{noise-deconvolved} inferences about the parent
+population.  We have implemented a simple hierarchical population
+inference previously and demonstrated these properties of hierarchical
+inference in this context (DFM CITE HOGG, BOVY, MYERS).
 
+The enormous challenge for this program of hierarchical inference is
+that it involves the marginalization out of the parameters of now
+thousands of exoplanets in datasets that contain millions to billions
+of data point (DFM FIX NUMBERS).  Given the non-triviality of the
+relevant noise models and the nonlinearity of exoplanet fitting, the
+only approaches that are not disastrously approximate involve Markov
+Chain Monte Carlo (MCMC; DFM CITE).  Even this well-developed and
+seriously engineered set of techniques has almost never been applied
+to a problem as large in scope as all of the world's exoplanet data.
+We are not daunted.
+
+Though we aren't daunted, we recognize that a hierarchical inference
+with the world's entire set of exoplanet data---or even just the
+\project{Kepler} set---will require extremely high-performance, fast,
+accurate modeling of exoplanet transit light curves.  In this context,
+``modeling'' means sampling the posterior PDF for the exoplanet
+parameters given the data and a parameterized prior PDF.  Here we
+describe and publish high performance open-source code---\bart---for performing
+this modeling, and also apply it to real data to demonstrate its use
+and value.
+
+In addition to meeting our needs for hierarchical inference, \bart\ is
+also flexible in treating stellar limb darkening.  Up to now, most
+eclipse modeling has made use of extremely useful analytic
+approximations \citep{mandel}.  However, these approximations only
+permit certain kinds of limb-darkening effects and require the
+(computationally expensive) evaluation of special functions.
+\bart\ avoids these problems by making use of a numerical annular
+model for limb darkening.
 
 \section{How to fit an exoplanet transit}
 
@@ -266,12 +314,14 @@ What is so good about what we have done?
 What are the limitations of what we have done?
 
 We didn't do anything beyond limb darkening:  No sunspots or convection.
-How could we (in principle) make those changes within the \bart framework?
+How could we (in principle) make those changes within the \bart\ framework?
 
 Related to the above, are there elliptical generalizations of any of the above?
 
 We didn't do anything about reflection or emission from the companion.
 How could we (in principle) make that change within the framework?
+Along these lines, \bart\ could be used to model eclipsing binaries,
+in which both members of the binary have non-trivial limb darkening.
 
 Please use our code.  It is available at XXX.
 
