@@ -50,6 +50,12 @@ def get_mstar(a, T):
     return a * a * a * 4 * np.pi * np.pi / _G / T / T
 
 
+class Planet(object):
+
+    def __init__(self, r, a, e, t0, pomega, ix, iy):
+        pass
+
+
 class BART(object):
 
     def __init__(self, fstar, mstar, rstar, iobs, ldp, jitter=0.0):
