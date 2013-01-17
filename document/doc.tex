@@ -420,35 +420,37 @@ occulted area is simply the sum of these two caps
                    & = & \mathrm{cos}^{-1} \left( \frac{b^2 + R^2 - p^2}{2
                                                         \, b } \right) + p^2
                          \, \mathrm{cos}^{-1} \left( \frac{b^2 + p^2
-                                                - R^2}{2 \, p \, b} \right)
-            && - \frac{b^2 + R^2 - p^2}{2 \, b} \sqrt{R^2 -
+                                                - R^2}{2 \, p \, b} \right) \\
+                   & = & - \frac{b^2 + R^2 - p^2}{2 \, b} \sqrt{R^2 -
                     \left( \frac{b^2 + R^2 - p^2}{2 \, b}
                     \right)^2 } - \frac{b^2 + p^2 -R^2}{2 \, b}
                     \sqrt{ p^2 - \left( \frac{b^2 + p^2 - R^2}{2 \, b}
-                    \right)^2 }
+                    \right)^2 } \nonumber
 \end{eqnarray}
-In the second line above, one can factor by completing the squares to show
+\newpage
+In the third line above, one can factor by completing the squares to show
 that
-\[
-\sqrt{R^2 - \left( \frac{b^2 + R^2 - p^2}{2 \, b} \right)^2 } =  \sqrt{ p^2 -
-\left( \frac{b^2 + p^2 - R^2}{2 \, b} \right)^2 } =
-\]
-\[
- = \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
-\]
-The second line of the occulted area is finally
-\[
-- \left( \frac{b^2 +R^2 - p^2}{2 \, b} + \frac{b^2 + p^2 - R^2}{2 \, b} \right)
-\left( \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \right)
-\]
-\[
- = - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
-\]
+\begin{eqnarray}
+    \sqrt{R^2 - \left( \frac{b^2 + R^2 - p^2}{2 \, b} \right)^2 } \nonumber
+        & = & \sqrt{ p^2 - \left( \frac{b^2 + p^2 - R^2}{2 \, b}
+        \right)^2} \nonumber \\
+        & = & \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \nonumber
+\end{eqnarray}
+plugging this into the aforementioned expression
+\begin{eqnarray}
+    - \left( \frac{b^2 +R^2 - p^2}{2 \, b} + \frac{b^2 + p^2 - R^2}{2 \, b}
+    \right) \left( \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
+    \right) \nonumber \\
+         =  - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \nonumber
+\end{eqnarray}
 yielding the desired result
-\[
-\lambda_{non-trivial} = R^2 \kappa_R + p^2 \kappa_p - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
-\]
-with $\kappa_R = \mathrm{cos}^{-1} \left( \frac{-p^2 + b^2 +R^2}{2 \, b} \right)$ and $\kappa_p = \mathrm{cos}^{-1} \left( \frac{p^2 + b^2 -R^2}{2 \, a \, b} \right)$
+\begin{eqnarray}
+    \lambda_{non-trivial} & = & R^2 \kappa_R + p^2 \kappa_p - \frac{1}{2}
+          \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \nonumber
+\end{eqnarray}
+with $\kappa_R = \mathrm{cos}^{-1} \left( \frac{-p^2 + b^2 +R^2}{2 \, b}
+\right)$ and $\kappa_p = \mathrm{cos}^{-1}
+\left( \frac{p^2 + b^2 -R^2}{2 \, a \, b} \right)$
 \newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
 \begin{thebibliography}{}\raggedright
 
