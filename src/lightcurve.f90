@@ -1,6 +1,6 @@
       subroutine lightcurve(n, t, &
                             fstar, mstar, rstar, iobs, &
-                            np, r, a, e, t0, pomega, incl, &
+                            np, r, a, t0, e, pomega, ix, iy, &
                             nld, rld, ild, &
                             flux)
 
@@ -35,17 +35,22 @@
         !   The semi-major axes of the orbits in units of the star's
         !   radius.
         !
-        ! :param e: (double precision(np))
-        !   The eccentricities of the orbits.
-        !
         ! :param t0: (double precision(np))
         !   The time of a reference pericenter passage in days.
+        !
+        ! :param e: (double precision(np))
+        !   The eccentricities of the orbits.
         !
         ! :param pomegas: (double precision(np))
         !   The pomegas of the orbits in radians.
         !
-        ! :param incl: (double precision(np))
-        !   The relative inclinations of the orbits in degrees.
+        ! :param ix: (double precision(np))
+        !   The relative inclinations of the orbits around the axis
+        !   perpendicular to the line-of-sight in degrees.
+        !
+        ! :param iy: (double precision(np))
+        !   The relative inclinations of the orbits around the
+        !   line-of-sight axis in degrees.
         !
         ! :param nld: (integer)
         !   The number of radial bins in the limb-darkening profile.
@@ -79,7 +84,7 @@
         ! The planets.
         integer, intent(in) :: np
         double precision, dimension(np), intent(in) :: &
-                                          r, a, e, t0, pomega, incl
+                                          r, a, e, t0, pomega, ix, iy
 
         ! The limb-darkening profile.
         integer, intent(in) :: nld
@@ -101,8 +106,8 @@
         do i=1, np
 
           call solve_orbit(n, t, mstar, &
-                           e(i), a(i) * rstar, t0(i), pomega(i),&
-                           (90.d0 - iobs + incl(i)) / 180.d0 * pi, 0.0,&
+                           e(i), a(i) * rstar, t0(i), pomega(i), &
+                           (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
                            pos)
 
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:)) / rstar

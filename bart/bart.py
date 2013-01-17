@@ -1,8 +1,11 @@
-from __future__ import print_function
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-__all__ = [u"BART", u"LimbDarkening", u"QuadraticLimbDarkening",
-           u"NonlinearLimbDarkening", u"get_period", u"get_mstar"]
+from __future__ import print_function, absolute_import, unicode_literals
 
+__all__ = ["Planet", "PlanetarySystem",
+           "LimbDarkening", "QuadraticLimbDarkening", "NonlinearLimbDarkening",
+          ]
 
 from collections import OrderedDict
 from multiprocessing import Process
@@ -26,39 +29,81 @@ except ImportError:
 
 from . import _bart
 from . import mog
-from . import triangle
 
 
 _G = 2945.4625385377644
 
 
-def get_period(a, mstar):
-    """
-    Get the period of a planet orbiting a star with a semi-major axis ``a``
-    (in Solar radii). The star has a mass of ``mstar`` Solar masses.
-
-    """
-    return 2 * np.pi * np.sqrt(a * a * a / _G / mstar)
-
-
-def get_mstar(a, T):
-    """
-    Get the mass of the star given a semi-major axis ``a`` and the period
-    ``T``.
-
-    """
-    return a * a * a * 4 * np.pi * np.pi / _G / T / T
-
-
 class Planet(object):
+    """
+    A :class:`Planet` object represents the set of parameters describing a
+    single planet in a planetary system.
 
-    def __init__(self, r, a, e, t0, pomega, ix, iy):
-        pass
+    :param r:
+        The size of the planet in Solar radii.
+
+    :param a:
+        The semi-major axis of the orbit in Solar radii.
+
+    :param t0: (optional)
+        The time of a reference pericenter passage.
+
+    :param e: (optional)
+        The eccentricity of the orbit.
+
+    :param pomega: (optional)
+        The rotation of the orbital ellipse in the reference plane.
+
+    :param ix: (optional)
+        The inclination of the orbit around the perpendicular axis to the
+        observer's line-of-sight in degrees.
+
+    :param iy: (optional)
+        The inclination of the orbit around the observes line-of-sight in
+        degrees.
+
+    """
+
+    def __init__(self, r, a, t0=0.0, e=0.0, pomega=0.0, ix=0.0, iy=0.0):
+        self.r = r
+        self.a = a
+        self.t0 = t0
+        self.e = e
+        self.pomega = pomega
+        self.ix = ix
+        self.iy = iy
+
+    @property
+    def vector(self):
+        return np.array([self.r, self.a, self.t0, self.e, self.pomega,
+                         self.ix, self.iy])
+
+    def get_mstar(self, T):
+        """
+        Get the mass of the host star implied by the semi-major axis of this
+        planet and an input period.
+
+        """
+        a = self.a
+        return a * a * a * 4 * np.pi * np.pi / _G / T / T
+
+    def get_period(self, mstar):
+        """
+        Get the period of this planet orbiting a star with a given mass.
+
+        """
+        a = self.a
+        return 2 * np.pi * np.sqrt(a * a * a / _G / mstar)
 
 
-class BART(object):
+class PlanetarySystem(object):
+    """
 
-    def __init__(self, fstar, mstar, rstar, iobs, ldp, jitter=0.0):
+
+    """
+
+    def __init__(self, fstar=1.0, mstar=1.0, rstar=1.0, iobs=90.0, ldp=None,
+                 jitter=0.0):
         self._data = None
 
         # The properties of the system as a whole.
@@ -69,15 +114,17 @@ class BART(object):
         self.jitter = jitter
 
         # The planets.
-        self._nplanets = 0
-        self.r, self.a, self.e, self.t0, self.pomega, self.incl = \
-                                            [np.array([]) for i in range(6)]
+        self.planets = []
 
         # The fit parameters.
         self._pars = OrderedDict()
 
         # The limb darkening profile.
-        self.ldp = ldp
+        if ldp is None:
+            # Default to a uniformly illuminated star.
+            self.ldp = LimbDarkening([1.0], [1.0])
+        else:
+            self.ldp = ldp
 
         # Process management book keeping.
         self._processes = []
@@ -89,16 +136,10 @@ class BART(object):
 
     @property
     def nplanets(self):
-        return self._nplanets
+        return len(self.planets)
 
-    def add_planet(self, r, a, e, t0, pomega, i):
-        self._nplanets += 1
-        self.r = np.append(self.r, r)
-        self.a = np.append(self.a, a)
-        self.e = np.append(self.e, e)
-        self.t0 = np.append(self.t0, t0)
-        self.pomega = np.append(self.pomega, pomega)
-        self.incl = np.append(self.incl, i)
+    def add_planet(self, planet):
+        self.planets.append(planet)
 
     def to_vector(self):
         v = []
@@ -521,7 +562,7 @@ class BART(object):
                     for i, (k, p) in enumerate(self._pars.iteritems())
                     if i in inds]
 
-        triangle.corner(plotchain[:, inds].T, labels=labels, bins=20,
+        triangle.corner(plotchain[:, inds], labels=labels, bins=20,
                                 truths=truths)
 
         pl.savefig(u"triangle.png")
