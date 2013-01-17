@@ -47,7 +47,7 @@ period = Extension("bart.period._period", ["bart/period/period.pyf",
 # Get version.
 vre = re.compile("__version__ = \"(.*?)\"")
 m = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                          "bart", "__init__.py")).read()
+                      "bart", "__init__.py")).read()
 version = vre.findall(m)[0]
 
 setup(
@@ -55,12 +55,13 @@ setup(
     version=version,
     author="Dan Foreman-Mackey",
     author_email="danfm@nyu.edu",
-    description="Kick ass affine-invariant ensemble MCMC sampling",
+    description="",
     long_description=open("README.rst").read(),
     package_data={"": ["README.rst"]},
     include_package_data=True,
     packages=["bart", ],
     ext_modules=[bart, kmeans, period],
+    install_requires=["emcee", "triangle_plot"],
     classifiers=[
         # "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
