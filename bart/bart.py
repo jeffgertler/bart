@@ -3,9 +3,7 @@
 
 from __future__ import print_function, absolute_import, unicode_literals
 
-__all__ = ["Planet", "PlanetarySystem",
-           "LimbDarkening", "QuadraticLimbDarkening", "NonlinearLimbDarkening",
-          ]
+__all__ = ["Star", "Planet", "PlanetarySystem"]
 
 from collections import OrderedDict
 from multiprocessing import Process
@@ -14,6 +12,7 @@ import cPickle as pickle
 import numpy as np
 import scipy.optimize as op
 import emcee
+import triangle
 
 try:
     import matplotlib.pyplot as pl
@@ -27,11 +26,59 @@ try:
 except ImportError:
     h5py = None
 
-from . import _bart
-from . import mog
+from bart import _bart, mog
+from bart.ldp import LimbDarkening
 
 
 _G = 2945.4625385377644
+
+
+class Star(object):
+    """
+    Represents the parameters of a star that hosts a planetary system.
+
+    :param mass: (optional)
+        The mass of the star in Solar masses.
+
+    :param radius: (optional)
+        The radius of the star in Solar radii.
+
+    :param flux: (optional)
+        The flux of the star in arbitrary units.
+
+    :param ldp: (optional)
+        The limb-darkening profile (a subclass of :class:`LimbDarkening`) of
+        the star. This will default to a uniformly illuminated star.
+
+    """
+
+    def __init__(self, mass=1.0, radius=1.0, flux=1.0, ldp=None):
+        self.mass = mass
+        self.radius = radius
+        self.flux = flux
+
+        # The limb darkening profile.
+        if ldp is None:
+            # Default to a uniformly illuminated star.
+            self.ldp = LimbDarkening([1.0], [1.0])
+        else:
+            self.ldp = ldp
+
+        # The list of fit parameters.
+        self.parameters = []
+
+    @property
+    def vector(self):
+        return np.concatenate([p.getter(self) for p in self.parameters])
+
+    @vector.setter
+    def vector(self, v):
+        i = 0
+        for p in self.parameters:
+            p.setter(self, v[i:i + len(p)])
+
+    def __len__(self):
+        return np.sum([len(p) for p in self.parameters])
 
 
 class Planet(object):
@@ -98,33 +145,27 @@ class Planet(object):
 
 class PlanetarySystem(object):
     """
+    A system of planets orbiting a star.
 
+    :param star:
+        A :class:`Star` object.
+
+    :param iobs: (optional)
+        The viewing angle in degrees. 90 is defined as edge on.
 
     """
 
-    def __init__(self, fstar=1.0, mstar=1.0, rstar=1.0, iobs=90.0, ldp=None,
-                 jitter=0.0):
+    def __init__(self, star, iobs=90.0):
         self._data = None
 
         # The properties of the system as a whole.
-        self.fstar = fstar
-        self.mstar = mstar
-        self.rstar = rstar
         self.iobs = iobs
-        self.jitter = jitter
 
         # The planets.
         self.planets = []
 
         # The fit parameters.
         self._pars = OrderedDict()
-
-        # The limb darkening profile.
-        if ldp is None:
-            # Default to a uniformly illuminated star.
-            self.ldp = LimbDarkening([1.0], [1.0])
-        else:
-            self.ldp = ldp
 
         # Process management book keeping.
         self._processes = []
@@ -136,31 +177,53 @@ class PlanetarySystem(object):
 
     @property
     def nplanets(self):
+        """
+        The number of planets in the system.
+
+        """
         return len(self.planets)
 
     def add_planet(self, planet):
+        """
+        Add a :class:`Planet` to the system.
+
+        :param planet:
+            The :class:`Planet` to add.
+
+        """
         self.planets.append(planet)
 
-    def to_vector(self):
-        v = []
+    @property
+    def vector(self):
+        """
+        Get the vector of fit parameters in the same order as they were added.
 
+        """
+        v = []
         for k, p in self._pars.iteritems():
             v.append(p.getter(self))
-
         return np.array(v, dtype=np.float64)
 
-    def from_vector(self, v):
-        ind, n = 0, self.nplanets
+    @vector.setter
+    def vector(self, v):
+        """
+        Set the current fit parameter values.
 
+        """
         for i, (k, p) in enumerate(self._pars.iteritems()):
             p.setter(self, v[i])
-
-        return self
 
     def __call__(self, p):
         return self.lnprob(p)
 
     def lnprob(self, p):
+        """
+        Compute the log-probability of the model evaluated at a given position.
+
+        :param p:
+            The vector of fit parameters where the model should be evaluated.
+
+        """
         # Make sure that we catch all the over/under-flows.
         np.seterr(all=u"raise")
         try:
@@ -182,6 +245,10 @@ class PlanetarySystem(object):
         return lnl + lnp
 
     def lnprior(self):
+        """
+        Compute the log-prior of the current model.
+
+        """
         lnp = 0.0
 
         # Priors on the limb darkening profile.
@@ -205,23 +272,30 @@ class PlanetarySystem(object):
         return lnp
 
     def lnlike(self):
+        """
+        Compute the log-likelihood of the current model.
+
+        """
         assert self._data is not None
-        model = self.lightcurve()
+        model = self.lightcurve(self._data[0])
         delta = self._data[1] - model
 
         # Add in the jitter.
         ivar = np.array(self._data[2])
-        inds = ivar > 0
-        ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
+        # inds = ivar > 0
+        # ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
 
         chi2 = np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
-
         return -0.5 * chi2
 
-    def lightcurve(self, t=None):
-        if t is None:
-            assert self._data is not None
-            t = self._data[0]
+    def lightcurve(self, t):
+        """
+        Get the light curve of the model at the current model.
+
+        :param t:
+            The times where the light curve should be evaluated.
+
+        """
         return _bart.lightcurve(t,
                                 self.fstar, self.mstar, self.rstar, self.iobs,
                                 self.r, self.a, self.e, self.t0, self.pomega,
@@ -293,6 +367,10 @@ class PlanetarySystem(object):
             raise RuntimeError(u"Unknown parameter {0}".format(var))
 
     def _prepare_data(self, t, f, ferr):
+        """
+        Censor and prepare the data properly.
+
+        """
         # Deal with masked and problematic data points.
         inds = ~(np.isnan(t) + np.isnan(f) + np.isnan(ferr)
             + np.isinf(t) + np.isinf(f) + np.isinf(ferr)
@@ -300,7 +378,7 @@ class PlanetarySystem(object):
         t, f, ivar = t[inds], f[inds], 1.0 / ferr[inds] / ferr[inds]
 
         # Store the data.
-        mu = np.median(f)
+        mu = 1.0  # np.median(f)
         self._data = [t, f / mu, ivar * mu * mu]
 
     def optimize(self, t, f, ferr,
@@ -328,11 +406,19 @@ class PlanetarySystem(object):
         self.from_vector(result.x)
         return result.x
 
-    def fit(self, t=None, f=None, ferr=None,
+    def fit(self, data=None,
             pars=[u"fstar", u"t0", u"r", u"a", u"pomega"],
             threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
             nwalkers=100,
             filename=u"./mcmc.h5", restart=None):
+        """
+        Fit the data using MCMC to get constraints on the parameters.
+
+        :param data: (optional)
+            A tuple of the form ``(t, f, ferr)`` giving the data to fit. This
+            is required unless ``restart`` is set.
+
+        """
 
         if restart is not None:
             with h5py.File(restart, u"r") as f:
@@ -352,7 +438,8 @@ class PlanetarySystem(object):
             s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
         else:
-            self._prepare_data(t, f, ferr)
+            assert data is not None, "You need to provide some data to fit!"
+            self._prepare_data(*data)
             self.fit_for(*pars)
             p_init = self.to_vector()
             ndim = len(p_init)
@@ -477,7 +564,7 @@ class PlanetarySystem(object):
             else:
                 a = self.a[i]
 
-            T = get_period(a * self.rstar, self.mstar)
+            T = self.planets[i].get_period(self.mstar)
 
             # Generate light curve samples.
             t = np.linspace(0, T, 500)
@@ -570,138 +657,6 @@ class PlanetarySystem(object):
 
 def _async_plot(pltype, ps, *args):
     return getattr(ps, pltype)(*args)
-
-
-class LimbDarkening(object):
-
-    def __init__(self, bins, intensity):
-        self.bins = bins
-        self.intensity = intensity
-
-    def plot(self):
-        x = [0, ]
-        [(x.append(b), x.append(b)) for b in self.bins]
-        y = []
-        [(y.append(i), y.append(i)) for i in self.intensity]
-
-        return x[:-1], y
-
-
-class QuadraticLimbDarkening(LimbDarkening):
-
-    def __init__(self, nbins, gamma1, gamma2):
-        dr = 1.0 / nbins
-        self.bins = np.arange(0, 1, dr) + dr
-        self.gamma1, self.gamma2 = gamma1, gamma2
-
-    def __getitem__(self, k):
-        return getattr(self, k)
-
-    def __setitem__(self, k, v):
-        setattr(self, k, v)
-
-    @property
-    def intensity(self):
-        onemmu = 1 - np.sqrt(1 - self.bins * self.bins)
-        return 1 - self.gamma1 * onemmu - self.gamma2 * onemmu * onemmu
-
-
-class NonlinearLimbDarkening(LimbDarkening):
-
-    def __init__(self, nbins, coeffs):
-        dr = 1.0 / nbins
-        self.bins = np.arange(0, 1, dr) + dr
-        self.coeffs = coeffs
-
-    @property
-    def intensity(self):
-        mu = np.sqrt(1 - self.bins ** 2)
-        c = self.coeffs
-        return 1 - sum([c[i] * (1.0 - mu ** (0.5 * (i + 1)))
-                                            for i in range(len(c))])
-
-
-class Prior(object):
-
-    def __init__(self, *pars):
-        self._pars = pars
-
-
-class UniformPrior(Prior):
-
-    def __call__(self, x):
-        mn, mx = self._pars
-        if mn <= x < mx:
-            return 0.0
-        return -np.inf
-
-    def sample(self, N=1):
-        mn, mx = self._pars
-        return mn + (mx - mn) * np.random.rand(N)
-
-
-class GaussianPrior(Prior):
-
-    def __call__(self, x):
-        mu, std = self._pars
-        v = std * std
-        return -0.5 * np.sum(((x - mu) / std) ** 2) \
-               - 0.5 * np.log(2 * np.pi * v)
-
-    def sample(self, N=1):
-        mu, std = self._pars
-        return mu + std * np.random.randn(N)
-
-
-class Parameter(object):
-
-    def __init__(self, name, attr=None, ind=None, prior=None):
-        self.name = name
-        self.attr = attr
-        self.ind = ind
-        self.prior = prior
-
-    def __str__(self):
-        return self.name
-
-    def conv(self, val):
-        return val
-
-    def iconv(self, val):
-        return val
-
-    def getter(self, ps):
-        if self.ind is None:
-            return self.conv(getattr(ps, self.attr))
-        return self.conv(getattr(ps, self.attr)[self.ind])
-
-    def setter(self, ps, val):
-        if self.ind is None:
-            setattr(ps, self.attr, self.iconv(val))
-        else:
-            getattr(ps, self.attr).__setitem__(self.ind, self.iconv(val))
-
-
-class LogParameter(Parameter):
-
-    def conv(self, val):
-        return np.log(val)
-
-    def iconv(self, val):
-        return np.exp(val)
-
-
-class ConstrainedParameter(Parameter):
-
-    def __init__(self, bounds, *args, **kwargs):
-        super(ConstrainedParameter, self).__init__(*args, **kwargs)
-        self.bounds = sorted(bounds)
-
-    def setter(self, ps, val):
-        v0 = self.iconv(val)
-        while not self.bounds[0] < v0 < self.bounds[1]:
-            v0 = self.bounds[0] + v0 % (self.bounds[1] - self.bounds[0])
-        return super(ConstrainedParameter, self).setter(ps, self.conv(v0))
 
 
 class LDPParameter(LogParameter):
