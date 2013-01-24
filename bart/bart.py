@@ -5,7 +5,6 @@ from __future__ import print_function, absolute_import, unicode_literals
 
 __all__ = ["Star", "Planet", "PlanetarySystem"]
 
-from collections import OrderedDict
 from multiprocessing import Process
 import cPickle as pickle
 
@@ -33,7 +32,27 @@ from bart.ldp import LimbDarkening
 _G = 2945.4625385377644
 
 
-class Star(object):
+class Model(object):
+
+    def __init__(self):
+        self.parameters = []
+
+    @property
+    def vector(self):
+        return np.concatenate([p.getter(self) for p in self.parameters])
+
+    @vector.setter
+    def vector(self, v):
+        i = 0
+        for p in self.parameters:
+            p.setter(self, v[i:i + len(p)])
+            i += len(p)
+
+    def __len__(self):
+        return np.sum([len(p) for p in self.parameters])
+
+
+class Star(Model):
     """
     Represents the parameters of a star that hosts a planetary system.
 
@@ -53,6 +72,8 @@ class Star(object):
     """
 
     def __init__(self, mass=1.0, radius=1.0, flux=1.0, ldp=None):
+        super(Model, self).__init__()
+
         self.mass = mass
         self.radius = radius
         self.flux = flux
@@ -64,24 +85,8 @@ class Star(object):
         else:
             self.ldp = ldp
 
-        # The list of fit parameters.
-        self.parameters = []
 
-    @property
-    def vector(self):
-        return np.concatenate([p.getter(self) for p in self.parameters])
-
-    @vector.setter
-    def vector(self, v):
-        i = 0
-        for p in self.parameters:
-            p.setter(self, v[i:i + len(p)])
-
-    def __len__(self):
-        return np.sum([len(p) for p in self.parameters])
-
-
-class Planet(object):
+class Planet(Model):
     """
     A :class:`Planet` object represents the set of parameters describing a
     single planet in a planetary system.
@@ -112,6 +117,8 @@ class Planet(object):
     """
 
     def __init__(self, r, a, t0=0.0, e=0.0, pomega=0.0, ix=0.0, iy=0.0):
+        super(Model, self).__init__()
+
         self.r = r
         self.a = a
         self.t0 = t0
@@ -119,11 +126,6 @@ class Planet(object):
         self.pomega = pomega
         self.ix = ix
         self.iy = iy
-
-    @property
-    def vector(self):
-        return np.array([self.r, self.a, self.t0, self.e, self.pomega,
-                         self.ix, self.iy])
 
     def get_mstar(self, T):
         """
@@ -143,7 +145,7 @@ class Planet(object):
         return 2 * np.pi * np.sqrt(a * a * a / _G / mstar)
 
 
-class PlanetarySystem(object):
+class PlanetarySystem(Model):
     """
     A system of planets orbiting a star.
 
@@ -156,16 +158,16 @@ class PlanetarySystem(object):
     """
 
     def __init__(self, star, iobs=90.0):
+        super(Model, self).__init__()
+
         self._data = None
 
         # The properties of the system as a whole.
+        self.star = star
         self.iobs = iobs
 
         # The planets.
         self.planets = []
-
-        # The fit parameters.
-        self._pars = OrderedDict()
 
         # Process management book keeping.
         self._processes = []
@@ -196,22 +198,29 @@ class PlanetarySystem(object):
     @property
     def vector(self):
         """
-        Get the vector of fit parameters in the same order as they were added.
+        Get the list of parameter values for the system, the star, and the
+        planets.
 
         """
-        v = []
-        for k, p in self._pars.iteritems():
-            v.append(p.getter(self))
-        return np.array(v, dtype=np.float64)
+        v = super(Model, self).vector
+        return np.concatenate([v, self.star.vector]
+                              + [p.vector for p in self.planets])
 
     @vector.setter
     def vector(self, v):
         """
-        Set the current fit parameter values.
+        Set the parameters of the system, the star, and the planets.
+
+        :param v:
+            A ``numpy`` array of the target parameter values.
 
         """
-        for i, (k, p) in enumerate(self._pars.iteritems()):
-            p.setter(self, v[i])
+        j, i = len(self), len(self) + len(self.star)
+        super(Model, self).vector = v[:j]
+        self.star.vector = v[j:i]
+        for p in self.planets:
+            p.vector = v[i:i + len(p)]
+            i += len(p)
 
     def __call__(self, p):
         return self.lnprob(p)
@@ -301,70 +310,6 @@ class PlanetarySystem(object):
                                 self.r, self.a, self.e, self.t0, self.pomega,
                                 self.incl,
                                 self.ldp.bins, self.ldp.intensity)
-
-    def fit_for(self, *args):
-        self._pars = OrderedDict()
-        [self._fit_for(p) for p in args]
-
-    def _fit_for(self, var):
-        n = self.nplanets
-        if var == u"fstar":
-            self._pars[u"fstar"] = Parameter(r"$f_\star$", u"fstar")
-
-        elif var in [u"mstar", u"rstar"]:
-            if var == "mstar":
-                tex = r"$M_\star$"
-            elif var == "rstar":
-                tex = r"$R_\star$"
-
-            self._pars[var] = LogParameter(tex, var)
-
-        elif var in [u"t0", u"r", u"a"]:
-            if var == "t0":
-                tex = r"$t_0^{{({0})}}$"
-            elif var == "r":
-                tex = r"$r^{{({0})}}$"
-            elif var == "a":
-                tex = r"$a^{{({0})}}$"
-
-            for i in range(n):
-                self._pars[u"{0}{1}".format(var, i)] = LogParameter(
-                    tex.format(i + 1), var, i)
-
-        elif var == u"e":
-            tex, attr = r"$e^{{({0})}}$", u"e"
-            for i in range(n):
-                self._pars[u"e{0}".format(i)] = Parameter(
-                                tex.format(i + 1), attr=attr, ind=i)
-
-        elif var == u"pomega":
-            tex, attr = r"$\varpi^{{({0})}}$", u"pomoega"
-            for i in range(n):
-                self._pars[u"{0}{1}".format(var, i)] = ConstrainedParameter(
-                    [0.0, 2 * np.pi], tex.format(i + 1), attr=attr, ind=i)
-
-        elif var == u"i":
-            tex, attr = r"$i^{{({0})}}$", u"incl"
-            for i in range(n):
-                self._pars[u"i{0}".format(i)] = Parameter(
-                    tex.format(i + 1), attr=attr, ind=i)
-
-        elif var == u"gamma":
-            self._pars[u"gamma1"] = Parameter(r"$\gamma_1$", attr=u"ldp",
-                                              ind=u"gamma1")
-            self._pars[u"gamma2"] = Parameter(r"$\gamma_2$", attr=u"ldp",
-                                              ind=u"gamma2")
-
-        elif var == u"ldp":
-            for i in range(len(self.ldp.intensity) - 1):
-                self._pars[u"ldp_{0}".format(i)] = LDPParameter(
-                        r"$\Delta I_{{{0}}}$".format(i), ind=i)
-
-        elif var == u"jitter":
-            self._pars[u"jitter"] = LogParameter(u"$s^2$", u"jitter")
-
-        else:
-            raise RuntimeError(u"Unknown parameter {0}".format(var))
 
     def _prepare_data(self, t, f, ferr):
         """
