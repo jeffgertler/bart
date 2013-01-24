@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import (division, print_function, absolute_import,
+                        unicode_literals)
+
+__all__ = []
+
 import pyfits
 import numpy as np
 
@@ -7,61 +15,57 @@ dirname = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(dirname)))
 import bart
 
-# Load the data.
-f = pyfits.open(os.path.join(dirname, "data.fits"))
-lc = np.array(f[1].data)
-f.close()
 
-time = lc["TIME"]
-flux_raw = lc["SAP_FLUX"]
-flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
+def load_data(fn="data.fits"):
+    # Load the data.
+    f = pyfits.open(os.path.join(dirname, "data.fits"))
+    lc = np.array(f[1].data)
+    f.close()
 
-t0 = int(np.median(time[~np.isnan(time)]))
-time = time - t0
+    time = lc["TIME"]
+    flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
 
-# Plot the raw data.
-# ax = pl.axes([0.15, 0.15, 0.8, 0.8])
-# ax.plot(time,
-#         1000 * (flux_raw / np.median(flux_raw[~np.isnan(flux_raw)]) - 1),
-#         ".k", alpha=0.5)
-# ax.set_xlabel("Time [days]")
-# ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
-# pl.savefig("kepler4b_raw.png", dpi=300)
+    t0 = int(np.median(time[~np.isnan(time)]))
+    time = time - t0
 
-# The limb-darkening parameters.
-nbins, gamma1, gamma2 = 100, 0.39, 0.1
-ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
+    mu = np.median(flux)
+    flux /= mu
+    ferr /= mu * mu
 
-if True:
-    # Fit for the LDP with better spacing.
-    ldp.bins = np.sqrt(np.linspace(0.0, 1.0, 15)[1:])
-    rbins, ir = ldp.bins, ldp.intensity
-    ir *= 1.0 / ir[0]
-    ldp = bart.LimbDarkening(rbins, ir)
+    return (time, flux, ferr)
 
-# Initialize the planetary system.
-fstar = 1.0
-rstar = 1.0
-iobs = 0.0
 
-# The parameters of the planet:
-r = 0.0247
-a = 6.47
-e = 0.0
-T = 3.21346
-t0 = 2.38
-pomega = 0.0
-i = 89.76
+def default_ldp():
+    # The limb-darkening parameters.
+    nbins, gamma1, gamma2 = 100, 0.39, 0.1
+    ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
 
-mstar = bart.get_mstar(a, T)
+    if True:
+        # Fit for the LDP with better spacing.
+        ldp.bins = np.sqrt(np.linspace(0.0, 1.0, 15)[1:])
+        rbins, ir = ldp.bins, ldp.intensity
+        ir *= 1.0 / ir[0]
+        ldp = bart.LimbDarkening(rbins, ir)
 
-# Add the planet.
-system = bart.BART(fstar, mstar, rstar, iobs, ldp)
-system.add_planet(r, a, e, t0, pomega, i)
+    return ldp
 
-# Fit it.
-system.fit(time, flux, ferr, pars=[u"fstar", u"t0", u"a", u"r"],
-                        niter=5000, thin=500, nburn=1000, ntrim=1,
-                        nwalkers=64)
-system.plot_fit()
-system.plot_triangle()
+
+def build_model():
+    i = 89.76
+    T = 3.21346
+    planet = bart.Planet(r=0.0247, a=6.47, t0=2.38)
+
+    planet.parameters.append(bart.LogParameter("$r$", "r"))
+    planet.parameters.append(bart.LogParameter("$a$", "a"))
+    planet.parameters.append(bart.LogParameter("$t0$", "t0"))
+
+    star = bart.Star(mass=planet.get_mstar(T))
+    system = bart.PlanetarySystem(star, iobs=i)
+    system.add_planet(planet)
+
+    # Fit it.
+    t, f, ferr = load_data()
+    system.fit(t, f, ferr, niter=5000, thin=500, nburn=1000, ntrim=1,
+               nwalkers=64)
+    system.plot_fit()
+    system.plot_triangle()
