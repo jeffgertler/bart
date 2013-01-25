@@ -310,7 +310,6 @@ class PlanetarySystem(Model):
         r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
         r, a, t0, e, pomega, ix, iy = zip(*r)
         ldp = self.star.ldp
-        print(ldp.bins, ldp.intensity)
         return _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
                                 r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
@@ -342,7 +341,8 @@ class PlanetarySystem(Model):
             is required unless ``restart`` is set.
 
         """
-        print(self.lightcurve(data[0]))
+        print(data)
+        print(self.lightcurve(data))
         assert 0
 
         if restart is not None:
