@@ -382,7 +382,7 @@ class PlanetarySystem(Model):
             # Re-sample the "bad" walkers from the Gaussian computed above.
             nbad = np.sum(~inds)
             if nbad == 0:
-                print(u"    .. No walkers were rejected.")
+                print(u"  ... No walkers were rejected.")
                 break
 
             p0[~inds] = np.random.multivariate_normal(mu, cov, nbad)
@@ -397,7 +397,7 @@ class PlanetarySystem(Model):
                     p0[n] = np.random.multivariate_normal(mu, cov)
                     lp = self.lnprob(p0[n])
 
-            print(u"    .. Rejected {0} walkers.".format(nbad))
+            print(u"  ... Rejected {0} walkers.".format(nbad))
 
             # Reset the chain to clear all the settings from burn-in.
             s.reset()
