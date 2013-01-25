@@ -318,7 +318,7 @@ class PlanetarySystem(Model):
         self._data = [t, f, ivar]
 
     def fit(self, data=None,
-            threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
+            threads=10, ntrim=2, nburn=300, K=4, niter=1000, thin=50,
             nwalkers=100,
             filename=u"./mcmc.h5", restart=None):
         """
@@ -355,8 +355,58 @@ class PlanetarySystem(Model):
             lp = s._get_lnprob(p0)[0]
             dlp = np.var(lp)
 
+        # Run the burn-in iterations. After each burn-in run, cluster the
+        # walkers and discard the worst ones.
+        for i in range(ntrim):
+            print(u"Burn-in pass {0}...".format(i + 1))
+            p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
+
+            # Cluster the positions of the walkers at their final position
+            # in log-probability using K-means.
+            mix = mog.MixtureModel(K, np.atleast_2d(lprob).T)
+            mix.run_kmeans()
+
+            # Extract the cluster memberships.
+            rs, rmxs = mix.kmeans_rs, np.argsort(mix.means.flatten())
+
+            # Determine the "best" cluster that actually has walkers in it.
+            for rmx in rmxs[::-1]:
+                inds = rs == rmx
+                good = p0[inds].T
+                if np.shape(good)[1] > 0:
+                    break
+
+            # Compute the mean and covariance of the ensemble of good walkers.
+            mu, cov = np.mean(good, axis=1), np.cov(good)
+
+            # Re-sample the "bad" walkers from the Gaussian computed above.
+            nbad = np.sum(~inds)
+            if nbad == 0:
+                print(u"    .. No walkers were rejected.")
+                break
+
+            p0[~inds] = np.random.multivariate_normal(mu, cov, nbad)
+
+            # Hack to ensure that none of the re-sampled walkers fall outside
+            # of the prior or have an infinite log-probability for other
+            # reasons. NOTE: this could go on forever but that's pretty
+            # unlikely :-).
+            for n in np.arange(len(p0))[~inds]:
+                lp = self.lnprob(p0[n])
+                while np.isinf(lp):
+                    p0[n] = np.random.multivariate_normal(mu, cov)
+                    lp = self.lnprob(p0[n])
+
+            print(u"    .. Rejected {0} walkers.".format(nbad))
+
+            # Reset the chain to clear all the settings from burn-in.
+            s.reset()
+
         # Run a short chain.
+        import time
+        strt = time.time()
         p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
+        print((time.time() - strt) / nburn / nwalkers)
         print(u"Acceptance fraction: {0:.2f} %"
                 .format(100 * np.mean(s.acceptance_fraction)))
 
@@ -426,41 +476,12 @@ class PlanetarySystem(Model):
         self._sampler = None
 
         if restart is None:
-            for i in range(ntrim):
-                print(u"Trimming pass {0}...".format(i + 1))
-                p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
-
-                # Cluster to get rid of crap.
-                mix = mog.MixtureModel(4, np.atleast_2d(lprob).T)
-                mix.run_kmeans()
-                rs, rmxs = mix.kmeans_rs, np.argsort(mix.means.flatten())
-
-                # Choose the "good" walkers.
-                for rmx in rmxs[::-1]:
-                    inds = rs == rmx
-                    good = p0[inds].T
-                    if np.shape(good)[1] > 0:
-                        break
-
-                # Sample from the multi-dimensional Gaussian.
-                mu, cov = np.mean(good, axis=1), np.cov(good)
-                p0[~inds] = np.random.multivariate_normal(mu, cov,
-                                                          np.sum(~inds))
-
-                for n in np.arange(len(p0))[~inds]:
-                    lp = self.lnprob(p0[n])
-                    # NOTE: this _could_ go on forever.
-                    while np.isinf(lp):
-                        p0[n] = np.random.multivariate_normal(mu, cov)
-                        lp = self.lnprob(p0[n])
-
-                print(u"Rejected {0} walkers.".format(np.sum(~inds)))
-                s.reset()
+            pass
 
         # Reset and rerun.
         for i, (pos, lnprob, state) in enumerate(s.sample(p0,
-                                                        thin=thin,
-                                                        iterations=niter)):
+                                                          thin=thin,
+                                                          iterations=niter)):
             if i % thin == 0:
                 print(i, np.mean(s.acceptance_fraction))
                 with h5py.File(filename, u"a") as f:

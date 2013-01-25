@@ -75,8 +75,7 @@ def build_model():
     pl.savefig("initial.png")
 
     # Do the fit.
-    system.fit(data=(t, f, ferr), niter=5000, thin=500, nburn=1000, ntrim=1,
-               nwalkers=16)
+    system.fit(data=(t, f, ferr), nwalkers=16)
 
     assert 0
     system.plot_fit()

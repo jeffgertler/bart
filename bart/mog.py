@@ -46,7 +46,7 @@ class MixtureModel(object):
         self.amps = np.random.rand(K)
         self.amps /= np.sum(self.amps)
 
-    def run_kmeans(self, maxiter=200, tol=1e-4, verbose=True):
+    def run_kmeans(self, maxiter=200, tol=1e-4, verbose=False):
         """
         Run the K-means algorithm using the C extension.
 
