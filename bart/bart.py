@@ -9,7 +9,6 @@ from multiprocessing import Process
 import cPickle as pickle
 
 import numpy as np
-# import scipy.optimize as op
 import emcee
 import triangle
 
@@ -336,6 +335,7 @@ class PlanetarySystem(Model):
         np.testing.assert_almost_equal(v, self.vector)
 
         # Sanitize the data.
+        assert data is not None, "You need to provide some data to fit!"
         self._prepare_data(*data)
 
         # Initialize a sampler.
@@ -354,6 +354,11 @@ class PlanetarySystem(Model):
             p0 = emcee.utils.sample_ball(v, ball * v, size=nwalkers)
             lp = s._get_lnprob(p0)[0]
             dlp = np.var(lp)
+
+        # Run a short chain.
+        p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
+        print(u"Acceptance fraction: {0:.2f} %"
+                .format(100 * np.mean(s.acceptance_fraction)))
 
         assert 0
 
