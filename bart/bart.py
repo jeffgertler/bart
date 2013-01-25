@@ -39,11 +39,18 @@ class Model(object):
 
     @property
     def vector(self):
-        return np.concatenate([p.getter(self) for p in self.parameters
+        try:
+            return np.concatenate([np.atleast_1d(p.getter(self))
+                                                for p in self.parameters
                                                 if len(p) > 0])
+        except ValueError:
+            return np.array([])
 
     @vector.setter  # NOQA
     def vector(self, v):
+        self._set_vector(v)
+
+    def _set_vector(self, v):
         i = 0
         for p in self.parameters:
             p.setter(self, v[i:i + len(p)])
@@ -217,7 +224,7 @@ class PlanetarySystem(Model):
 
         """
         j, i = len(self), len(self) + len(self.star)
-        super(PlanetarySystem, self).vector = v[:j]
+        super(PlanetarySystem, self)._set_vector(v[:j])
         self.star.vector = v[j:i]
         for p in self.planets:
             p.vector = v[i:i + len(p)]
@@ -308,6 +315,7 @@ class PlanetarySystem(Model):
         """
         s = self.star
         r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
+        print(zip(*r))
         r, a, t0, e, pomega, ix, iy = zip(*r)
         ldp = self.star.ldp
         return _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
@@ -340,7 +348,13 @@ class PlanetarySystem(Model):
             is required unless ``restart`` is set.
 
         """
-        print(self.lightcurve(data))
+        # Check that the vector conversions work.
+        v = self.vector
+        self.vector = v
+        np.testing.assert_almost_equal(v, self.vector)
+
+        self._prepare_data(*data)
+        print(self.lightcurve(self._data[0]))
         assert 0
 
         if restart is not None:
