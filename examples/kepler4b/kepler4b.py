@@ -67,5 +67,11 @@ def build_model():
     t, f, ferr = load_data()
     system.fit(t, f, ferr, niter=5000, thin=500, nburn=1000, ntrim=1,
                nwalkers=64)
+
+    assert 0
     system.plot_fit()
     system.plot_triangle()
+
+
+if __name__ == "__main__":
+    build_model()

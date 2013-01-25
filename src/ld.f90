@@ -68,11 +68,14 @@
         ! First, compute the normalization constant by integrating over
         ! the face of the star.
         r2 = r * r
+        write(*,*) ir
         norm = r2(1) * ir(1)
         do i=2,nbins
+          write(*,*) i
           norm = norm + ir(i) * (r2(i) - r2(i - 1))
         enddo
         norm = pi * norm
+        write(*,*) norm
 
         do i=1,n
 

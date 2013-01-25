@@ -119,8 +119,10 @@
             endif
           enddo
 
+          write(*,*) "LD?"
           call ldlc(r(i), nld, rld, ild, n, b, tmp)
           flux = flux * tmp
+          write(*,*) "yep"
 
         enddo
 

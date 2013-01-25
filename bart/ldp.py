@@ -12,8 +12,8 @@ import numpy as np
 class LimbDarkening(object):
 
     def __init__(self, bins, intensity):
-        self.bins = bins
-        self.intensity = intensity
+        self.bins = np.array(bins)
+        self.intensity = np.array(intensity)
 
     def plot(self):
         x = [0, ]

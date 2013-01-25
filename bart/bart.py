@@ -9,7 +9,7 @@ from multiprocessing import Process
 import cPickle as pickle
 
 import numpy as np
-import scipy.optimize as op
+# import scipy.optimize as op
 import emcee
 import triangle
 
@@ -39,9 +39,10 @@ class Model(object):
 
     @property
     def vector(self):
-        return np.concatenate([p.getter(self) for p in self.parameters])
+        return np.concatenate([p.getter(self) for p in self.parameters
+                                                if len(p) > 0])
 
-    @vector.setter
+    @vector.setter  # NOQA
     def vector(self, v):
         i = 0
         for p in self.parameters:
@@ -72,7 +73,7 @@ class Star(Model):
     """
 
     def __init__(self, mass=1.0, radius=1.0, flux=1.0, ldp=None):
-        super(Model, self).__init__()
+        super(Star, self).__init__()
 
         self.mass = mass
         self.radius = radius
@@ -81,7 +82,7 @@ class Star(Model):
         # The limb darkening profile.
         if ldp is None:
             # Default to a uniformly illuminated star.
-            self.ldp = LimbDarkening([1.0], [1.0])
+            self.ldp = LimbDarkening([0.1, 1.0], [1.0, 1.0])
         else:
             self.ldp = ldp
 
@@ -117,7 +118,7 @@ class Planet(Model):
     """
 
     def __init__(self, r, a, t0=0.0, e=0.0, pomega=0.0, ix=0.0, iy=0.0):
-        super(Model, self).__init__()
+        super(Planet, self).__init__()
 
         self.r = r
         self.a = a
@@ -158,7 +159,7 @@ class PlanetarySystem(Model):
     """
 
     def __init__(self, star, iobs=90.0):
-        super(Model, self).__init__()
+        super(PlanetarySystem, self).__init__()
 
         self._data = None
 
@@ -202,11 +203,11 @@ class PlanetarySystem(Model):
         planets.
 
         """
-        v = super(Model, self).vector
+        v = super(PlanetarySystem, self).vector
         return np.concatenate([v, self.star.vector]
                               + [p.vector for p in self.planets])
 
-    @vector.setter
+    @vector.setter  # NOQA
     def vector(self, v):
         """
         Set the parameters of the system, the star, and the planets.
@@ -216,7 +217,7 @@ class PlanetarySystem(Model):
 
         """
         j, i = len(self), len(self) + len(self.star)
-        super(Model, self).vector = v[:j]
+        super(PlanetarySystem, self).vector = v[:j]
         self.star.vector = v[j:i]
         for p in self.planets:
             p.vector = v[i:i + len(p)]
@@ -260,23 +261,23 @@ class PlanetarySystem(Model):
         """
         lnp = 0.0
 
-        # Priors on the limb darkening profile.
-        ldp = self.ldp
+        # # Priors on the limb darkening profile.
+        # ldp = self.ldp
 
-        # LDP must be strictly positive.
-        if np.any(ldp.intensity < 0) or np.any(ldp.intensity > 1):
-            return -np.inf
+        # # LDP must be strictly positive.
+        # if np.any(ldp.intensity < 0) or np.any(ldp.intensity > 1):
+        #     return -np.inf
 
-        # The gammas in the quadratic case must sum to less than one and be
-        # greater than or equal to zero.
-        if hasattr(ldp, u"gamma1") and hasattr(ldp, u"gamma2"):
-            g1, g2 = ldp.gamma1, ldp.gamma2
-            sm = g1 + g2
-            if not 0 < sm < 1 or g1 < 0 or g2 < 0:
-                return -np.inf
+        # # The gammas in the quadratic case must sum to less than one and be
+        # # greater than or equal to zero.
+        # if hasattr(ldp, u"gamma1") and hasattr(ldp, u"gamma2"):
+        #     g1, g2 = ldp.gamma1, ldp.gamma2
+        #     sm = g1 + g2
+        #     if not 0 < sm < 1 or g1 < 0 or g2 < 0:
+        #         return -np.inf
 
-        if np.any(self.e < 0) or np.any(self.e > 1):
-            return -np.inf
+        # if np.any(self.e < 0) or np.any(self.e > 1):
+        #     return -np.inf
 
         return lnp
 
@@ -305,11 +306,14 @@ class PlanetarySystem(Model):
             The times where the light curve should be evaluated.
 
         """
-        return _bart.lightcurve(t,
-                                self.fstar, self.mstar, self.rstar, self.iobs,
-                                self.r, self.a, self.e, self.t0, self.pomega,
-                                self.incl,
-                                self.ldp.bins, self.ldp.intensity)
+        s = self.star
+        r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
+        r, a, t0, e, pomega, ix, iy = zip(*r)
+        ldp = self.star.ldp
+        print(ldp.bins, ldp.intensity)
+        return _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
+                                r, a, t0, e, pomega, ix, iy,
+                                ldp.bins, ldp.intensity)
 
     def _prepare_data(self, t, f, ferr):
         """
@@ -323,33 +327,7 @@ class PlanetarySystem(Model):
         t, f, ivar = t[inds], f[inds], 1.0 / ferr[inds] / ferr[inds]
 
         # Store the data.
-        mu = 1.0  # np.median(f)
-        self._data = [t, f / mu, ivar * mu * mu]
-
-    def optimize(self, t, f, ferr,
-                 pars=[u"fstar", u"t0", u"r", u"a", u"pomega"]):
-        self._prepare_data(t, f, ferr)
-        self.fit_for(*pars)
-
-        # Check vector conversions.
-        p0 = self.to_vector()
-        self.from_vector(p0)
-        np.testing.assert_almost_equal(p0, self.to_vector())
-
-        # Optimize.
-        nll = lambda p: -self.lnprob(p)
-
-        try:
-            result = op.minimize(nll, p0)
-        except FloatingPointError:
-            print(u"Optimization failed. Returning last evaluated point.")
-            return self.to_vector()
-
-        if not result.success:
-            print(u"Optimization was not successful.")
-
-        self.from_vector(result.x)
-        return result.x
+        self._data = [t, f, ivar]
 
     def fit(self, data=None,
             pars=[u"fstar", u"t0", u"r", u"a", u"pomega"],
@@ -364,6 +342,8 @@ class PlanetarySystem(Model):
             is required unless ``restart`` is set.
 
         """
+        print(self.lightcurve(data[0]))
+        assert 0
 
         if restart is not None:
             with h5py.File(restart, u"r") as f:
@@ -604,13 +584,13 @@ def _async_plot(pltype, ps, *args):
     return getattr(ps, pltype)(*args)
 
 
-class LDPParameter(LogParameter):
+# class LDPParameter(LogParameter):
 
-    def getter(self, ps):
-        return self.conv(ps.ldp.intensity[self.ind]
-                         - ps.ldp.intensity[self.ind + 1])
+#     def getter(self, ps):
+#         return self.conv(ps.ldp.intensity[self.ind]
+#                          - ps.ldp.intensity[self.ind + 1])
 
-    def setter(self, ps, val):
-        j = self.ind
-        ps.ldp.intensity.__setitem__(j + 1,
-                                     ps.ldp.intensity[j] - self.iconv(val))
+#     def setter(self, ps, val):
+#         j = self.ind
+#         ps.ldp.intensity.__setitem__(j + 1,
+#                                      ps.ldp.intensity[j] - self.iconv(val))
