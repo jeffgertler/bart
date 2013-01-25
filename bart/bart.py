@@ -89,7 +89,7 @@ class Star(Model):
         # The limb darkening profile.
         if ldp is None:
             # Default to a uniformly illuminated star.
-            self.ldp = LimbDarkening([0.1, 1.0], [1.0, 1.0])
+            self.ldp = LimbDarkening(1.0, 1.0)
         else:
             self.ldp = ldp
 
@@ -244,7 +244,7 @@ class PlanetarySystem(Model):
         # Make sure that we catch all the over/under-flows.
         np.seterr(all=u"raise")
         try:
-            self.from_vector(p)
+            self.vector = p
 
             # Compute the prior.
             lnp = self.lnprior()
@@ -267,25 +267,6 @@ class PlanetarySystem(Model):
 
         """
         lnp = 0.0
-
-        # # Priors on the limb darkening profile.
-        # ldp = self.ldp
-
-        # # LDP must be strictly positive.
-        # if np.any(ldp.intensity < 0) or np.any(ldp.intensity > 1):
-        #     return -np.inf
-
-        # # The gammas in the quadratic case must sum to less than one and be
-        # # greater than or equal to zero.
-        # if hasattr(ldp, u"gamma1") and hasattr(ldp, u"gamma2"):
-        #     g1, g2 = ldp.gamma1, ldp.gamma2
-        #     sm = g1 + g2
-        #     if not 0 < sm < 1 or g1 < 0 or g2 < 0:
-        #         return -np.inf
-
-        # if np.any(self.e < 0) or np.any(self.e > 1):
-        #     return -np.inf
-
         return lnp
 
     def lnlike(self):
@@ -293,6 +274,9 @@ class PlanetarySystem(Model):
         Compute the log-likelihood of the current model.
 
         """
+        return -0.5 * self.chi2()
+
+    def chi2(self):
         assert self._data is not None
         model = self.lightcurve(self._data[0])
         delta = self._data[1] - model
@@ -302,8 +286,7 @@ class PlanetarySystem(Model):
         # inds = ivar > 0
         # ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
 
-        chi2 = np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
-        return -0.5 * chi2
+        return np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
 
     def lightcurve(self, t):
         """
@@ -315,7 +298,6 @@ class PlanetarySystem(Model):
         """
         s = self.star
         r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
-        print(zip(*r))
         r, a, t0, e, pomega, ix, iy = zip(*r)
         ldp = self.star.ldp
         return _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
@@ -324,7 +306,7 @@ class PlanetarySystem(Model):
 
     def _prepare_data(self, t, f, ferr):
         """
-        Censor and prepare the data properly.
+        Sanitize some light curve data.
 
         """
         # Deal with masked and problematic data points.
@@ -353,8 +335,26 @@ class PlanetarySystem(Model):
         self.vector = v
         np.testing.assert_almost_equal(v, self.vector)
 
+        # Sanitize the data.
         self._prepare_data(*data)
-        print(self.lightcurve(self._data[0]))
+
+        # Initialize a sampler.
+        ndim = len(v)
+        s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
+
+        # Do some HACKISH initialization. Start with a small ball and then
+        # iterate (shrinking the size of the ball each time) until the range
+        # of log-probabilities is "acceptable".
+        ball = 1e-5
+        p0 = emcee.utils.sample_ball(v, ball * v, size=nwalkers)
+        lp = s._get_lnprob(p0)[0]
+        dlp = np.var(lp)
+        while dlp > 2:
+            ball *= 0.5
+            p0 = emcee.utils.sample_ball(v, ball * v, size=nwalkers)
+            lp = s._get_lnprob(p0)[0]
+            dlp = np.var(lp)
+
         assert 0
 
         if restart is not None:

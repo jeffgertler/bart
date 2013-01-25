@@ -9,6 +9,12 @@ __all__ = ["Parameter", "LogParameter"]
 import numpy as np
 
 
+class Prior(object):
+
+    def __call__(self, v):
+        return 0.0
+
+
 class Parameter(object):
     """
     A :class:`Parameter` is an object that gets and sets parameters in a
@@ -29,7 +35,7 @@ class Parameter(object):
         self.name = name
         self.attr = attr
         if prior is None:
-            self.prior = lambda *args: 0.0
+            self.prior = Prior()
         else:
             self.prior = prior
 
@@ -119,7 +125,7 @@ class MultipleParameter(Parameter):
         self.names = names
         self.length = length
         if priors is None:
-            self.priors = [lambda *args: 0.0 for i in range(length)]
+            self.priors = [Prior() for i in range(length)]
         else:
             self.priors = priors
 

@@ -8,6 +8,7 @@ __all__ = []
 
 import pyfits
 import numpy as np
+import matplotlib.pyplot as pl
 
 import os
 import sys
@@ -28,9 +29,9 @@ def load_data(fn="data.fits"):
     t0 = int(np.median(time[~np.isnan(time)]))
     time = time - t0
 
-    mu = np.median(flux)
+    mu = np.median(flux[~np.isnan(flux)])
     flux /= mu
-    ferr /= mu * mu
+    ferr /= mu
 
     return (time, flux, ferr)
 
@@ -39,32 +40,41 @@ def default_ldp():
     # The limb-darkening parameters.
     nbins, gamma1, gamma2 = 100, 0.39, 0.1
     ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
-
-    if True:
-        # Fit for the LDP with better spacing.
-        ldp.bins = np.sqrt(np.linspace(0.0, 1.0, 15)[1:])
-        rbins, ir = ldp.bins, ldp.intensity
-        ir *= 1.0 / ir[0]
-        ldp = bart.LimbDarkening(rbins, ir)
-
     return ldp
 
 
 def build_model():
+    # Some basic known parameters about the system.
     i = 89.76
     T = 3.21346
+
+    # Set up the planet based on the Kepler team results for this object.
     planet = bart.Planet(r=0.0247, a=6.47, t0=2.38)
 
+    # Add some fit parameters to the planet.
     planet.parameters.append(bart.LogParameter("$r$", "r"))
     planet.parameters.append(bart.LogParameter("$a$", "a"))
     planet.parameters.append(bart.LogParameter("$t0$", "t0"))
 
-    star = bart.Star(mass=planet.get_mstar(T))
+    # A star needs to have a mass and a limb-darkening profile.
+    star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
+
+    # Set up the planetary system.
     system = bart.PlanetarySystem(star, iobs=i)
+
+    # Add the planet to the system.
     system.add_planet(planet)
 
-    # Fit it.
+    # Read in the Kepler light curve.
     t, f, ferr = load_data()
+
+    # Plot initial guess.
+    pl.plot(t % T, f, ".k", alpha=0.3)
+    ts = np.linspace(0, T, 1000)
+    pl.plot(ts, system.lightcurve(ts))
+    pl.savefig("initial.png")
+
+    # Do the fit.
     system.fit(data=(t, f, ferr), niter=5000, thin=500, nburn=1000, ntrim=1,
                nwalkers=64)
 
