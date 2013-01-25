@@ -317,16 +317,39 @@ class PlanetarySystem(Model):
         # Store the data.
         self._data = [t, f, ivar]
 
-    def fit(self, data=None,
-            threads=10, ntrim=2, nburn=300, K=4, niter=1000, thin=50,
-            nwalkers=100,
-            filename=u"./mcmc.h5", restart=None):
+    def fit(self, data, iterations, start=None, filename="./mcmc.h5",
+            **kwargs):
         """
         Fit the data using MCMC to get constraints on the parameters.
 
-        :param data: (optional)
-            A tuple of the form ``(t, f, ferr)`` giving the data to fit. This
-            is required unless ``restart`` is set.
+        :param data:
+            A tuple of the form ``(t, f, ferr)`` giving the data to fit.
+
+        :param iterations:
+            The number of MCMC steps to run in the production pass.
+
+        :param filename: (optional)
+            The name of the file where the result should be stored.
+
+        :param thin: (optional)
+            The number of steps between each saved sample.
+
+        :param start: (optional)
+            To start the chain from a specific position, set ``start`` to the
+            position. It should have the shape ``(nwalkers, ndim)``.
+
+        :param threads: (optional)
+            The number of threads to use for multiprocessing with ``emcee``.
+
+        :param burnin: (optional)
+            The burn-in schedule to use. Set this to ``[]`` for no burn-in.
+            Otherwise, it should have the form ``[nburn1, nburn2, ...]``. For
+            this example, we would run a burn-in chain with ``nburn1`` steps
+            and then re-sample the "bad" walkers. Then, repeat with ``nburn2``
+            steps.
+
+        :param K: (optional)
+            The number of clusters to use for K-means in the trimming step.
 
         """
         # Check that the vector conversions work.
@@ -334,12 +357,31 @@ class PlanetarySystem(Model):
         self.vector = v
         np.testing.assert_almost_equal(v, self.vector)
 
+        # Get the dimension of the parameter space.
+        ndim = len(v)
+
+        # If a starting position is provided, ensure that the dimensions are
+        # consistent.
+        if start is not None:
+            nwalkers = start.shape[0]
+            if ndim != start.shape[1]:
+                raise ValueError("Dimension mismatch: the dimension of the "
+                                 "parameter space ({0}) doesn't ".format(ndim)
+                                 + "match the dimension of the starting "
+                                 "position ({0}).".format(start.shape[1]))
+        else:
+            nwalkers = kwargs.get("nwalkers", 16)
+
+        # Parse the other input parameters.
+        threads = kwargs.get("threads", 10)
+        burnin = kwargs.get("burnin", [300, ])
+        K = kwargs.get("K", 4)
+        thin = kwargs.get("thin", 50)
+
         # Sanitize the data.
-        assert data is not None, "You need to provide some data to fit!"
         self._prepare_data(*data)
 
         # Initialize a sampler.
-        ndim = len(v)
         s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
 
         # Do some HACKISH initialization. Start with a small ball and then
@@ -357,7 +399,7 @@ class PlanetarySystem(Model):
 
         # Run the burn-in iterations. After each burn-in run, cluster the
         # walkers and discard the worst ones.
-        for i in range(ntrim):
+        for i, nburn in enumerate(burnin):
             print(u"Burn-in pass {0}...".format(i + 1))
             p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
 
