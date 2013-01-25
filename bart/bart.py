@@ -444,76 +444,44 @@ class PlanetarySystem(Model):
             # Reset the chain to clear all the settings from burn-in.
             s.reset()
 
-        # Run a short chain.
-        import time
-        strt = time.time()
-        p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
-        print((time.time() - strt) / nburn / nwalkers)
-        print(u"Acceptance fraction: {0:.2f} %"
-                .format(100 * np.mean(s.acceptance_fraction)))
+        # Get the full list of parameters in the correct order.
+        pars = self.parameters + self.star.parameters
+        for p in self.planets:
+            pars += p.parameters
+        par_list = np.array([(str(p.name), str(pickle.dumps(p, 0)))
+                             for p in pars])
 
-        assert 0
-
-        if restart is not None:
-            with h5py.File(restart, u"r") as f:
-                self._data = tuple(f[u"data"])
-
-                g = f[u"mcmc"]
-                pars = g.attrs[u"pars"].split(u", ")
-                threads = g.attrs[u"threads"]
-
-                chain0 = g[u"chain"][...]
-                lnp0 = g[u"lnp"][...]
-
-                p0 = chain0[:, -1, :]
-                nwalkers, i0, ndim = chain0.shape
-
-            self.fit_for(*pars)
-            s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
-
-        else:
-            assert data is not None, "You need to provide some data to fit!"
-            self._prepare_data(*data)
-            self.fit_for(*pars)
-            p_init = self.to_vector()
-            ndim = len(p_init)
-
-            size = 1e-6
-            p0 = emcee.utils.sample_ball(p_init, size * p_init, size=nwalkers)
-            i0 = 0
-
-            s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
-
-            lp = s._get_lnprob(p0)[0]
-            dlp = np.var(lp)
-            while dlp > 2:
-                size *= 0.5
-                p0 = emcee.utils.sample_ball(p_init, size * p_init,
-                                                size=nwalkers)
-
-                lp = s._get_lnprob(p0)[0]
-                dlp = np.var(lp)
-
+        # Initialize the results file.
         with h5py.File(filename, u"w") as f:
+            # Save the dataset to the file.
             f.create_dataset(u"data", data=np.vstack(self._data))
 
+            # Save the list of parameters and their pickled representations
+            # to the file.
+            f.create_dataset("parlist", data=par_list)
+
+            # Add a group and headers for the MCMC results.
             g = f.create_group(u"mcmc")
-            g.attrs[u"pars"] = u", ".join(pars)
+
+            # ==================================================
+            #
+            # FIXME: ADD OTHER PARAMETERS SO THAT WE CAN PLOT
+            #        RESULTS FROM THIS FILE ALONE.
+            #
+            # ==================================================
+
             g.attrs[u"threads"] = threads
-            g.attrs[u"ntrim"] = ntrim
-            g.attrs[u"nburn"] = nburn
-            g.attrs[u"niter"] = niter
+            g.attrs[u"burnin"] = ", ".join([unicode(b) for b in burnin])
+            g.attrs[u"iterations"] = iterations
             g.attrs[u"thin"] = thin
 
-            N = i0 + int(niter / thin)
-            c_ds = g.create_dataset(u"chain", (nwalkers, N, ndim),
+            # Create the datasets that will hold the MCMC results.
+            c_ds = g.create_dataset(u"chain", (nwalkers, iterations, ndim),
                                     dtype=np.float64)
-            lp_ds = g.create_dataset(u"lnp", (nwalkers, N),
-                                    dtype=np.float64)
+            lp_ds = g.create_dataset(u"lnprob", (nwalkers, iterations),
+                                     dtype=np.float64)
 
-            if restart is not None:
-                c_ds[:, :i0, :] = chain0
-                lp_ds[:, :i0] = lnp0
+        assert 0
 
         self._sampler = None
 

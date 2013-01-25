@@ -14,6 +14,9 @@ class Prior(object):
     def __call__(self, v):
         return 0.0
 
+    def __repr__(self):
+        return "Prior()"
+
 
 class Parameter(object):
     """
@@ -43,8 +46,8 @@ class Parameter(object):
         return self.name
 
     def __repr__(self):
-        return "Parameter({0.name}, attr={0.attr}, prior={0.prior})" \
-                                                                .format(self)
+        return "{1}('{0.name}', attr='{0.attr}', prior={0.prior})" \
+                                    .format(self, self.__class__.__name__)
 
     def __len__(self):
         return 1
