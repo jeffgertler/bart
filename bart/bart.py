@@ -329,7 +329,6 @@ class PlanetarySystem(Model):
         self._data = [t, f, ivar]
 
     def fit(self, data=None,
-            pars=[u"fstar", u"t0", u"r", u"a", u"pomega"],
             threads=10, ntrim=2, nburn=300, niter=1000, thin=50,
             nwalkers=100,
             filename=u"./mcmc.h5", restart=None):
@@ -341,7 +340,6 @@ class PlanetarySystem(Model):
             is required unless ``restart`` is set.
 
         """
-        print(data)
         print(self.lightcurve(data))
         assert 0
 
