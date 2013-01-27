@@ -176,14 +176,6 @@ class PlanetarySystem(Model):
         # The planets.
         self.planets = []
 
-        # Process management book keeping.
-        self._processes = []
-
-    def __del__(self):
-        if hasattr(self, u"_processes"):
-            for p in self._processes:
-                p.join()
-
     @property
     def nplanets(self):
         """
@@ -352,6 +344,9 @@ class PlanetarySystem(Model):
             The number of clusters to use for K-means in the trimming step.
 
         """
+        # Reset for the sake of pickling.
+        self._sampler = None
+
         # Check that the vector conversions work.
         v = self.vector
         self.vector = v
@@ -376,7 +371,7 @@ class PlanetarySystem(Model):
         threads = kwargs.get("threads", 10)
         burnin = kwargs.get("burnin", [300, ])
         K = kwargs.get("K", 4)
-        thin = kwargs.get("thin", 50)
+        thin = kwargs.get("thin", 1)
 
         # Sanitize the data.
         self._prepare_data(*data)
@@ -451,71 +446,74 @@ class PlanetarySystem(Model):
         par_list = np.array([(str(p.name), str(pickle.dumps(p, 0)))
                              for p in pars])
 
+        # Pickle the initial conditions of ``self`` so that we can start again
+        # from the same place.
+        initial_spec = str(pickle.dumps(self, 0))
+
+        # Import the current version number.
+        from bart import __version__
+
         # Initialize the results file.
         with h5py.File(filename, u"w") as f:
+            # Keep track of the current Bart version.
+            f.attrs["version"] = __version__
+
             # Save the dataset to the file.
-            f.create_dataset(u"data", data=np.vstack(self._data))
+            f.create_dataset("data", data=np.vstack(self._data))
 
             # Save the list of parameters and their pickled representations
             # to the file.
             f.create_dataset("parlist", data=par_list)
 
+            # Save the pickled version of ``self``.
+            f.create_dataset("initial_pickle", data=initial_spec)
+
             # Add a group and headers for the MCMC results.
-            g = f.create_group(u"mcmc")
+            g = f.create_group("mcmc")
 
-            # ==================================================
-            #
-            # FIXME: ADD OTHER PARAMETERS SO THAT WE CAN PLOT
-            #        RESULTS FROM THIS FILE ALONE.
-            #
-            # ==================================================
-
-            g.attrs[u"threads"] = threads
-            g.attrs[u"burnin"] = ", ".join([unicode(b) for b in burnin])
-            g.attrs[u"iterations"] = iterations
-            g.attrs[u"thin"] = thin
+            # Save the MCMC meta data.
+            g.attrs["threads"] = threads
+            g.attrs["burnin"] = ", ".join([unicode(b) for b in burnin])
+            g.attrs["iterations"] = iterations
+            g.attrs["thin"] = thin
 
             # Create the datasets that will hold the MCMC results.
-            c_ds = g.create_dataset(u"chain", (nwalkers, iterations, ndim),
+            c_ds = g.create_dataset("chain", (nwalkers, iterations, ndim),
                                     dtype=np.float64)
-            lp_ds = g.create_dataset(u"lnprob", (nwalkers, iterations),
+            lp_ds = g.create_dataset("lnprob", (nwalkers, iterations),
                                      dtype=np.float64)
 
-        assert 0
+        # if restart is None:
+        #     pass
 
-        self._sampler = None
-
-        if restart is None:
-            pass
-
-        # Reset and rerun.
-        for i, (pos, lnprob, state) in enumerate(s.sample(p0,
-                                                          thin=thin,
-                                                          iterations=niter)):
+        # Finally, run the production run.
+        status_fmt = "{0:10d}    {1:.2f}"
+        for i, (pos, lnprob, state) in enumerate(s.sample(p0, thin=thin,
+                                                    iterations=iterations)):
             if i % thin == 0:
-                print(i, np.mean(s.acceptance_fraction))
-                with h5py.File(filename, u"a") as f:
-                    g = f[u"mcmc"]
-                    c_ds = g[u"chain"]
-                    lp_ds = g[u"lnp"]
+                print(status_fmt.format(i, np.mean(s.acceptance_fraction)))
+                with h5py.File(filename, "a") as f:
+                    g = f["mcmc"]
+                    c_ds = g["chain"]
+                    lp_ds = g["lnprob"]
 
-                    g.attrs[u"iterations"] = s.iterations
-                    g.attrs[u"naccepted"] = s.naccepted
-                    g.attrs[u"state"] = pickle.dumps(state)
+                    g.attrs["iterations"] = s.iterations
+                    g.attrs["naccepted"] = s.naccepted
+                    g.attrs["state"] = pickle.dumps(state)
 
-                    ind = i0 + int(i / thin)
+                    ind = int(i / thin)
                     c_ds[:, ind, :] = pos
                     lp_ds[:, ind] = lnprob
 
         # Let's see some stats.
-        print(u"Acceptance fraction: {0:.2f} %"
+        print("Acceptance fraction: {0:.2f} %"
                 .format(100 * np.mean(s.acceptance_fraction)))
 
         try:
-            print(u"Autocorrelation time: {0}".format(
+            print("Autocorrelation time: {0}".format(
                     thin * s.acor))
         except RuntimeError:
-            print(u"Autocorrelation time: too short")
+            print("Autocorrelation time: too short")
 
         self._sampler = s
         return self._sampler.flatchain

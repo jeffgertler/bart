@@ -15,6 +15,7 @@ import sys
 dirname = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(dirname)))
 import bart
+from bart.results import ResultsProcess
 
 
 def load_data(fn="data.fits"):
@@ -69,13 +70,17 @@ def build_model():
     t, f, ferr = load_data()
 
     # Plot initial guess.
-    pl.plot(t % T, f, ".k", alpha=0.3)
-    ts = np.linspace(0, T, 1000)
-    pl.plot(ts, system.lightcurve(ts))
-    pl.savefig("initial.png")
+    # pl.plot(t % T, f, ".k", alpha=0.3)
+    # ts = np.linspace(0, T, 1000)
+    # pl.plot(ts, system.lightcurve(ts))
+    # pl.savefig("initial.png")
 
     # Do the fit.
-    system.fit((t, f, ferr), 1000, burnin=[], nwalkers=16)
+    # system.fit((t, f, ferr), 100, burnin=[], nwalkers=16)
+
+    # Plot the results.
+    results = ResultsProcess("./mcmc.h5")
+    results.corner_plot()
 
     assert 0
     system.plot_fit()
