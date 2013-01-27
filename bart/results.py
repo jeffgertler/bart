@@ -4,8 +4,9 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = []
+__all__ = ["ResultsProcess"]
 
+import os
 import cPickle as pickle
 from multiprocessing import Process
 
@@ -14,8 +15,6 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import triangle
-
-# from .bart import PlanetarySystem  # NOQA
 
 
 class ResultsProcess(object):
@@ -29,8 +28,7 @@ class ResultsProcess(object):
             self.data = np.array(f["data"][...])
 
             # Get and un-pickle the parameter list.
-            self.parlist = f["parlist"][...]
-            self.parlist = [pickle.loads(p[1]) for p in self.parlist]
+            self.parlist = [pickle.loads(p) for p in f["parlist"][...]]
 
             self.chain = np.array(f["mcmc"]["chain"][...])
 
@@ -47,7 +45,7 @@ class ResultsProcess(object):
             plotchain[:, i] -= np.median(plotchain[:, i])
 
         # Grab the labels.
-        labels = [p.name for p in self.parlist]
+        labels = np.concatenate([p.names for p in self.parlist])
 
         fig = triangle.corner(plotchain, labels=labels, bins=20)
         fig.savefig(outfn)
@@ -56,5 +54,63 @@ class ResultsProcess(object):
         p = Process(target=self._corner_plot, args=(outfn,))
         p.start()
 
-    def _lc_plot(self, outfn):
+    def _lc_plot(self, args):
+        outdir, planet_ind = args
         time, flux, ivar = self.data
+
+        # Access the planet and star in the planetary system.
+        planet = self.system.planets[planet_ind]
+        star = self.system.star
+
+        # Find the period and stellar flux of each sample.
+        period = np.empty(len(self.chain))
+        f = np.empty(len(self.chain))
+
+        # Compute the light curve for each sample.
+        t = np.linspace(time.min(), time.max(), 5000)
+        lc = np.empty((len(self.chain), len(t)))
+
+        # Loop over the samples.
+        for i, v in enumerate(self.chain):
+            self.system.vector = v
+            f[i] = star.flux
+            period[i] = float(planet.get_period(star.mass))
+            lc[i] = self.system.lightcurve(t) / star.flux
+
+        # Fold the samples.
+        T = np.median(period)
+        t = t % T
+        inds = np.argsort(t)
+        lc = lc[:, inds]
+        t = t[inds]
+
+        # Compute the stellar flux.
+        f0 = np.median(f)
+
+        # Plot the data and samples.
+        fig = pl.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(time % T, (flux / f0 - 1) * 1e3, ".k", alpha=0.3)
+        ax.plot(t, (lc.T - 1) * 1e3, color="k", alpha=0.1)
+
+        # Annotate the axes.
+        ax.set_xlim(0, T)
+        ax.set_xlabel(u"Phase [days]")
+        ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
+
+        fig.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)))
+
+    def _lc_plots(self, outdir):
+        # Try to make the directory.
+        try:
+            os.makedirs(outdir)
+        except os.error:
+            pass
+
+        # Generate the plots.
+        map(self._lc_plot,
+            [(outdir, i) for i in range(self.system.nplanets)])
+
+    def lc_plot(self, outdir="./lightcurves"):
+        p = Process(target=self._lc_plots, args=(outdir,))
+        p.start()

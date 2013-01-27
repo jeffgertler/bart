@@ -257,7 +257,10 @@ class PlanetarySystem(Model):
         Compute the log-prior of the current model.
 
         """
-        lnp = 0.0
+        lnp = np.sum([p.lnprior(self) for p in self.parameters])
+        lnp += np.sum([p.lnprior(self.star) for p in self.star.parameters])
+        for planet in self.planets:
+            lnp += np.sum([p.lnprior(planet) for p in planet.parameters])
         return lnp
 
     def lnlike(self):
@@ -443,8 +446,7 @@ class PlanetarySystem(Model):
         pars = self.parameters + self.star.parameters
         for p in self.planets:
             pars += p.parameters
-        par_list = np.array([(str(p.name), str(pickle.dumps(p, 0)))
-                             for p in pars])
+        par_list = np.array([str(pickle.dumps(p, 0)) for p in pars])
 
         # Pickle the initial conditions of ``self`` so that we can start again
         # from the same place.
@@ -558,8 +560,6 @@ class PlanetarySystem(Model):
             pl.figure()
             ax = pl.axes([0.15, 0.15, 0.8, 0.8])
             ax.plot(time % T, 1000 * (flux / mu - 1), u".k", alpha=0.5)
-            ax.set_xlabel(u"Phase [days]")
-            ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
             pl.savefig(u"lc_{0}.png".format(i), dpi=300)
 
             ax.plot(t, 1000 * (f / mu - 1), u"#4682b4", alpha=0.04)

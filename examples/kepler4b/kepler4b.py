@@ -8,7 +8,6 @@ __all__ = []
 
 import pyfits
 import numpy as np
-import matplotlib.pyplot as pl
 
 import os
 import sys
@@ -50,12 +49,13 @@ def build_model():
     T = 3.21346
 
     # Set up the planet based on the Kepler team results for this object.
-    planet = bart.Planet(r=0.0247, a=6.47, t0=2.38)
+    planet = bart.Planet(r=0.0247, a=6.47, t0=2.38, e=0.01, pomega=0.001)
 
     # Add some fit parameters to the planet.
     planet.parameters.append(bart.LogParameter("$r$", "r"))
     planet.parameters.append(bart.LogParameter("$a$", "a"))
     planet.parameters.append(bart.LogParameter("$t0$", "t0"))
+    planet.parameters.append(bart.EccentricityParameters())
 
     # A star needs to have a mass and a limb-darkening profile.
     star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
@@ -76,15 +76,12 @@ def build_model():
     # pl.savefig("initial.png")
 
     # Do the fit.
-    # system.fit((t, f, ferr), 100, burnin=[], nwalkers=16)
+    system.fit((t, f, ferr), 1000, thin=10, burnin=[], nwalkers=16)
 
     # Plot the results.
     results = ResultsProcess("./mcmc.h5")
     results.corner_plot()
-
-    assert 0
-    system.plot_fit()
-    system.plot_triangle()
+    results._lc_plot(["lightcurves", 0])
 
 
 if __name__ == "__main__":
