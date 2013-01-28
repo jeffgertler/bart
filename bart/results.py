@@ -39,10 +39,13 @@ class ResultsProcess(object):
 
     def _corner_plot(self, outfn):
         # Construct the list of samples to plot.
-        plotchain = np.empty(self.flatchain.shape)
-        for i, p in enumerate(self.parlist):
-            plotchain[:, i] = p.iconv(self.flatchain[:, i])
-            plotchain[:, i] -= np.median(plotchain[:, i])
+        plotchain = []  # np.empty(self.flatchain.shape)
+        i = 0
+        for p in self.parlist:
+            if p.plot_results:
+                plotchain.append(p.iconv(self.flatchain[:, i:i + len(p)]))
+                i += len(p)
+        plotchain = np.concatenate(plotchain, axis=-1)
 
         # Grab the labels.
         labels = np.concatenate([p.names for p in self.parlist])
@@ -115,15 +118,19 @@ class ResultsProcess(object):
         p = Process(target=self._lc_plots, args=(outdir,))
         p.start()
 
-    def time_plot(self, outdir="./time"):
-        try:
-            os.makedirs(outdir)
-        except os.error:
-            pass
-
+    def _time_plot(self, outdir):
         fig = pl.figure()
         for i in range(self.chain.shape[2]):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.plot(self.chain[:, :, i].T)
             fig.savefig(os.path.join(outdir, "{0}.png".format(i)))
+
+    def time_plot(self, outdir="./time"):
+        try:
+            os.makedirs(outdir)
+        except os.error:
+            pass
+
+        p = Process(target=self._time_plot, args=(outdir,))
+        p.start()

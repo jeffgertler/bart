@@ -26,13 +26,14 @@ class Parameter(object):
 
     """
 
-    def __init__(self, name, attr, prior=None):
+    def __init__(self, name, attr, prior=None, plot_results=True):
         self.name = name
         self.attr = attr
         if prior is None:
             self.prior = Prior()
         else:
             self.prior = prior
+        self.plot_results = plot_results
 
     def __str__(self):
         return self.name
@@ -127,12 +128,13 @@ class MultipleParameter(Parameter):
 
     """
 
-    def __init__(self, names, priors=None):
+    def __init__(self, names, priors=None, plot_results=True):
         self._names = names
         if priors is None:
             self.priors = [Prior() for i in range(len(self.names))]
         else:
             self.priors = priors
+        self.plot_results = plot_results
 
     def __str__(self):
         return "[" + ", ".join(self.names) + "]"

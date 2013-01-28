@@ -5,12 +5,10 @@ from __future__ import print_function, absolute_import, unicode_literals
 
 __all__ = ["Star", "Planet", "PlanetarySystem"]
 
-from multiprocessing import Process
 import cPickle as pickle
 
 import numpy as np
 import emcee
-import triangle
 
 try:
     import matplotlib.pyplot as pl
@@ -414,6 +412,7 @@ class PlanetarySystem(Model):
         # Do some HACKISH initialization. Start with a small ball and then
         # iterate (shrinking the size of the ball each time) until the range
         # of log-probabilities is "acceptable".
+        print("Initializing walkers.")
         ball = 1e-5
         p0 = self.sample(nwalkers, std=ball)
         lp = s._get_lnprob(p0)[0]
@@ -423,7 +422,6 @@ class PlanetarySystem(Model):
             p0 = self.sample(nwalkers, std=ball)
             lp = s._get_lnprob(p0)[0]
             dlp = np.var(lp)
-            print(ball, dlp)
 
         # Run the burn-in iterations. After each burn-in run, cluster the
         # walkers and discard the worst ones.
@@ -520,7 +518,9 @@ class PlanetarySystem(Model):
         #     pass
 
         # Finally, run the production run.
-        status_fmt = "{0:10d}    {1:.2f}"
+        print("Running...")
+        print("{0:8s}    {1}".format("Iter.", "Acc. Fraction"))
+        status_fmt = "{0:8d}    {1:.2f}"
         for i, (pos, lnprob, state) in enumerate(s.sample(p0, thin=thin,
                                                     iterations=iterations)):
             if i % thin == 0:
@@ -550,115 +550,6 @@ class PlanetarySystem(Model):
 
         self._sampler = s
         return self._sampler.flatchain
-
-    def plot_fit(self, true_ldp=None):
-        p = Process(target=_async_plot, args=(u"_lc_and_ldp", self, true_ldp))
-        p.start()
-        self._processes.append(p)
-
-    def _lc_and_ldp(self, true_ldp):
-        time, flux, ivar = self._data
-        chain = self._sampler.flatchain
-
-        # Compute the best fit period.
-        for i in range(self.nplanets):
-            if u"a{0}".format(i) in self._pars:
-                a = np.exp(np.median(chain[:,
-                                self._pars.keys().index(u"a{0}".format(i))]))
-            else:
-                a = self.a[i]
-
-            T = self.planets[i].get_period(self.mstar)
-
-            # Generate light curve samples.
-            t = np.linspace(0, T, 500)
-            t2 = np.linspace(time.min(), time.max(),
-                    int(100 * (time.max() - time.min() / T)))
-            f = np.empty((len(chain), len(t)))
-            f2 = np.zeros(len(t2))
-            ld = [self.ldp.plot()[0],
-                  np.empty((len(chain), 2 * len(self.ldp.bins)))]
-            for ind, v in enumerate(chain):
-                f[ind, :] = self.from_vector(v).lightcurve(t)
-                f2 += self.lightcurve(t2)
-                ld[1][ind, :] = self.ldp.plot()[1]
-            f = f.T
-            f2 = f2.T / len(chain)
-            ld[1] = ld[1].T
-
-            # Plot the fit.
-            mu = np.median(flux)
-            pl.figure()
-            ax = pl.axes([0.15, 0.15, 0.8, 0.8])
-            ax.plot(time % T, 1000 * (flux / mu - 1), u".k", alpha=0.5)
-            pl.savefig(u"lc_{0}.png".format(i), dpi=300)
-
-            ax.plot(t, 1000 * (f / mu - 1), u"#4682b4", alpha=0.04)
-            pl.savefig(u"lc_fit_{0}.png".format(i), dpi=300)
-
-            if i == 0:
-                # Plot the full fit.
-                pl.clf()
-                ax = pl.axes([0.15, 0.15, 0.8, 0.8])
-                ax.plot(time, 1000 * (flux / mu - 1), u".k", alpha=0.5)
-                ax.set_xlabel(u"Time [days]")
-                ax.set_ylabel(r"Relative Brightness Variation "
-                              r"[$\times 10^{-3}$]")
-                pl.savefig(u"lc_full.png", dpi=300)
-
-                ax.plot(t2, 1000 * (f2 / mu - 1), u"#4682b4")
-                pl.savefig(u"lc_full_fit.png", dpi=300)
-
-        # Plot the limb-darkening.
-        pl.clf()
-        pl.plot(*ld, color=u"#4682b4", alpha=0.08)
-        if true_ldp is not None:
-            pl.plot(*true_ldp, color=u"k", lw=2)
-        pl.savefig(u"ld.png", dpi=300)
-
-    def plot_triangle(self, truths=None):
-        p = Process(target=_async_plot, args=(u"_triangle", self, truths))
-        p.start()
-        self._processes.append(p)
-
-    def _triangle(self, truths):
-        assert self._data is not None and self._sampler is not None, \
-                u"You have to fit some data first."
-
-        chain = self._sampler.flatchain
-
-        # Plot the parameter histograms.
-        plotchain = self._sampler.flatchain
-        inds = []
-        for i, (k, p) in enumerate(self._pars.iteritems()):
-            plotchain[:, i] = p.iconv(chain[:, i])
-            if u"ldp" not in k:
-                inds.append(i)
-
-        labels = [str(p) for i, (k, p) in enumerate(self._pars.iteritems())
-                            if i in inds]
-
-        # Add the log-prob values too.
-        lp = self._sampler.lnprobability.flatten()
-        lp /= np.max(lp)
-        plotchain = np.hstack([plotchain,
-                    np.atleast_2d(lp).T])
-        inds.append(plotchain.shape[1] - 1)
-        labels.append(r"$\propto$ log-prob")
-
-        if truths is not None:
-            truths = [truths.get(k)
-                    for i, (k, p) in enumerate(self._pars.iteritems())
-                    if i in inds]
-
-        triangle.corner(plotchain[:, inds], labels=labels, bins=20,
-                                truths=truths)
-
-        pl.savefig(u"triangle.png")
-
-
-def _async_plot(pltype, ps, *args):
-    return getattr(ps, pltype)(*args)
 
 
 # class LDPParameter(LogParameter):
