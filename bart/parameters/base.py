@@ -49,7 +49,7 @@ class Parameter(object):
         return [self.name]
 
     def lnprior(self, obj):
-        return self.prior(self.iconv(self.getter(obj)))
+        return self.prior(self.getter(obj))
 
     def conv(self, val):
         """
@@ -79,7 +79,7 @@ class Parameter(object):
             The object that contains the parameter.
 
         """
-        return self.conv(getattr(obj, self.attr))
+        return getattr(obj, self.attr)
 
     def setter(self, obj, val):
         """
@@ -93,7 +93,7 @@ class Parameter(object):
             The value of the fit parameter to use.
 
         """
-        setattr(obj, self.attr, self.iconv(val))
+        setattr(obj, self.attr, val)
 
 
 class LogParameter(Parameter):
@@ -139,6 +139,9 @@ class MultipleParameter(Parameter):
 
     def __len__(self):
         return len(self.names)
+
+    def lnprior(self, obj):
+        return np.sum([p(v) for p, v in zip(self.priors, self.getter(obj))])
 
     @property
     def names(self):

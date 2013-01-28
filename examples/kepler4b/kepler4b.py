@@ -4,8 +4,6 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = []
-
 import pyfits
 import numpy as np
 
@@ -14,6 +12,9 @@ import sys
 dirname = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(dirname)))
 import bart
+
+from bart.parameters.base import LogParameter
+from bart.parameters.planet import EccentricityParameter
 from bart.results import ResultsProcess
 
 
@@ -49,13 +50,13 @@ def build_model():
     T = 3.21346
 
     # Set up the planet based on the Kepler team results for this object.
-    planet = bart.Planet(r=0.0247, a=6.47, t0=2.38, e=0.01, pomega=0.001)
+    planet = bart.Planet(r=0.0247, a=6.47, t0=2.38, e=0.0, pomega=0.0)
 
     # Add some fit parameters to the planet.
-    planet.parameters.append(bart.LogParameter("$r$", "r"))
-    planet.parameters.append(bart.LogParameter("$a$", "a"))
-    planet.parameters.append(bart.LogParameter("$t0$", "t0"))
-    planet.parameters.append(bart.EccentricityParameters())
+    planet.parameters.append(LogParameter("$r$", "r"))
+    planet.parameters.append(LogParameter("$a$", "a"))
+    planet.parameters.append(LogParameter("$t0$", "t0"))
+    planet.parameters.append(EccentricityParameter())
 
     # A star needs to have a mass and a limb-darkening profile.
     star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
@@ -76,7 +77,7 @@ def build_model():
     # pl.savefig("initial.png")
 
     # Do the fit.
-    # system.fit((t, f, ferr), 1000, thin=10, burnin=[], nwalkers=16)
+    system.fit((t, f, ferr), 100, thin=10, burnin=[], nwalkers=16)
 
     # Plot the results.
     results = ResultsProcess("./mcmc.h5")

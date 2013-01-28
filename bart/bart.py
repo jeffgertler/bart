@@ -39,7 +39,7 @@ class Model(object):
     @property
     def vector(self):
         try:
-            return np.concatenate([np.atleast_1d(p.getter(self))
+            return np.concatenate([np.atleast_1d(p.conv(p.getter(self)))
                                                 for p in self.parameters
                                                 if len(p) > 0])
         except ValueError:
@@ -52,7 +52,7 @@ class Model(object):
     def _set_vector(self, v):
         i = 0
         for p in self.parameters:
-            p.setter(self, v[i:i + len(p)])
+            p.setter(self, p.iconv(v[i:i + len(p)]))
             i += len(p)
 
     def __len__(self):
@@ -386,12 +386,12 @@ class PlanetarySystem(Model):
         # iterate (shrinking the size of the ball each time) until the range
         # of log-probabilities is "acceptable".
         ball = 1e-5
-        p0 = emcee.utils.sample_ball(v, ball * v, size=nwalkers)
+        p0 = emcee.utils.sample_ball(v, ball * (v + ball), size=nwalkers)
         lp = s._get_lnprob(p0)[0]
         dlp = np.var(lp)
         while dlp > 2:
             ball *= 0.5
-            p0 = emcee.utils.sample_ball(v, ball * v, size=nwalkers)
+            p0 = emcee.utils.sample_ball(v, ball * (v + ball), size=nwalkers)
             lp = s._get_lnprob(p0)[0]
             dlp = np.var(lp)
 

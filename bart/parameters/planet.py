@@ -22,9 +22,6 @@ class EccentricityParameter(MultipleParameter):
     def __repr__(self):
         return "EccentricityParameter()"
 
-    def lnprior(self, obj):
-        return np.sum([p(v) for p, v in zip(self.priors, self.getter(obj))])
-
     def getter(self, obj):
         return np.array([obj.e * np.sin(obj.pomega),
                          obj.e * np.cos(obj.pomega)])
