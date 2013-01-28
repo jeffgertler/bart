@@ -480,9 +480,10 @@ class PlanetarySystem(Model):
             g.attrs["thin"] = thin
 
             # Create the datasets that will hold the MCMC results.
-            c_ds = g.create_dataset("chain", (nwalkers, iterations, ndim),
+            N = int(iterations / thin)
+            c_ds = g.create_dataset("chain", (nwalkers, N, ndim),
                                     dtype=np.float64)
-            lp_ds = g.create_dataset("lnprob", (nwalkers, iterations),
+            lp_ds = g.create_dataset("lnprob", (nwalkers, N),
                                      dtype=np.float64)
 
         # if restart is None:

@@ -35,13 +35,13 @@ class ResultsProcess(object):
             # Get the ``flatchain`` (see:
             #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
             s = self.chain.shape
-            self.chain = self.chain.reshape(s[0] * s[1], s[2])
+            self.flatchain = self.chain.reshape(s[0] * s[1], s[2])
 
     def _corner_plot(self, outfn):
         # Construct the list of samples to plot.
-        plotchain = np.empty(self.chain.shape)
+        plotchain = np.empty(self.flatchain.shape)
         for i, p in enumerate(self.parlist):
-            plotchain[:, i] = p.iconv(self.chain[:, i])
+            plotchain[:, i] = p.iconv(self.flatchain[:, i])
             plotchain[:, i] -= np.median(plotchain[:, i])
 
         # Grab the labels.
@@ -63,15 +63,15 @@ class ResultsProcess(object):
         star = self.system.star
 
         # Find the period and stellar flux of each sample.
-        period = np.empty(len(self.chain))
-        f = np.empty(len(self.chain))
+        period = np.empty(len(self.flatchain))
+        f = np.empty(len(self.flatchain))
 
         # Compute the light curve for each sample.
         t = np.linspace(time.min(), time.max(), 5000)
-        lc = np.empty((len(self.chain), len(t)))
+        lc = np.empty((len(self.flatchain), len(t)))
 
         # Loop over the samples.
-        for i, v in enumerate(self.chain):
+        for i, v in enumerate(self.flatchain):
             self.system.vector = v
             f[i] = star.flux
             period[i] = float(planet.get_period(star.mass))
@@ -114,3 +114,16 @@ class ResultsProcess(object):
     def lc_plot(self, outdir="./lightcurves"):
         p = Process(target=self._lc_plots, args=(outdir,))
         p.start()
+
+    def time_plot(self, outdir="./time"):
+        try:
+            os.makedirs(outdir)
+        except os.error:
+            pass
+
+        fig = pl.figure()
+        for i in range(self.chain.shape[2]):
+            fig.clf()
+            ax = fig.add_subplot(111)
+            ax.plot(self.chain[:, :, i].T)
+            fig.savefig(os.path.join(outdir, "{0}.png".format(i)))

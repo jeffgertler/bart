@@ -76,12 +76,13 @@ def build_model():
     # pl.savefig("initial.png")
 
     # Do the fit.
-    system.fit((t, f, ferr), 1000, thin=10, burnin=[], nwalkers=16)
+    # system.fit((t, f, ferr), 1000, thin=10, burnin=[], nwalkers=16)
 
     # Plot the results.
     results = ResultsProcess("./mcmc.h5")
     results.corner_plot()
-    results._lc_plot(["lightcurves", 0])
+    results.lc_plot()
+    results.time_plot()
 
 
 if __name__ == "__main__":
