@@ -51,6 +51,10 @@ class Parameter(object):
     def lnprior(self, obj):
         return self.prior(self.getter(obj))
 
+    def sample(self, obj, std=1e-5, size=1):
+        v0 = self.conv(self.getter(obj))
+        return v0 * (1 + std * np.random.randn(size))
+
     def conv(self, val):
         """
         Convert from physical coordinates to fit coordinates.
@@ -139,6 +143,12 @@ class MultipleParameter(Parameter):
 
     def __len__(self):
         return len(self.names)
+
+    def sample(self, obj, std=1e-5, size=1):
+        v0 = self.conv(self.getter(obj))
+        dim = len(v0)
+        return v0[:, None] * (1 + std * np.random.randn(size * dim)
+                                          .reshape(dim, size))
 
     def lnprior(self, obj):
         return np.sum([p(v) for p, v in zip(self.priors, self.getter(obj))])

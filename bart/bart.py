@@ -55,6 +55,15 @@ class Model(object):
             p.setter(self, p.iconv(v[i:i + len(p)]))
             i += len(p)
 
+    def sample(self, size, std=1e-5):
+        try:
+            return np.concatenate([
+                        np.atleast_2d(p.sample(self, std=std, size=size))
+                                                for p in self.parameters
+                                                if len(p) > 0], axis=0)
+        except ValueError:
+            return None
+
     def __len__(self):
         return np.sum([len(p) for p in self.parameters])
 
@@ -221,6 +230,26 @@ class PlanetarySystem(Model):
             p.vector = v[i:i + len(p)]
             i += len(p)
 
+    def sample(self, size, std=1e-5):
+        """
+
+        """
+        l = []
+        v = super(PlanetarySystem, self).sample(size, std=std)
+        if v is not None:
+            l.append(v)
+
+        sv = self.star.sample(size, std=std)
+        if sv is not None:
+            l.append(sv)
+
+        for p in self.planets:
+            pv = p.sample(size, std=std)
+            if pv is not None:
+                l.append(pv)
+
+        return np.concatenate(l).T
+
     def __call__(self, p):
         return self.lnprob(p)
 
@@ -386,14 +415,15 @@ class PlanetarySystem(Model):
         # iterate (shrinking the size of the ball each time) until the range
         # of log-probabilities is "acceptable".
         ball = 1e-5
-        p0 = emcee.utils.sample_ball(v, ball * (v + ball), size=nwalkers)
+        p0 = self.sample(nwalkers, std=ball)
         lp = s._get_lnprob(p0)[0]
         dlp = np.var(lp)
         while dlp > 2:
             ball *= 0.5
-            p0 = emcee.utils.sample_ball(v, ball * (v + ball), size=nwalkers)
+            p0 = self.sample(nwalkers, std=ball)
             lp = s._get_lnprob(p0)[0]
             dlp = np.var(lp)
+            print(ball, dlp)
 
         # Run the burn-in iterations. After each burn-in run, cluster the
         # walkers and discard the worst ones.

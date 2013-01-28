@@ -29,3 +29,11 @@ class EccentricityParameter(MultipleParameter):
     def setter(self, obj, val):
         obj.e = np.sqrt(np.sum(val ** 2))
         obj.pomega = np.arctan2(val[0], val[1])
+
+    def sample(self, obj, std=1e-5, size=1):
+        e = np.abs(obj.e + std * np.random.randn(size))
+        pomega = obj.pomega + std * np.random.randn(size)
+        result = np.empty([2, size])
+        result[0, :] = e * np.sin(pomega)
+        result[1, :] = e * np.cos(pomega)
+        return result
