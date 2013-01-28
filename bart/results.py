@@ -31,6 +31,7 @@ class ResultsProcess(object):
             self.parlist = [pickle.loads(p) for p in f["parlist"][...]]
 
             self.chain = np.array(f["mcmc"]["chain"][...])
+            self.lnprob = np.array(f["mcmc"]["lnprob"][...])
 
             # Get the ``flatchain`` (see:
             #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
@@ -46,9 +47,12 @@ class ResultsProcess(object):
                 plotchain.append(p.iconv(self.flatchain[:, i:i + len(p)]))
                 i += len(p)
         plotchain = np.concatenate(plotchain, axis=-1)
+        plotchain = np.hstack([plotchain,
+                               np.atleast_2d(self.lnprob.flatten()).T])
 
         # Grab the labels.
-        labels = np.concatenate([p.names for p in self.parlist])
+        labels = np.concatenate([p.names for p in self.parlist]
+                                + [["ln-prob"]])
 
         fig = triangle.corner(plotchain, labels=labels, bins=20)
         fig.savefig(outfn)

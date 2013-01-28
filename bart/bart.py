@@ -451,6 +451,7 @@ class PlanetarySystem(Model):
             nbad = np.sum(~inds)
             if nbad == 0:
                 print(u"  ... No walkers were rejected.")
+                s.reset()
                 break
 
             p0[~inds] = np.random.multivariate_normal(mu, cov, nbad)

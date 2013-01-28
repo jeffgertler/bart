@@ -50,13 +50,13 @@ def build_model():
     T = 3.21346
 
     # Set up the planet based on the Kepler team results for this object.
-    planet = bart.Planet(r=0.0247, a=6.47, t0=2.38, e=0.0, pomega=0.0)
+    planet = bart.Planet(r=0.0247, a=6.471, t0=2.38, e=0.0, pomega=0.0)
 
     # Add some fit parameters to the planet.
     planet.parameters.append(LogParameter("$r$", "r"))
     planet.parameters.append(LogParameter("$a$", "a"))
-    planet.parameters.append(LogParameter("$t0$", "t0"))
-    planet.parameters.append(EccentricityParameter())
+    planet.parameters.append(LogParameter("$t_0$", "t0"))
+    # planet.parameters.append(EccentricityParameter())
 
     # A star needs to have a mass and a limb-darkening profile.
     star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
@@ -77,7 +77,7 @@ def build_model():
     # pl.savefig("initial.png")
 
     # Do the fit.
-    system.fit((t, f, ferr), 1000, thin=100, burnin=[500], nwalkers=16)
+    system.fit((t, f, ferr), 10000, thin=500, burnin=[200], nwalkers=32)
 
     # Plot the results.
     results = ResultsProcess("./mcmc.h5")
