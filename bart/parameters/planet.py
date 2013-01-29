@@ -8,16 +8,13 @@ __all__ = ["EccentricityParameter"]
 
 import numpy as np
 from .base import MultipleParameter
-from .priors import UniformPrior
 
 
 class EccentricityParameter(MultipleParameter):
 
     def __init__(self):
         super(EccentricityParameter, self).__init__([r"$e\,\sin \varpi$",
-                                                      r"$e\,\cos \varpi$"],
-                                              priors=[UniformPrior(-1, 1),
-                                                      UniformPrior(-1, 1)])
+                                                      r"$e\,\cos \varpi$"])
 
     def __repr__(self):
         return "EccentricityParameter()"
@@ -37,3 +34,8 @@ class EccentricityParameter(MultipleParameter):
         result[0, :] = e * np.sin(pomega)
         result[1, :] = e * np.cos(pomega)
         return result
+
+    def lnprior(self, obj):
+        if 0 <= obj.e < 1:
+            return 0.0
+        return -np.inf

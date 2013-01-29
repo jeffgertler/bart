@@ -25,7 +25,7 @@ class UniformPrior(Prior):
         self.mx = mx
 
     def __call__(self, v):
-        if self.mn < v < self.mx:
+        if self.mn <= v <= self.mx:
             return 0.0
         return -np.inf
 

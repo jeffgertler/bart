@@ -2,14 +2,15 @@ import numpy as np
 import _bart
 import matplotlib.pyplot as pl
 
-import astropy.units as u
-from astropy.constants import si
-G = si.G.to(u.R_sun ** 3 / (u.M_sun * u.day ** 2)).value
+# import astropy.units as u
+# from astropy.constants import si
+# G = si.G.to(u.R_sun ** 3 / (u.M_sun * u.day ** 2)).value
+G = 2945.4625385377644
 
 mstar = 1.0
 e, a, i = 0.6, 14.0, 0
 t0 = 0.15
-pomega = 0.1 * np.pi
+pomega = 1.5 * np.pi
 
 T = 2 * np.pi * np.sqrt(a * a * a / G / mstar)
 t = np.linspace(0, T, 10000)

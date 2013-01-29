@@ -1,4 +1,4 @@
-      subroutine wt2psi(wt, e, psi)
+      subroutine wt2psi(wt, e, psi, info)
 
         ! Solve for the eccentric anomaly given a mean anomaly and an
         ! eccentricity using Halley's method.
@@ -16,8 +16,11 @@
 
         double precision, intent(in) :: wt, e
         double precision, intent(out) :: psi
+        integer, intent(out) :: info
         double precision :: psi0, f, fp, fpp, tol=1.48e-8
         integer :: it, maxit=100
+
+        info = 0
 
         psi0 = wt
         do it=1,maxit
@@ -39,10 +42,11 @@
         enddo
 
         write(*,*) "Warning: root finding didn't converge.", wt, e
+        info = 1
 
       end subroutine
 
-      subroutine solve_orbit(n, t, mstar, e, a, t0, pomega, ix, iy, pos)
+      subroutine solve_orbit(n, t, mstar, e, a, t0, pomega, ix, iy, pos, info)
 
         ! Solve Kepler's equations for the 3D position of a point mass
         ! eccetrically orbiting a larger mass.
@@ -91,16 +95,26 @@
         double precision, intent(in) :: mstar,e,a,t0,pomega,ix,iy
         double precision, dimension(3, n), intent(out) :: pos
 
+        integer, intent(out) :: info
+
         integer :: i
-        double precision :: period,manom,psi,cpsi,d,cth,r,x,y,xp,yp,xsx
+        double precision :: period,manom,psi,cpsi,d,cth,r,x,y,xp,yp,xsx,&
+                            psi0,t1
 
         period = 2 * pi * dsqrt(a * a * a / G / mstar)
+        psi0 = 2 * datan2(dtan(0.5 * pomega), dsqrt((1 + e) / (1 - e)))
+        t1 = t0 -  0.5 * period * (psi0 - e * dsin(psi0)) / pi
+        info = 0
 
         do i=1,n
 
-          manom = 2 * pi * (t(i) - t0) / period
+          manom = 2 * pi * (t(i) - t1) / period
 
-          call wt2psi(manom, e, psi)
+          call wt2psi(manom, e, psi, info)
+          if (info.ne.0) then
+            return
+          endif
+
           cpsi = dcos(psi)
           d = 1.0d0 - e * cpsi
           cth = (cpsi - e) / d

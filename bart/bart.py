@@ -284,11 +284,13 @@ class PlanetarySystem(Model):
         Compute the log-prior of the current model.
 
         """
-        lnp = np.sum([p.lnprior(self) for p in self.parameters])
-        lnp += np.sum([p.lnprior(self.star) for p in self.star.parameters])
+        lnp = [p.lnprior(self) for p in self.parameters]
+        lnp += [p.lnprior(self.star) for p in self.star.parameters]
         for planet in self.planets:
-            lnp += np.sum([p.lnprior(planet) for p in planet.parameters])
-        return lnp
+            lnp += [p.lnprior(planet) for p in planet.parameters]
+        if np.isinf(np.any(lnp)):
+            return -np.inf
+        return np.sum(lnp)
 
     def lnlike(self):
         """
@@ -321,9 +323,11 @@ class PlanetarySystem(Model):
         r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
         r, a, t0, e, pomega, ix, iy = zip(*r)
         ldp = self.star.ldp
-        return _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
+        lc, info = _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
                                 r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
+        assert info == 0, "Orbit computation failed. {0}".format(e)
+        return lc
 
     def _prepare_data(self, t, f, ferr):
         """

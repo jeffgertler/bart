@@ -2,7 +2,7 @@
                             fstar, mstar, rstar, iobs, &
                             np, r, a, t0, e, pomega, ix, iy, &
                             nld, rld, ild, &
-                            flux)
+                            flux, info)
 
         ! Compute the lightcurve for a planetary system.
         !
@@ -93,9 +93,14 @@
         ! The occulted flux to be calculated.
         double precision, dimension(n), intent(out) :: flux
 
+        ! Status code. Success = 0.
+        integer, intent(out) :: info
+
         integer :: i, j
         double precision, dimension(3, n) :: pos
         double precision, dimension(n) :: b, tmp
+
+        info = 0
 
         ! Initialize the full lightcurve to the un-occulted stellar
         ! flux.
@@ -108,7 +113,12 @@
           call solve_orbit(n, t, mstar, &
                            e(i), a(i) * rstar, t0(i), pomega(i), &
                            (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
-                           pos)
+                           pos, info)
+
+          ! Make sure that the orbit was properly solved.
+          if (info.ne.0) then
+            return
+          endif
 
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:)) / rstar
 
