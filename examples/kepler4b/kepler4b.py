@@ -56,7 +56,7 @@ def build_model():
     planet.parameters.append(LogParameter("$r$", "r"))
     planet.parameters.append(LogParameter("$a$", "a"))
     planet.parameters.append(LogParameter("$t_0$", "t0"))
-    # planet.parameters.append(EccentricityParameter())
+    planet.parameters.append(EccentricityParameter())
 
     # A star needs to have a mass and a limb-darkening profile.
     star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
@@ -77,7 +77,7 @@ def build_model():
     # pl.savefig("initial.png")
 
     # Do the fit.
-    system.fit((t, f, ferr), 10000, thin=500, burnin=[200], nwalkers=32)
+    system.fit((t, f, ferr), 3000, thin=500, burnin=[200], nwalkers=32)
 
     # Plot the results.
     results = ResultsProcess("./mcmc.h5")
