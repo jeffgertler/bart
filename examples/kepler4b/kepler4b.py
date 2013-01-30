@@ -77,7 +77,7 @@ def build_model():
     # pl.savefig("initial.png")
 
     # Do the fit.
-    system.fit((t, f, ferr), 3000, thin=500, burnin=[200], nwalkers=32)
+    system.fit((t, f, ferr), 5000, thin=100, burnin=[200], nwalkers=32)
 
     # Plot the results.
     results = ResultsProcess("./mcmc.h5")
