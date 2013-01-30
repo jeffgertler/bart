@@ -22,9 +22,10 @@ def savefig(outfn, fig=None, **kwargs):
         fig = pl.gcf()
 
     from bart import __version__, __commit__
-    fig.text(1, 1,
-             "Rendered with Bart v{0}-{1}".format(__version__, __commit__),
-             ha="right")
+    txt = "Rendered with Bart v{0}-{1}".format(__version__, __commit__)
+    fig.axes[0].annotate(txt, [1, 1], xycoords="figure fraction",
+                         xytext=[-5, -5], textcoords="offset points",
+                         ha="right", va="top", fontsize=11)
 
     fig.savefig(outfn, **kwargs)
 
@@ -41,6 +42,7 @@ class ResultsProcess(object):
 
             # Get and un-pickle the parameter list.
             self.parlist = [pickle.loads(p) for p in f["parlist"][...]]
+            print(self.parlist)
 
             self.chain = np.array(f["mcmc"]["chain"][...])
             self.lnprob = np.array(f["mcmc"]["lnprob"][...])
@@ -61,10 +63,12 @@ class ResultsProcess(object):
         plotchain = np.concatenate(plotchain, axis=-1)
         plotchain = np.hstack([plotchain,
                                np.atleast_2d(self.lnprob.flatten()).T])
+        print(plotchain.shape)
 
         # Grab the labels.
         labels = np.concatenate([p.names for p in self.parlist]
                                 + [["ln-prob"]])
+        print(labels)
 
         fig = triangle.corner(plotchain, labels=labels, bins=20)
         savefig(outfn, fig=fig)
