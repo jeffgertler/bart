@@ -12,4 +12,4 @@ venv
 *.h5
 MANIFEST
 dist
-VERSION
+COMMIT

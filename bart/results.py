@@ -17,6 +17,18 @@ import matplotlib.pyplot as pl
 import triangle
 
 
+def savefig(outfn, fig=None, **kwargs):
+    if fig is None:
+        fig = pl.gcf()
+
+    from bart import __version__, __commit__
+    fig.text(1, 1,
+             "Rendered with Bart v{0}-{1}".format(__version__, __commit__),
+             ha="right")
+
+    fig.savefig(outfn, **kwargs)
+
+
 class ResultsProcess(object):
 
     def __init__(self, fn):
@@ -55,7 +67,7 @@ class ResultsProcess(object):
                                 + [["ln-prob"]])
 
         fig = triangle.corner(plotchain, labels=labels, bins=20)
-        fig.savefig(outfn)
+        savefig(outfn, fig=fig)
 
     def corner_plot(self, outfn="./corner.png"):
         p = Process(target=self._corner_plot, args=(outfn,))
@@ -105,7 +117,7 @@ class ResultsProcess(object):
         ax.set_xlabel(u"Phase [days]")
         ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
 
-        fig.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)))
+        savefig(os.path.join(outdir, "{0}.png".format(planet_ind)), fig=fig)
 
     def _lc_plots(self, outdir):
         # Try to make the directory.
@@ -128,7 +140,7 @@ class ResultsProcess(object):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.plot(self.chain[:, :, i].T)
-            fig.savefig(os.path.join(outdir, "{0}.png".format(i)))
+            savefig(os.path.join(outdir, "{0}.png".format(i)), fig=fig)
 
     def time_plot(self, outdir="./time"):
         try:
