@@ -30,11 +30,19 @@ def main():
     # k11g = bart.Planet(t0=12.3, r=0.03087, a=star.get_semimajor(22.68719))
 
     # The system.
-    system = bart.PlanetarySystem(star, iobs=89)
+    system = bart.PlanetarySystem(star, iobs=89.0)
     system.add_planet(k11b)
     system.add_planet(k11c)
     system.add_planet(k11d)
     system.add_planet(k11e)
+
+    # import matplotlib.pyplot as pl
+    # P = 46.68876
+    # pl.plot(t % P, f, ".k", alpha=0.1)
+    # ts = np.linspace(0, P, 1000)
+    # pl.plot(ts, system.lightcurve(ts), "r")
+    # pl.savefig("initial.png")
+    # assert 0
 
     for planet in system.planets:
         planet.parameters.append(LogParameter("$r$", "r"))
@@ -55,13 +63,6 @@ def main():
 
     results.time_plot()
     results.lc_plot()
-
-    # import matplotlib.pyplot as pl
-    # P = 46.68876
-    # pl.plot(t % P, f, ".k", alpha=0.1)
-    # ts = np.linspace(0, P, 1000)
-    # pl.plot(ts, system.lightcurve(ts), "r")
-    # pl.savefig("initial.png")
 
 
 if __name__ == "__main__":
