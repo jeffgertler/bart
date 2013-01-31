@@ -46,7 +46,7 @@ class ResultsProcess(object):
             fig = pl.gcf()
 
         from bart import __version__, __commit__
-        txt = "Rendered with Bart v{0}-{1}".format(__version__, __commit__)
+        txt = "Generated using Bart v{0}-{1}".format(__version__, __commit__)
         fig.axes[0].annotate(txt, [1, 1], xycoords="figure fraction",
                             xytext=[-5, -5], textcoords="offset points",
                             ha="right", va="top", fontsize=11)
@@ -62,27 +62,20 @@ class ResultsProcess(object):
             self.system.vector = v
             yield self.system
 
-    def _corner_plot(self, outfn):
-        # Construct the list of samples to plot.
-        plotchain = []  # np.empty(self.flatchain.shape)
-        i = 0
-        for p in self.parlist:
-            if p.plot_results:
-                plotchain.append(p.iconv(self.flatchain[:, i:i + len(p)]))
-                i += len(p)
-        plotchain = np.concatenate(plotchain, axis=-1)
-        plotchain = np.hstack([plotchain,
-                               np.atleast_2d(self.lnprob.flatten()).T])
+    def _corner_plot(self, outfn, parameters):
+        plotchain = np.empty([len(self.flatchain), len(parameters)])
+        for i, s in enumerate(self.itersteps()):
+            plotchain[i] = np.concatenate([p.getter(self.system)
+                                                    for p in parameters])
 
         # Grab the labels.
-        labels = np.concatenate([p.names for p in self.parlist]
-                                + [["ln-prob"]])
+        labels = [p.name for p in parameters]
 
         fig = triangle.corner(plotchain, labels=labels, bins=20)
         self.savefig(outfn, fig=fig)
 
-    def corner_plot(self, outfn="corner"):
-        p = Process(target=self._corner_plot, args=(outfn,))
+    def corner_plot(self, parameters, outfn="corner"):
+        p = Process(target=self._corner_plot, args=(outfn, parameters))
         p.start()
 
     def _lc_plot(self, args):
@@ -180,3 +173,14 @@ class ResultsProcess(object):
 
         p = Process(target=self._time_plot, args=(outdir,))
         p.start()
+
+
+class Column(object):
+
+    def __init__(self, name, getter=None):
+        self.name = name
+        if getter is not None:
+            self.getter = getter
+
+    def __str__(self):
+        return self.name

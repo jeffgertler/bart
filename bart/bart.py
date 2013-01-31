@@ -25,6 +25,7 @@ except ImportError:
 
 from bart import _bart, mog
 from bart.ldp import LimbDarkening
+from bart.results import ResultsProcess
 
 
 _G = 2945.4625385377644
@@ -172,9 +173,10 @@ class PlanetarySystem(Model):
 
     """
 
-    def __init__(self, star, iobs=90.0):
+    def __init__(self, star, basepath=".", iobs=90.0):
         super(PlanetarySystem, self).__init__()
 
+        self.basepath = basepath
         self._data = None
 
         # The properties of the system as a whole.
@@ -183,6 +185,10 @@ class PlanetarySystem(Model):
 
         # The planets.
         self.planets = []
+
+    @property
+    def results(self):
+        return ResultsProcess(basepath=self.basepath)
 
     @property
     def nplanets(self):
@@ -344,8 +350,7 @@ class PlanetarySystem(Model):
         # Store the data.
         self._data = [t, f, ivar]
 
-    def fit(self, data, iterations, start=None, filename="mcmc.h5",
-            basepath=".", **kwargs):
+    def fit(self, data, iterations, start=None, filename="mcmc.h5", **kwargs):
         """
         Fit the data using MCMC to get constraints on the parameters.
 
@@ -379,7 +384,7 @@ class PlanetarySystem(Model):
             The number of clusters to use for K-means in the trimming step.
 
         """
-        outfn = os.path.join(basepath, filename)
+        outfn = os.path.join(self.basepath, filename)
 
         # Reset for the sake of pickling.
         self._sampler = None

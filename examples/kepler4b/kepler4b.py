@@ -15,7 +15,7 @@ import bart
 
 from bart.parameters.base import LogParameter, Parameter
 from bart.parameters.star import LimbDarkeningParameters
-from bart.results import ResultsProcess
+from bart.results import Column
 
 
 def load_data(fn="data.fits"):
@@ -47,6 +47,7 @@ def default_ldp():
 
 def build_model():
     # Some basic known parameters about the system.
+    bp = "."
     i = 89.76
     T = 3.21346
 
@@ -65,7 +66,7 @@ def build_model():
     star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
     # Set up the planetary system.
-    system = bart.PlanetarySystem(star, iobs=i)
+    system = bart.PlanetarySystem(star, iobs=i, basepath=bp)
 
     # Add the planet to the system.
     system.add_planet(planet)
@@ -82,15 +83,26 @@ def build_model():
     # assert 0
 
     # Do the fit.
-    bp = "."
-    system.fit((t, f, ferr), 1500, thin=100, burnin=[200], nwalkers=50,
-               basepath=bp)
+    # system.fit((t, f, ferr), 1500, thin=100, burnin=[200], nwalkers=50)
 
     # Plot the results.
-    results = ResultsProcess(basepath=bp)
+    results = system.results
+
+    # Make a "corner" plot of the parameters.
+    results.corner_plot([
+            Column(r"$a$", lambda s: s.planets[0].a),
+            Column(r"$r$", lambda s: s.planets[0].r),
+            Column(r"$t_0$", lambda s: s.planets[0].t0),
+        ])
+
+    # Plot the time series of the parameters.
+    results.time_plot()
+
+    # Plot samples of the limb darkening profile.
     results.ldp_plot()
+
+    # Plot samples of the light curve.
     results.lc_plot()
-    # results.time_plot()
 
 
 if __name__ == "__main__":
