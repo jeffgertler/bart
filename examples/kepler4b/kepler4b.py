@@ -14,8 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(dirname)))
 import bart
 
 from bart.parameters.base import LogParameter, Parameter
-from bart.parameters.planet import EccentricityParameter
-from bart.parameters.priors import UniformPrior
+from bart.parameters.star import LimbDarkeningParameters
 from bart.results import ResultsProcess
 
 
@@ -40,7 +39,7 @@ def load_data(fn="data.fits"):
 
 def default_ldp():
     # The limb-darkening parameters.
-    nbins, gamma1, gamma2 = 100, 0.39, 0.1
+    nbins, gamma1, gamma2 = 10, 0.39, 0.1
     ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
     return ldp
 
@@ -51,20 +50,17 @@ def build_model():
     T = 3.21346
 
     # Set up the planet based on the Kepler team results for this object.
-    planet = bart.Planet(r=0.0247, a=6.471, t0=2.38, e=0.1, pomega=0.1)
+    planet = bart.Planet(r=0.0247, a=6.471, t0=2.38)
 
     # Add some fit parameters to the planet.
-    planet.parameters.append(LogParameter("$r$", "r"))
-    planet.parameters.append(LogParameter("$a$", "a"))
-    planet.parameters.append(LogParameter("$t_0$", "t0"))
-    planet.parameters.append(Parameter("$e$", "e", prior=UniformPrior(0, 1)))
-    planet.parameters.append(Parameter(r"$\varpi$", "pomega",
-                             prior=UniformPrior(-np.pi, np.pi)))
-    # planet.parameters.append(EccentricityParameter())
+    # planet.parameters.append(LogParameter("$r$", "r"))
+    # planet.parameters.append(LogParameter("$a$", "a"))
+    # planet.parameters.append(LogParameter("$t_0$", "t0"))
 
     # A star needs to have a mass and a limb-darkening profile.
     star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
-    star.parameters.append(Parameter("$M_\star$", "mass"))
+    # star.parameters.append(Parameter("$f_\star$", "flux"))
+    star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
     # Set up the planetary system.
     system = bart.PlanetarySystem(star, iobs=i)
@@ -84,20 +80,15 @@ def build_model():
     # assert 0
 
     # Do the fit.
-    bp = "positive"
-    try:
-        os.makedirs(bp)
-    except os.error:
-        pass
-
+    bp = "."
     system.fit((t, f, ferr), 100, thin=10, burnin=[200], nwalkers=32,
-               filename=os.path.join(bp, "mcmc.h5"))
+               basepath=bp)
 
     # Plot the results.
-    results = ResultsProcess(os.path.join(bp, "mcmc.h5"))
-    results.corner_plot(outfn=os.path.join(bp, "corner.png"))
-    results.lc_plot(outdir=os.path.join(bp, "lightcurves"))
-    results.time_plot(outdir=os.path.join(bp, "time"))
+    results = ResultsProcess(basepath=bp)
+    results.corner_plot()
+    # results.lc_plot()
+    # results.time_plot()
 
 
 if __name__ == "__main__":

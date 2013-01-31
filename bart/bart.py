@@ -5,6 +5,7 @@ from __future__ import print_function, absolute_import, unicode_literals
 
 __all__ = ["Star", "Planet", "PlanetarySystem"]
 
+import os
 import cPickle as pickle
 
 import numpy as np
@@ -343,8 +344,8 @@ class PlanetarySystem(Model):
         # Store the data.
         self._data = [t, f, ivar]
 
-    def fit(self, data, iterations, start=None, filename="./mcmc.h5",
-            **kwargs):
+    def fit(self, data, iterations, start=None, filename="mcmc.h5",
+            basepath=".", **kwargs):
         """
         Fit the data using MCMC to get constraints on the parameters.
 
@@ -378,6 +379,8 @@ class PlanetarySystem(Model):
             The number of clusters to use for K-means in the trimming step.
 
         """
+        outfn = os.path.join(basepath, filename)
+
         # Reset for the sake of pickling.
         self._sampler = None
 
@@ -489,7 +492,7 @@ class PlanetarySystem(Model):
         from bart import __version__
 
         # Initialize the results file.
-        with h5py.File(filename, u"w") as f:
+        with h5py.File(outfn, u"w") as f:
             # Keep track of the current Bart version.
             f.attrs["version"] = __version__
 
@@ -530,7 +533,7 @@ class PlanetarySystem(Model):
                                                     iterations=iterations)):
             if i % thin == 0:
                 print(status_fmt.format(i, np.mean(s.acceptance_fraction)))
-                with h5py.File(filename, "a") as f:
+                with h5py.File(outfn, "a") as f:
                     g = f["mcmc"]
                     c_ds = g["chain"]
                     lp_ds = g["lnprob"]
@@ -555,15 +558,3 @@ class PlanetarySystem(Model):
 
         self._sampler = s
         return self._sampler.flatchain
-
-
-# class LDPParameter(LogParameter):
-
-#     def getter(self, ps):
-#         return self.conv(ps.ldp.intensity[self.ind]
-#                          - ps.ldp.intensity[self.ind + 1])
-
-#     def setter(self, ps, val):
-#         j = self.ind
-#         ps.ldp.intensity.__setitem__(j + 1,
-#                                      ps.ldp.intensity[j] - self.iconv(val))

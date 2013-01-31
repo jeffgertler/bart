@@ -17,23 +17,11 @@ import matplotlib.pyplot as pl
 import triangle
 
 
-def savefig(outfn, fig=None, **kwargs):
-    if fig is None:
-        fig = pl.gcf()
-
-    from bart import __version__, __commit__
-    txt = "Rendered with Bart v{0}-{1}".format(__version__, __commit__)
-    fig.axes[0].annotate(txt, [1, 1], xycoords="figure fraction",
-                         xytext=[-5, -5], textcoords="offset points",
-                         ha="right", va="top", fontsize=11)
-
-    fig.savefig(outfn, **kwargs)
-
-
 class ResultsProcess(object):
 
-    def __init__(self, fn):
-        self.fn = fn
+    def __init__(self, filename="mcmc.h5", basepath="."):
+        self.basepath = basepath
+        self.fn = os.path.join(basepath, filename)
         with h5py.File(self.fn) as f:
             self.system = pickle.loads(str(f["initial_pickle"][...]))
 
@@ -42,7 +30,6 @@ class ResultsProcess(object):
 
             # Get and un-pickle the parameter list.
             self.parlist = [pickle.loads(p) for p in f["parlist"][...]]
-            print(self.parlist)
 
             self.chain = np.array(f["mcmc"]["chain"][...])
             self.lnprob = np.array(f["mcmc"]["lnprob"][...])
@@ -51,6 +38,22 @@ class ResultsProcess(object):
             #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
             s = self.chain.shape
             self.flatchain = self.chain.reshape(s[0] * s[1], s[2])
+
+    def savefig(self, outfn, fig=None, **kwargs):
+        if fig is None:
+            fig = pl.gcf()
+
+        from bart import __version__, __commit__
+        txt = "Rendered with Bart v{0}-{1}".format(__version__, __commit__)
+        fig.axes[0].annotate(txt, [1, 1], xycoords="figure fraction",
+                            xytext=[-5, -5], textcoords="offset points",
+                            ha="right", va="top", fontsize=11)
+
+        # kwargs["dpi"] = kwargs.pop("dpi", 300)
+
+        fn, ext = os.path.splitext(os.path.join(self.basepath, outfn))
+        return [fig.savefig(fn + e, **kwargs) for e in
+                            [".png"]]
 
     def _corner_plot(self, outfn):
         # Construct the list of samples to plot.
@@ -63,15 +66,13 @@ class ResultsProcess(object):
         plotchain = np.concatenate(plotchain, axis=-1)
         plotchain = np.hstack([plotchain,
                                np.atleast_2d(self.lnprob.flatten()).T])
-        print(plotchain.shape)
 
         # Grab the labels.
         labels = np.concatenate([p.names for p in self.parlist]
                                 + [["ln-prob"]])
-        print(labels)
 
         fig = triangle.corner(plotchain, labels=labels, bins=20)
-        savefig(outfn, fig=fig)
+        self.savefig(outfn, fig=fig)
 
     def corner_plot(self, outfn="./corner.png"):
         p = Process(target=self._corner_plot, args=(outfn,))
@@ -121,7 +122,7 @@ class ResultsProcess(object):
         ax.set_xlabel(u"Phase [days]")
         ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
 
-        savefig(os.path.join(outdir, "{0}.png".format(planet_ind)), fig=fig)
+        self.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)), fig=fig)
 
     def _lc_plots(self, outdir):
         # Try to make the directory.
@@ -144,7 +145,7 @@ class ResultsProcess(object):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.plot(self.chain[:, :, i].T)
-            savefig(os.path.join(outdir, "{0}.png".format(i)), fig=fig)
+            self.savefig(os.path.join(outdir, "{0}.png".format(i)), fig=fig)
 
     def time_plot(self, outdir="./time"):
         try:
