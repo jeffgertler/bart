@@ -16,6 +16,8 @@ import matplotlib.pyplot as pl
 
 import triangle
 
+from .ldp import QuadraticLimbDarkening
+
 
 class ResultsProcess(object):
 
@@ -55,6 +57,11 @@ class ResultsProcess(object):
         return [fig.savefig(fn + e, **kwargs) for e in
                             [".png"]]
 
+    def itersteps(self):
+        for v in self.flatchain:
+            self.system.vector = v
+            yield self.system
+
     def _corner_plot(self, outfn):
         # Construct the list of samples to plot.
         plotchain = []  # np.empty(self.flatchain.shape)
@@ -74,17 +81,13 @@ class ResultsProcess(object):
         fig = triangle.corner(plotchain, labels=labels, bins=20)
         self.savefig(outfn, fig=fig)
 
-    def corner_plot(self, outfn="./corner.png"):
+    def corner_plot(self, outfn="corner"):
         p = Process(target=self._corner_plot, args=(outfn,))
         p.start()
 
     def _lc_plot(self, args):
         outdir, planet_ind = args
         time, flux, ivar = self.data
-
-        # Access the planet and star in the planetary system.
-        planet = self.system.planets[planet_ind]
-        star = self.system.star
 
         # Find the period and stellar flux of each sample.
         period = np.empty(len(self.flatchain))
@@ -95,11 +98,10 @@ class ResultsProcess(object):
         lc = np.empty((len(self.flatchain), len(t)))
 
         # Loop over the samples.
-        for i, v in enumerate(self.flatchain):
-            self.system.vector = v
-            f[i] = star.flux
-            period[i] = float(planet.get_period(star.mass))
-            lc[i] = self.system.lightcurve(t) / star.flux
+        for i, s in enumerate(self.itersteps()):
+            f[i] = s.star.flux
+            period[i] = float(s.planets[planet_ind].get_period(s.star.mass))
+            lc[i] = s.lightcurve(t) / s.star.flux
 
         # Fold the samples.
         T = np.median(period)
@@ -122,7 +124,8 @@ class ResultsProcess(object):
         ax.set_xlabel(u"Phase [days]")
         ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
 
-        self.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)), fig=fig)
+        self.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)),
+                     fig=fig)
 
     def _lc_plots(self, outdir):
         # Try to make the directory.
@@ -135,8 +138,30 @@ class ResultsProcess(object):
         map(self._lc_plot,
             [(outdir, i) for i in range(self.system.nplanets)])
 
-    def lc_plot(self, outdir="./lightcurves"):
+    def lc_plot(self, outdir="lightcurves"):
         p = Process(target=self._lc_plots, args=(outdir,))
+        p.start()
+
+    def _ldp_plot(self, outfn):
+        # Load LDP samples.
+        bins, i = self.system.star.ldp.plot()
+        ldps = np.empty([len(self.flatchain), len(bins)])
+        for i, s in enumerate(self.itersteps()):
+            b, intensity = s.star.ldp.plot()
+            ldps[i] = intensity
+
+        fig = pl.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(bins, ldps.T, "k", alpha=0.1)
+
+        # Over-plot the default Kepler LDP.
+        b, ldp = QuadraticLimbDarkening(1000, 0.39, 0.1).plot()
+        ax.plot(b, ldp, color="#4682b4", lw=1.5)
+
+        self.savefig(outfn, fig=fig)
+
+    def ldp_plot(self, outfn="ldp"):
+        p = Process(target=self._ldp_plot, args=(outfn,))
         p.start()
 
     def _time_plot(self, outdir):
@@ -147,7 +172,7 @@ class ResultsProcess(object):
             ax.plot(self.chain[:, :, i].T)
             self.savefig(os.path.join(outdir, "{0}.png".format(i)), fig=fig)
 
-    def time_plot(self, outdir="./time"):
+    def time_plot(self, outdir="time"):
         try:
             os.makedirs(outdir)
         except os.error:

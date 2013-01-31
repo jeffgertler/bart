@@ -36,4 +36,6 @@ class LimbDarkeningParameters(MultipleParameter, LogParameter):
         star.ldp = LimbDarkening(self.bins, ldp)
 
     def lnprior(self, star):
+        if np.any(star.ldp.intensity <= 0.0):
+            return -np.inf
         return 0.0

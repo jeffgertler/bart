@@ -39,8 +39,9 @@ def load_data(fn="data.fits"):
 
 def default_ldp():
     # The limb-darkening parameters.
-    nbins, gamma1, gamma2 = 10, 0.39, 0.1
+    nbins, gamma1, gamma2 = 15, 0.39, 0.1
     ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
+    ldp.bins = ldp.bins ** 0.5
     return ldp
 
 
@@ -53,9 +54,10 @@ def build_model():
     planet = bart.Planet(r=0.0247, a=6.471, t0=2.38)
 
     # Add some fit parameters to the planet.
-    # planet.parameters.append(LogParameter("$r$", "r"))
-    # planet.parameters.append(LogParameter("$a$", "a"))
-    # planet.parameters.append(LogParameter("$t_0$", "t0"))
+    planet.parameters.append(LogParameter("$r$", "r"))
+    planet.parameters.append(LogParameter("$a$", "a"))
+    planet.parameters.append(Parameter("$i$", "ix"))
+    planet.parameters.append(LogParameter("$t_0$", "t0"))
 
     # A star needs to have a mass and a limb-darkening profile.
     star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
@@ -81,13 +83,13 @@ def build_model():
 
     # Do the fit.
     bp = "."
-    system.fit((t, f, ferr), 100, thin=10, burnin=[200], nwalkers=32,
+    system.fit((t, f, ferr), 1500, thin=100, burnin=[200], nwalkers=50,
                basepath=bp)
 
     # Plot the results.
     results = ResultsProcess(basepath=bp)
-    results.corner_plot()
-    # results.lc_plot()
+    results.ldp_plot()
+    results.lc_plot()
     # results.time_plot()
 
 
