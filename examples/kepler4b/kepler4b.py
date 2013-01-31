@@ -4,7 +4,6 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-import pyfits
 import numpy as np
 
 import os
@@ -13,36 +12,11 @@ dirname = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(dirname)))
 import bart
 
+from bart import kepler
+
 from bart.parameters.base import LogParameter, Parameter
 from bart.parameters.star import LimbDarkeningParameters
 from bart.results import Column
-
-
-def load_data(fn="data.fits"):
-    # Load the data.
-    f = pyfits.open(os.path.join(dirname, "data.fits"))
-    lc = np.array(f[1].data)
-    f.close()
-
-    time = lc["TIME"]
-    flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
-
-    t0 = int(np.median(time[~np.isnan(time)]))
-    time = time - t0
-
-    mu = np.median(flux[~np.isnan(flux)])
-    flux /= mu
-    ferr /= mu
-
-    return (time, flux, ferr)
-
-
-def default_ldp():
-    # The limb-darkening parameters.
-    nbins, gamma1, gamma2 = 15, 0.39, 0.1
-    ldp = bart.QuadraticLimbDarkening(nbins, gamma1, gamma2)
-    ldp.bins = ldp.bins ** 0.5
-    return ldp
 
 
 def build_model():
@@ -61,8 +35,8 @@ def build_model():
     planet.parameters.append(LogParameter("$t_0$", "t0"))
 
     # A star needs to have a mass and a limb-darkening profile.
-    star = bart.Star(mass=planet.get_mstar(T), ldp=default_ldp())
-    # star.parameters.append(Parameter("$f_\star$", "flux"))
+    star = bart.Star(mass=planet.get_mstar(T),
+                     ldp=kepler.fiducial_ldp(np.linspace(0, 1, 15) ** 0.25))
     star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
     # Set up the planetary system.
@@ -72,7 +46,7 @@ def build_model():
     system.add_planet(planet)
 
     # Read in the Kepler light curve.
-    t, f, ferr = load_data()
+    t, f, ferr = kepler.load("data.fits")
 
     # Plot initial guess.
     import matplotlib.pyplot as pl
@@ -83,7 +57,7 @@ def build_model():
     # assert 0
 
     # Do the fit.
-    # system.fit((t, f, ferr), 1500, thin=100, burnin=[200], nwalkers=50)
+    system.fit((t, f, ferr), 5000, thin=500, burnin=[200], nwalkers=50)
 
     # Plot the results.
     results = system.results
