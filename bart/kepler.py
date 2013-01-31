@@ -38,8 +38,8 @@ def load(fn):
     time = lc["TIME"]
     flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
 
-    t0 = int(np.median(time[~np.isnan(time)]))
-    time = time - t0
+    # t0 = int(np.median(time[~np.isnan(time)]))
+    # time = time - t0
 
     mu = np.median(flux[~np.isnan(flux)])
     flux /= mu

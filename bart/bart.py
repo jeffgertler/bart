@@ -101,6 +101,14 @@ class Star(Model):
         else:
             self.ldp = ldp
 
+    def get_semimajor(self, T):
+        """
+        Get the mass of the host star implied by the semi-major axis of this
+        planet and an input period.
+
+        """
+        return (_G * T * T * self.mass / (4 * np.pi * np.pi)) ** (1. / 3)
+
 
 class Planet(Model):
     """

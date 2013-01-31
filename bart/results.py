@@ -87,33 +87,31 @@ class ResultsProcess(object):
         f = np.empty(len(self.flatchain))
 
         # Compute the light curve for each sample.
-        t = np.linspace(time.min(), time.max(), 5000)
-        lc = np.empty((len(self.flatchain), len(t)))
+        nt = 5000
+        lc = np.empty((len(self.flatchain), nt))
+        t = None
 
         # Loop over the samples.
         for i, s in enumerate(self.itersteps()):
             f[i] = s.star.flux
             period[i] = float(s.planets[planet_ind].get_period(s.star.mass))
+            if t is None:
+                t = np.linspace(0, 1.5 * period[i], nt)
             lc[i] = s.lightcurve(t) / s.star.flux
-
-        # Fold the samples.
-        T = np.median(period)
-        t = t % T
-        inds = np.argsort(t)
-        lc = lc[:, inds]
-        t = t[inds]
 
         # Compute the stellar flux.
         f0 = np.median(f)
+        P0 = np.median(period)
 
         # Plot the data and samples.
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        ax.plot(time % T, (flux / f0 - 1) * 1e3, ".k", alpha=0.3)
-        ax.plot(t, (lc.T - 1) * 1e3, color="k", alpha=0.1)
+        ax.plot(time % P0, (flux / f0 - 1) * 1e3, ".k",
+                alpha=0.3)
+        ax.plot(t, (lc.T - 1) * 1e3, color="#4682b4", alpha=0.1)
 
         # Annotate the axes.
-        ax.set_xlim(0, T)
+        ax.set_xlim(0, P0)
         ax.set_xlabel(u"Phase [days]")
         ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
 
