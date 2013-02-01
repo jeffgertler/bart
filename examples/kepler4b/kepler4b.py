@@ -26,17 +26,18 @@ def build_model():
     T = 3.21346
 
     # Set up the planet based on the Kepler team results for this object.
-    planet = bart.Planet(r=0.0247, a=6.471, t0=2.38)
+    planet = bart.Planet(r=0.0247, a=6.471, t0=1.53)
 
     # Add some fit parameters to the planet.
     planet.parameters.append(LogParameter("$r$", "r"))
     planet.parameters.append(LogParameter("$a$", "a"))
-    planet.parameters.append(Parameter("$i$", "ix"))
+    # planet.parameters.append(Parameter("$i$", "ix"))
     planet.parameters.append(LogParameter("$t_0$", "t0"))
 
     # A star needs to have a mass and a limb-darkening profile.
-    star = bart.Star(mass=planet.get_mstar(T),
-                     ldp=kepler.fiducial_ldp(np.linspace(0, 1, 15) ** 0.25))
+    rs = np.linspace(0, 1, 15) ** 0.5
+    ldp = kepler.fiducial_ldp(rs[1:])
+    star = bart.Star(mass=planet.get_mstar(T), ldp=ldp)
     star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
     # Set up the planetary system.
@@ -49,28 +50,28 @@ def build_model():
     t, f, ferr = kepler.load("data.fits")
 
     # Plot initial guess.
-    import matplotlib.pyplot as pl
-    pl.plot(t % T, f, ".k", alpha=0.3)
-    ts = np.linspace(0, T, 1000)
-    pl.plot(ts, system.lightcurve(ts))
-    pl.savefig("initial.png")
+    # import matplotlib.pyplot as pl
+    # pl.plot(t % T, f, ".k", alpha=0.3)
+    # ts = np.linspace(0, T, 1000)
+    # pl.plot(ts, system.lightcurve(ts))
+    # pl.savefig("initial.png")
     # assert 0
 
     # Do the fit.
-    system.fit((t, f, ferr), 5000, thin=500, burnin=[200], nwalkers=50)
+    system.fit((t, f, ferr), 200, thin=20, burnin=[200], nwalkers=64)
 
     # Plot the results.
     results = system.results
 
     # Make a "corner" plot of the parameters.
-    results.corner_plot([
-            Column(r"$a$", lambda s: s.planets[0].a),
-            Column(r"$r$", lambda s: s.planets[0].r),
-            Column(r"$t_0$", lambda s: s.planets[0].t0),
-        ])
+    # results.corner_plot([
+    #         Column(r"$a$", lambda s: s.planets[0].a),
+    #         Column(r"$r$", lambda s: s.planets[0].r),
+    #         Column(r"$t_0$", lambda s: s.planets[0].t0),
+    #     ])
 
     # Plot the time series of the parameters.
-    results.time_plot()
+    # results.time_plot()
 
     # Plot samples of the limb darkening profile.
     results.ldp_plot()

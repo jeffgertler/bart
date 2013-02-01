@@ -49,7 +49,7 @@ def main():
         planet.parameters.append(LogParameter("$a$", "a"))
         planet.parameters.append(LogParameter("$t_0$", "t0"))
 
-    # system.fit((t, f, ferr), 200, thin=1, burnin=[], nwalkers=50)
+    system.fit((t, f, ferr), 200, thin=10, burnin=[100], nwalkers=64)
 
     # Plot the results.
     results = system.results

@@ -101,6 +101,14 @@ class Star(Model):
         else:
             self.ldp = ldp
 
+    @property
+    def spec(self):
+        return np.array([self.mass, self.radius, self.flux])
+
+    @spec.setter  # NOQA
+    def spec(self, v):
+        self.mass, self.radius, self.flux = v
+
     def get_semimajor(self, T):
         """
         Get the mass of the host star implied by the semi-major axis of this
@@ -151,6 +159,15 @@ class Planet(Model):
         self.ix = ix
         self.iy = iy
 
+    @property
+    def spec(self):
+        return np.array([self.r, self.a, self.t0, self.e, self.pomega,
+                         self.ix, self.iy])
+
+    @spec.setter  # NOQA
+    def spec(self, v):
+        self.r, self.a, self.t0, self.e, self.pomega, self.ix, self.iy = v
+
     def get_mstar(self, T):
         """
         Get the mass of the host star implied by the semi-major axis of this
@@ -193,6 +210,20 @@ class PlanetarySystem(Model):
 
         # The planets.
         self.planets = []
+
+    @property
+    def spec(self):
+        return np.concatenate([[self.iobs], self.star.spec,
+                               np.concatenate([p.spec for p in self.planets])])
+
+    @spec.setter  # NOQA
+    def spec(self, v):
+        self.iobs = v[0]
+        ls = len(self.star.spec)
+        self.star.spec = v[1:ls + 1]
+        lp = len(self.planets[0].spec)
+        for i, p in enumerate(self.planets):
+            p.spec = v[ls + 1 + i * lp:ls + 1 + (i + 1) * lp]
 
     @property
     def results(self):
