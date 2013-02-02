@@ -97,16 +97,25 @@ class API(object):
         r = requests.get(self.base_url.format(category), params=params)
         if r.status_code != requests.codes.ok:
             r.raise_for_status()
-        return r.json()
 
-    def kois(self, kepler_id=None):
+        try:
+            return r.json()
+        except ValueError:
+            return None
+
+    def kois(self, **params):
         """
         Get a list of all the KOIs.
 
         """
-        if kepler_id is None:
-            return self.request("koi")
-        return self.request("koi", kepid=kepler_id)
+        return self.request("koi", **params)
+
+    def planets(self, **params):
+        """
+        Get a list of all the confirmed planets.
+
+        """
+        return self.request("confirmed_planets", **params)
 
     def data(self, kepler_id):
         """
@@ -118,6 +127,8 @@ class API(object):
 
         """
         data_list = self.request("data_search", ktc_kepler_id=kepler_id)
+        if data_list is None:
+            return []
         return DataList(data_list)
 
 
@@ -145,7 +156,7 @@ class DataList(object):
         except os.error:
             pass
 
-        [d.fetch(basepath) for d in self._datasets]
+        return [d.fetch(basepath) for d in self._datasets]
 
 
 class Dataset(object):
@@ -179,12 +190,16 @@ class Dataset(object):
         url = self.data_url.format(kid[:4], kid, self.filename())
         return url
 
-    def fetch(self, basepath):
+    def fetch(self, basepath, clobber=False):
         url = self.url()
         local_fn = os.path.join(basepath, self.filename())
+        if os.path.exists(local_fn) and not clobber:
+            return local_fn
 
         # Fetch the file.
         r = requests.get(url)
         if r.status_code != requests.codes.ok:
             r.raise_for_status()
         open(local_fn, "wb").write(r.content)
+
+        return local_fn
