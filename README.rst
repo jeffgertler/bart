@@ -44,4 +44,5 @@ Finally, either build the Fortran and C extensions:
 Usage
 -----
 
-Take a look at `this example <https://github.com/dfm/bart/blob/master/examples/quick/quick.py>`_.
+Take a look at `this example
+<https://github.com/dfm/bart/blob/master/examples/kplr/kplr.py>`_.

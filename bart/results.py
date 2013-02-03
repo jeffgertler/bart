@@ -36,10 +36,29 @@ class ResultsProcess(object):
             self.chain = np.array(f["mcmc"]["chain"][...])
             self.lnprob = np.array(f["mcmc"]["lnprob"][...])
 
-            # Get the ``flatchain`` (see:
-            #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
-            s = self.chain.shape
-            self.flatchain = self.chain.reshape(s[0] * s[1], s[2])
+        # Get the ``flatchain`` (see:
+        #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
+        s = self.chain.shape
+        self.flatchain = self.chain.reshape(s[0] * s[1], s[2])
+
+        # Pre-process the chain to get the median system.
+        spec = np.empty([len(self.flatchain), len(self.system.spec)])
+        for i, s in enumerate(self.itersteps()):
+            spec[i] = s.spec
+        self.median_spec = np.median(spec, axis=0)
+        self.system.spec = self.median_spec
+
+        # Find the median stellar parameters.
+        self.fstar = self.system.star.flux
+        self.rstar = self.system.star.radius
+        self.mstar = self.system.star.mass
+
+        # Find the median planet parameters.
+        self.periods = [p.get_period(self.system.star.mass)
+                        for p in self.system.planets]
+        self.radii = [p.r for p in self.system.planets]
+        self.epochs = [p.t0 for p in self.system.planets]
+        self.semimajors = [p.a for p in self.system.planets]
 
     def savefig(self, outfn, fig=None, **kwargs):
         if fig is None:
@@ -82,36 +101,33 @@ class ResultsProcess(object):
         outdir, planet_ind = args
         time, flux, ivar = self.data
 
-        # Find the period and stellar flux of each sample.
-        period = np.empty(len(self.flatchain))
-        f = np.empty(len(self.flatchain))
+        # Get the median parameters of the fit.
+        fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
+        P, t0, a, r = (self.periods[planet_ind], self.epochs[planet_ind],
+                       self.semimajors[planet_ind], self.radii[planet_ind])
+
+        # Compute the transit duration.
+        duration = P * (r + rstar) / np.pi / a
+        tmin, tmax = t0 - duration, t0 + duration
+        t = np.linspace(tmin, tmax, 5000)
+        # t = np.linspace(0, P, 5000)
 
         # Compute the light curve for each sample.
-        nt = 5000
-        lc = np.empty((len(self.flatchain), nt))
-        t = None
+        lc = np.empty((len(self.flatchain), len(t)))
 
         # Loop over the samples.
         for i, s in enumerate(self.itersteps()):
-            f[i] = s.star.flux
-            period[i] = float(s.planets[planet_ind].get_period(s.star.mass))
-            if t is None:
-                t = np.linspace(0, 1.5 * period[i], nt)
-            lc[i] = s.lightcurve(t) / s.star.flux
-
-        # Compute the stellar flux.
-        f0 = np.median(f)
-        P0 = np.median(period)
+            lc[i] = s.lightcurve(t)
 
         # Plot the data and samples.
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        ax.plot(time % P0, (flux / f0 - 1) * 1e3, ".k",
-                alpha=0.3)
-        ax.plot(t, (lc.T - 1) * 1e3, color="#4682b4", alpha=0.1)
+        ax.plot(time % P, (flux / fstar - 1) * 1e3, ".k",
+                alpha=1.0)
+        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="#4682b4", alpha=0.03)
 
         # Annotate the axes.
-        ax.set_xlim(0, P0)
+        ax.set_xlim(tmin, tmax)
         ax.set_xlabel(u"Phase [days]")
         ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
 
