@@ -15,7 +15,11 @@ from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import LimbDarkeningParameters
 
 import numpy as np
-import matplotlib.pyplot as pl
+# import matplotlib.pyplot as pl
+
+
+# Reproducible Science.™
+np.random.seed(123)
 
 
 def main():
@@ -23,12 +27,12 @@ def main():
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
     P = 3.234723  # ± 0.000017 days
-    E = 2454954.48636  # ± 0.00014 HJD
+    # E = 2454954.48636  # ± 0.00014 HJD
     a = 7.05  # +0.11 -0.06 R_*
     r = 0.09829  # +0.00014 -0.00050 R_*
     i = 86.8  # ± 0.3 degrees
 
-    mstar = 1.209  # +0.044 -0.038 M_sun
+    # mstar = 1.209  # +0.044 -0.038 M_sun
     rstar = 1.391  # +0.017 -0.034 R_sun
 
     # Compute the reference transit time.
@@ -44,13 +48,13 @@ def main():
     rs = np.linspace(0, 1, 15) ** 0.5
     ldp = kepler.fiducial_ldp(rs[1:])
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
-    print(star.mass, mstar)
-    # star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
+    star.parameters.append(LogParameter(r"$f_\star$", "flux"))
+    star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
     # Set up the system.
-    system = bart.PlanetarySystem(star, iobs=i + 5)
+    system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
     system.parameters.append(Parameter(r"$i$", "iobs"))
-    system.add_planet(planet, basepath="kepler6")
+    system.add_planet(planet)
 
     # Get the data.
     api = kepler.API()
@@ -66,7 +70,7 @@ def main():
             ferr = np.append(ferr, fe)
 
     # Do the fit.
-    system.fit((time, flux, ferr), 200, thin=20, burnin=[200], nwalkers=64)
+    system.fit((time, flux, ferr), 10000, thin=200, burnin=[500], nwalkers=64)
 
     # Plot the results.
     results = system.results

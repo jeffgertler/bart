@@ -139,7 +139,7 @@ class ResultsProcess(object):
     def _lc_plots(self, outdir):
         # Try to make the directory.
         try:
-            os.makedirs(outdir)
+            os.makedirs(os.path.join(self.basepath, outdir))
         except os.error:
             pass
 
@@ -184,7 +184,7 @@ class ResultsProcess(object):
 
     def time_plot(self, outdir="time"):
         try:
-            os.makedirs(outdir)
+            os.makedirs(os.path.join(self.basepath, outdir))
         except os.error:
             pass
 
