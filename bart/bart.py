@@ -161,8 +161,9 @@ class Planet(Model):
 
     @property
     def spec(self):
-        return np.array([self.r, self.a, self.t0, self.e, self.pomega,
-                         self.ix, self.iy])
+        return np.array([float(self.r), float(self.a), float(self.t0),
+                         float(self.e), float(self.pomega),
+                         float(self.ix), float(self.iy)])
 
     @spec.setter  # NOQA
     def spec(self, v):
@@ -213,7 +214,7 @@ class PlanetarySystem(Model):
 
     @property
     def spec(self):
-        return np.concatenate([[self.iobs], self.star.spec,
+        return np.concatenate([[float(self.iobs)], self.star.spec,
                                np.concatenate([p.spec for p in self.planets])])
 
     @spec.setter  # NOQA

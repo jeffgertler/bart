@@ -29,14 +29,13 @@
         !   The number of planets in the system.
         !
         ! :param r: (double precision(np))
-        !   The sizes of the planets in units of the star's radius.
+        !   The sizes of the planets in Solar radii.
         !
         ! :param a: (double precision(np))
-        !   The semi-major axes of the orbits in units of the star's
-        !   radius.
+        !   The semi-major axes of the orbits in Solar radii.
         !
         ! :param t0: (double precision(np))
-        !   The time of a reference pericenter passage in days.
+        !   The time of a reference transit in days.
         !
         ! :param e: (double precision(np))
         !   The eccentricities of the orbits.
@@ -111,7 +110,7 @@
         do i=1, np
 
           call solve_orbit(n, t, mstar, &
-                           e(i), a(i) * rstar, t0(i), pomega(i), &
+                           e(i), a(i), t0(i), pomega(i), &
                            (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
                            pos, info)
 
@@ -129,7 +128,7 @@
             endif
           enddo
 
-          call ldlc(r(i), nld, rld, ild, n, b, tmp)
+          call ldlc(r(i) / rstar, nld, rld, ild, n, b, tmp)
           flux = flux * tmp
 
         enddo
