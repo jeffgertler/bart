@@ -41,18 +41,21 @@ def main():
 
     # mstar = 1.209  # +0.044 -0.038 M_sun
     rstar = 1.391  # +0.017 -0.034 R_sun
+    Teff = 5647.
+    logg = 4.24
+    feh = 0.34
 
     P = 3.234723  # ± 0.000017 days
     # E = 2454954.48636  # ± 0.00014 HJD
 
-    a = 9.80650134 / rstar  # Mine
-    # a = 7.05  # +0.11 -0.06 R_*
+    # a = 9.80650134 / rstar  # Mine
+    a = 7.05  # +0.11 -0.06 R_*
 
-    r = 0.12342658 / rstar  # Mine.
-    # r = 0.09829  # +0.00014 -0.00050 R_*
+    # r = 0.12342658 / rstar  # Mine.
+    r = 0.09829  # +0.00014 -0.00050 R_*
 
-    i = 90.0  # Mine.
-    # i = 86.8  # ± 0.3 degrees
+    # i = 90.0  # Mine.
+    i = 86.8  # ± 0.3 degrees
 
     # Compute the reference transit time.
     t0 = 1.795  # Found by eye.
@@ -64,8 +67,7 @@ def main():
     planet.parameters.append(Parameter(r"$t_0$", "t0"))
 
     # Set up the star.
-    rs = np.linspace(0, 1, 15) ** 0.5
-    ldp = kepler.fiducial_ldp(rs[1:])
+    ldp = kepler.fiducial_ldp(Teff, logg, feh, bins=15, alpha=0.5)
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
     star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
@@ -89,8 +91,8 @@ def main():
             ferr = np.append(ferr, fe)
 
     # Do the fit.
-    # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    system.fit((time, flux, ferr), 1000, thin=50, burnin=[200], nwalkers=64)
+    system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
+    # system.fit((time, flux, ferr), 1000, thin=50, burnin=[200], nwalkers=64)
 
     # Plot the results.
     results = system.results

@@ -54,7 +54,7 @@ def load(fn):
     return (time, flux, ferr)
 
 
-def fiducial_ldp(bins=100):
+def fiducial_ldp(teff, logg, feh, bins=100, alpha=1.0):
     """
     Get the standard Kepler limb-darkening profile.
 
@@ -62,14 +62,30 @@ def fiducial_ldp(bins=100):
         Either the number of radial bins or a list of bin edges.
 
     """
+    # Read in the limb darkening coefficient table.
+    fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ld.txt")
+    data = np.loadtxt(fn, skiprows=10)
+
+    # Find the closest point in the table.
+    T0 = data[np.argmin(np.abs(data[:, 0] - teff)), 0]
+    logg0 = data[np.argmin(np.abs(data[:, 1] - logg)), 1]
+    feh0 = data[np.argmin(np.abs(data[:, 2] - feh)), 2]
+    ind = (data[:, 0] == T0) * (data[:, 1] == logg0) * (data[:, 2] == feh0)
+    mu1, mu2 = data[ind, 4:6][0]
+    print(mu1, mu2)
+
+    # Build the list of bins.
     try:
         nbins = len(bins)
     except TypeError:
         nbins = int(bins)
-        bins = None
-    ldp = QuadraticLimbDarkening(nbins, 0.25, 0.37)
-    if bins is not None:
-        ldp.bins = bins
+        bins = np.linspace(0, 1, nbins + 1)[1:] ** alpha
+
+    # Generate a quadratic limb darkening profile.
+    ldp = QuadraticLimbDarkening(nbins, mu1, mu2)
+    ldp.bins = bins
+
+    # Return the non-parametric approximation.
     return LimbDarkening(ldp.bins, ldp.intensity)
 
 
