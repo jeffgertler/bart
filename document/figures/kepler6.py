@@ -18,6 +18,10 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 
+# Reproducible Science.™
+np.random.seed(123)
+
+
 def main():
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
@@ -44,13 +48,12 @@ def main():
     rs = np.linspace(0, 1, 15) ** 0.5
     ldp = kepler.fiducial_ldp(rs[1:])
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
-    print(star.mass, mstar)
-    # star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
+    star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
     # Set up the system.
-    system = bart.PlanetarySystem(star, iobs=i + 5)
+    system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
     system.parameters.append(Parameter(r"$i$", "iobs"))
-    system.add_planet(planet, basepath="kepler6")
+    system.add_planet(planet)
 
     # Get the data.
     api = kepler.API()
@@ -66,7 +69,7 @@ def main():
             ferr = np.append(ferr, fe)
 
     # Do the fit.
-    system.fit((time, flux, ferr), 200, thin=20, burnin=[200], nwalkers=64)
+    system.fit((time, flux, ferr), 1000, thin=20, burnin=[500], nwalkers=64)
 
     # Plot the results.
     results = system.results
