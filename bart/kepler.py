@@ -67,7 +67,7 @@ def fiducial_ldp(bins=100):
     except TypeError:
         nbins = int(bins)
         bins = None
-    ldp = QuadraticLimbDarkening(nbins, 0.39, 0.1)
+    ldp = QuadraticLimbDarkening(nbins, 0.25, 0.37)
     if bins is not None:
         ldp.bins = bins
     return LimbDarkening(ldp.bins, ldp.intensity)

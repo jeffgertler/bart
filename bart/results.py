@@ -122,7 +122,9 @@ class ResultsProcess(object):
         # Plot the data and samples.
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        ax.plot(time % P, (flux / fstar - 1) * 1e3, ".k",
+        time = time % P
+        inds = (time < tmax) * (time > tmin)
+        ax.plot(time[inds], (flux[inds] / fstar - 1) * 1e3, ".k",
                 alpha=1.0)
         ax.plot(t, (lc.T / fstar - 1) * 1e3, color="#4682b4", alpha=0.03)
 
@@ -177,6 +179,7 @@ class ResultsProcess(object):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.plot(self.chain[:, :, i].T)
+            # ax.set_title(self.parlist[i].name)
             self.savefig(os.path.join(outdir, "{0}.png".format(i)), fig=fig)
 
     def time_plot(self, outdir="time"):

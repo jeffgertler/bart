@@ -16,6 +16,7 @@ import bart
 from bart import kepler
 from bart.results import Column
 from bart.parameters.base import LogParameter
+from bart.parameters.star import LimbDarkeningParameters
 
 import numpy as np
 import matplotlib.pyplot as pl
@@ -36,9 +37,6 @@ def main(name="KEPLER-4 b"):
         print("Something went wrong.")
         sys.exit(2)
 
-    # print(api.kois(kepid=kepid))
-    # assert 0
-
     # Fetch the data.
     bp = "data"
     data_files = api.data(kepid).fetch_all(basepath=bp)
@@ -48,23 +46,25 @@ def main(name="KEPLER-4 b"):
     # file-by-file basis. This seems to be reasonable for now.
     time, flux, ferr = np.array([]), np.array([]), np.array([])
     for fn in data_files:
-        t, f, fe = kepler.load(fn)
-        time = np.append(time, t)
-        flux = np.append(flux, f)
-        ferr = np.append(ferr, fe)
+        if "llc" in fn:
+            t, f, fe = kepler.load(fn)
+            time = np.append(time, t)
+            flux = np.append(flux, f)
+            ferr = np.append(ferr, fe)
 
     # Set up the system.
     rs = np.linspace(0, 1, 15) ** 0.5
     ldp = kepler.fiducial_ldp(rs[1:])
-    star = bart.Star(radius=1.0,  # float(planets[0]["Stellar Radius"]),
+    star = bart.Star(radius=2.0,  # float(planets[0]["Stellar Radius"]),
                      ldp=ldp)
+    star.parameters.append(LimbDarkeningParameters(star.ldp.bins))
 
     system = bart.PlanetarySystem(star, iobs=90.0)
 
     for p in planets:
         # Earth radii to Solar radii and AU to Solar radii from ``astropy``.
-        r = 0.0247  # 0.009170471080131358 * float(p["Planet Radius"])  # / star.radius
-        a = 6.471   # 215.09151684811675 * float(p["Semi-major Axis"])  # / star.radius
+        r = 2 * 0.0247  # 0.009170471080131358 * float(p["Planet Radius"])  # / star.radius
+        a = 2 * 6.471   # 215.09151684811675 * float(p["Semi-major Axis"])  # / star.radius
         print(r, a)
         planet = bart.Planet(r=r, a=a, t0=0.0)
 
@@ -100,11 +100,15 @@ def main(name="KEPLER-4 b"):
         pl.plot(t, system.lightcurve(t))
         pl.savefig("blah.{0}.png".format(i))
 
-    system.fit((time, flux, ferr), 500, thin=20, burnin=[], nwalkers=16)
+    assert 0
+
+    system.planets[0].t0 = 1.49
+
+    system.fit((time, flux, ferr), 200, thin=20, burnin=[], nwalkers=64)
     results = system.results
     results.lc_plot()
+    results.ldp_plot()
     results.time_plot()
-
     results.corner_plot([
             Column(r"$a$", lambda s: s.planets[0].a),
             Column(r"$r$", lambda s: s.planets[0].r),
