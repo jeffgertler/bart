@@ -16,12 +16,14 @@ class LimbDarkening(object):
         self.intensity = np.array(intensity)
 
     def plot(self):
-        x = [0, ]
-        [(x.append(b), x.append(b)) for b in self.bins]
-        y = []
-        [(y.append(i), y.append(i)) for i in self.intensity]
-
-        return x[:-1], y
+        x = [(0, self.bins[0])] + [(self.bins[i], self.bins[i + 1])
+                                   for i in range(len(self.bins) - 1)]
+        y = [(i, i) for i in self.intensity]
+        norm = np.pi * np.sum([intensity * (self.bins[i + 1] ** 2
+                                            - self.bins[i] ** 2)
+                            for i, intensity in enumerate(self.intensity[1:])])
+        norm += np.pi * self.intensity[0] * self.bins[0] ** 2
+        return np.array(x), np.array(y) / norm
 
 
 class QuadraticLimbDarkening(LimbDarkening):

@@ -36,6 +36,8 @@ class ResultsProcess(object):
             self.chain = np.array(f["mcmc"]["chain"][...])
             self.lnprob = np.array(f["mcmc"]["lnprob"][...])
 
+        # print(self.parlist)
+
         # Get the ``flatchain`` (see:
         #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
         s = self.chain.shape
@@ -47,6 +49,7 @@ class ResultsProcess(object):
             spec[i] = s.spec
         self.median_spec = np.median(spec, axis=0)
         self.system.spec = self.median_spec
+        print(self.median_spec)
 
         # Find the median stellar parameters.
         self.fstar = self.system.star.flux
@@ -74,7 +77,7 @@ class ResultsProcess(object):
 
         fn, ext = os.path.splitext(os.path.join(self.basepath, outfn))
         return [fig.savefig(fn + e, **kwargs) for e in
-                            [".png"]]
+                            [".png", ".pdf"]]
 
     def itersteps(self):
         for v in self.flatchain:
@@ -108,28 +111,27 @@ class ResultsProcess(object):
 
         # Compute the transit duration.
         duration = P * (r + rstar) / np.pi / a
-        tmin, tmax = t0 - duration, t0 + duration
-        t = np.linspace(tmin, tmax, 5000)
-        # t = np.linspace(0, P, 5000)
+        t = np.linspace(-duration, duration, 5000)
 
         # Compute the light curve for each sample.
         lc = np.empty((len(self.flatchain), len(t)))
 
         # Loop over the samples.
         for i, s in enumerate(self.itersteps()):
+            s.planets[planet_ind].t0 = 0.0
             lc[i] = s.lightcurve(t)
 
         # Plot the data and samples.
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        time = time % P
-        inds = (time < tmax) * (time > tmin)
-        ax.plot(time[inds], (flux[inds] / fstar - 1) * 1e3, ".k",
-                alpha=1.0)
-        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="#4682b4", alpha=0.03)
+        time = time % P - t0
+        inds = (time < duration) * (time > -duration)
+        ax.plot(time[inds], (flux[inds] / fstar - 1) * 1e3, ".",
+                alpha=1.0, color="#888888")
+        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="#000000", alpha=0.03)
 
         # Annotate the axes.
-        ax.set_xlim(tmin, tmax)
+        ax.set_xlim(-duration, duration)
         ax.set_xlabel(u"Phase [days]")
         ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
 
@@ -154,14 +156,15 @@ class ResultsProcess(object):
     def _ldp_plot(self, outfn):
         # Load LDP samples.
         bins, i = self.system.star.ldp.plot()
-        ldps = np.empty([len(self.flatchain), len(bins)])
+        ldps = np.empty([len(self.flatchain), i.shape[0], i.shape[1]])
         for i, s in enumerate(self.itersteps()):
             b, intensity = s.star.ldp.plot()
             ldps[i] = intensity
 
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        ax.plot(bins, ldps.T, "k", alpha=0.1)
+        [ax.plot(bins[i], ldps[:, i].T, "k", alpha=0.1)
+                                        for i in range(len(bins))]
 
         # Over-plot the default Kepler LDP.
         b, ldp = QuadraticLimbDarkening(1000, 0.39, 0.1).plot()
