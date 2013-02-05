@@ -12,7 +12,7 @@ import bart
 from bart import kepler
 from bart.results import Column
 from bart.parameters.base import Parameter, LogParameter
-from bart.parameters.star import RelativeLimbDarkeningParameters
+from bart.parameters.star import LimbDarkeningParameters
 
 import numpy as np
 # import matplotlib.pyplot as pl
@@ -69,7 +69,9 @@ def main():
     # Set up the star.
     ldp = kepler.fiducial_ldp(Teff, logg, feh, bins=15, alpha=0.5)
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
-    # star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins))
+    star.parameters.append(LimbDarkeningParameters(star.ldp.bins,
+                                                   star.ldp.intensity,
+                                                   eta=0.001))
 
     # Set up the system.
     system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
@@ -92,13 +94,13 @@ def main():
 
     # Do the fit.
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    system.fit((time, flux, ferr), 500, thin=100, burnin=[200], nwalkers=64)
+    system.fit((time, flux, ferr), 5000, thin=10, burnin=[200], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
-    results = system.results
+    results = system.results(thin=10, burnin=200)
     results.lc_plot()
-    results.ldp_plot()
+    results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
     results.time_plot()
     results.corner_plot([
             Column(r"$a$", lambda s: s.planets[0].a),

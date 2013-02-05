@@ -16,12 +16,12 @@ import matplotlib.pyplot as pl
 
 import triangle
 
-from .ldp import QuadraticLimbDarkening
-
 
 class ResultsProcess(object):
 
-    def __init__(self, filename="mcmc.h5", basepath="."):
+    def __init__(self, filename="mcmc.h5", basepath=".", thin=1, burnin=0):
+        self.burnin = burnin
+        self.thin = thin
         self.basepath = basepath
         self.fn = os.path.join(basepath, filename)
         with h5py.File(self.fn) as f:
@@ -33,8 +33,11 @@ class ResultsProcess(object):
             # Get and un-pickle the parameter list.
             self.parlist = [pickle.loads(p) for p in f["parlist"][...]]
 
-            self.chain = np.array(f["mcmc"]["chain"][...])
-            self.lnprob = np.array(f["mcmc"]["lnprob"][...])
+            self._chain = np.array(f["mcmc"]["chain"][...])
+            self._lnprob = np.array(f["mcmc"]["lnprob"][...])
+
+        self.chain = self._chain[:, burnin::thin, :]
+        self.lnprob = self._lnprob[:, burnin::thin]
 
         # Get the ``flatchain`` (see:
         #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
@@ -74,7 +77,9 @@ class ResultsProcess(object):
         return [fig.savefig(fn + e, **kwargs) for e in
                             [".png", ".pdf"]]
 
-    def itersteps(self):
+    def itersteps(self, thin=None):
+        if thin is None:
+            thin = self.thin
         for v in self.flatchain:
             self.system.vector = v
             yield self.system
@@ -148,7 +153,7 @@ class ResultsProcess(object):
         p = Process(target=self._lc_plots, args=(outdir,))
         p.start()
 
-    def _ldp_plot(self, outfn):
+    def _ldp_plot(self, outfn, fiducial):
         # Load LDP samples.
         bins, i = self.system.star.ldp.plot()
         ldps = np.empty([len(self.flatchain), i.shape[0], i.shape[1]])
@@ -162,29 +167,33 @@ class ResultsProcess(object):
                                         for i in range(len(bins))]
 
         # Over-plot the default Kepler LDP.
-        # b, ldp = QuadraticLimbDarkening(1000, 0.39, 0.1).plot()
-        # ax.plot(b, ldp, color="#4682b4", lw=1.5)
+        if fiducial is not None:
+            rs = np.linspace(0, 1, 1000)
+            ldp = fiducial(rs) / fiducial.norm
+            ax.plot(rs, ldp, color="#4682b4", lw=1.5)
 
         self.savefig(outfn, fig=fig)
 
-    def ldp_plot(self, outfn="ldp"):
-        p = Process(target=self._ldp_plot, args=(outfn,))
+    def ldp_plot(self, outfn="ldp", fiducial=None):
+        p = Process(target=self._ldp_plot, args=(outfn, fiducial))
         p.start()
 
     def _time_plot(self, outdir):
         fig = pl.figure()
         names = np.concatenate([p.names for p in self.parlist])
-        for i in range(self.chain.shape[2]):
+        for i in range(self._chain.shape[2]):
             fig.clf()
             ax = fig.add_subplot(111)
-            ax.plot(self.chain[:, :, i].T)
+            ax.plot(self._chain[:, :, i].T)
+            ax.axvline(self.burnin, color="k", ls="dashed")
             ax.set_title(names[i])
             fig.savefig(os.path.join(self.basepath, outdir,
                                      "{0}.png".format(names[i].strip("$"))))
 
         fig.clf()
         ax = fig.add_subplot(111)
-        ax.plot(self.lnprob.T)
+        ax.plot(self._lnprob.T)
+        ax.axvline(self.burnin, color="k", ls="dashed")
         ax.set_title("ln-prob")
         fig.savefig(os.path.join(self.basepath, outdir,
                                     "lnprob.png".format(i)))

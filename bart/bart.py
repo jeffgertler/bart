@@ -226,9 +226,9 @@ class PlanetarySystem(Model):
         for i, p in enumerate(self.planets):
             p.spec = v[ls + 1 + i * lp:ls + 1 + (i + 1) * lp]
 
-    @property
-    def results(self):
-        return ResultsProcess(basepath=self.basepath)
+    def results(self, *args, **kwargs):
+        kwargs["basepath"] = kwargs.pop("basepath", self.basepath)
+        return ResultsProcess(*args, **kwargs)
 
     @property
     def nplanets(self):

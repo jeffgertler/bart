@@ -54,7 +54,7 @@ def load(fn):
     return (time, flux, ferr)
 
 
-def fiducial_ldp(teff, logg, feh, bins=100, alpha=1.0):
+def fiducial_ldp(teff, logg, feh, bins=None, alpha=1.0):
     """
     Get the standard Kepler limb-darkening profile.
 
@@ -74,15 +74,18 @@ def fiducial_ldp(teff, logg, feh, bins=100, alpha=1.0):
     mu1, mu2 = data[ind, 4:6][0]
     print("LDP Parameters", mu1, mu2)
 
+    # Generate a quadratic limb darkening profile.
+    ldp = QuadraticLimbDarkening(mu1, mu2)
+
+    if bins is None:
+        return ldp
+
     # Build the list of bins.
     try:
         nbins = len(bins)
     except TypeError:
         nbins = int(bins)
         bins = np.linspace(0, 1, nbins + 1)[1:] ** alpha
-
-    # Generate a quadratic limb darkening profile.
-    ldp = QuadraticLimbDarkening(mu1, mu2)
 
     # Return the non-parametric approximation.
     return ldp.histogram(bins)
