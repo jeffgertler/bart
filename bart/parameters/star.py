@@ -14,10 +14,38 @@ from bart.ldp import LimbDarkening
 class LimbDarkeningParameters(MultipleParameter, LogParameter):
 
     def __init__(self, bins):
-        self.N = len(bins) - 1
+        self.N = len(bins)
         self.bins = bins
         super(LimbDarkeningParameters, self).__init__(
                 [r"$\log\,I_{{{0}}}$".format(i + 1) for i in range(self.N)])
+
+    def __len__(self):
+        return self.N
+
+    def getter(self, star):
+        intensity = star.ldp.intensity
+        assert len(intensity) == self.N
+        return np.array(intensity)
+
+    def setter(self, star, vec):
+        star.ldp = LimbDarkening(self.bins, vec)
+
+    def lnprior(self, star):
+        if np.any(star.ldp.intensity <= 0.0):
+            return -np.inf
+        return 0.0
+        # d2 = np.sum((star.ldp.intensity[1:] - star.ldp.intensity[:-1]) ** 2)
+        # return -0.5 * d2
+
+
+class RelativeLimbDarkeningParameters(MultipleParameter, LogParameter):
+
+    def __init__(self, bins):
+        self.N = len(bins) - 1
+        self.bins = bins
+        super(RelativeLimbDarkeningParameters, self).__init__(
+                [r"$\log\,\Delta I_{{{0}}}$".format(i + 1)
+                 for i in range(self.N)])
 
     def __len__(self):
         return self.N

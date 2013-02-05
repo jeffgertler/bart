@@ -91,8 +91,8 @@ def main():
             ferr = np.append(ferr, fe)
 
     # Do the fit.
-    system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    # system.fit((time, flux, ferr), 1000, thin=50, burnin=[200], nwalkers=64)
+    # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
+    system.fit((time, flux, ferr), 200, thin=10, burnin=[100], nwalkers=64)
 
     # Plot the results.
     results = system.results
