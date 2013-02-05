@@ -12,7 +12,7 @@ import pyfits
 import requests
 import numpy as np
 
-from .ldp import LimbDarkening, QuadraticLimbDarkening
+from .ldp import QuadraticLimbDarkening
 
 
 def load(fn):
@@ -72,7 +72,7 @@ def fiducial_ldp(teff, logg, feh, bins=100, alpha=1.0):
     feh0 = data[np.argmin(np.abs(data[:, 2] - feh)), 2]
     ind = (data[:, 0] == T0) * (data[:, 1] == logg0) * (data[:, 2] == feh0)
     mu1, mu2 = data[ind, 4:6][0]
-    print(mu1, mu2)
+    print("LDP Parameters", mu1, mu2)
 
     # Build the list of bins.
     try:
@@ -82,11 +82,10 @@ def fiducial_ldp(teff, logg, feh, bins=100, alpha=1.0):
         bins = np.linspace(0, 1, nbins + 1)[1:] ** alpha
 
     # Generate a quadratic limb darkening profile.
-    ldp = QuadraticLimbDarkening(nbins, mu1, mu2)
-    ldp.bins = bins
+    ldp = QuadraticLimbDarkening(mu1, mu2)
 
     # Return the non-parametric approximation.
-    return LimbDarkening(ldp.bins, ldp.intensity)
+    return ldp.histogram(bins)
 
 
 class API(object):
