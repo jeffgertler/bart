@@ -69,7 +69,7 @@ def main():
     # Set up the star.
     ldp = kepler.fiducial_ldp(Teff, logg, feh, bins=15, alpha=0.5)
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
-    star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins))
+    # star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins))
 
     # Set up the system.
     system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
@@ -92,7 +92,7 @@ def main():
 
     # Do the fit.
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    # system.fit((time, flux, ferr), 2000, thin=10, burnin=[500], nwalkers=64)
+    system.fit((time, flux, ferr), 500, thin=100, burnin=[200], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")

@@ -162,8 +162,8 @@ class ResultsProcess(object):
                                         for i in range(len(bins))]
 
         # Over-plot the default Kepler LDP.
-        b, ldp = QuadraticLimbDarkening(1000, 0.39, 0.1).plot()
-        ax.plot(b, ldp, color="#4682b4", lw=1.5)
+        # b, ldp = QuadraticLimbDarkening(1000, 0.39, 0.1).plot()
+        # ax.plot(b, ldp, color="#4682b4", lw=1.5)
 
         self.savefig(outfn, fig=fig)
 

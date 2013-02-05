@@ -4,10 +4,10 @@
 from __future__ import absolute_import, unicode_literals
 
 __all__ = ["Star", "Planet", "PlanetarySystem", "LimbDarkening",
-           "QuadraticLimbDarkening", "NonlinearLimbDarkening"]
+           "QuadraticLimbDarkening"]
 
 from .bart import Star, Planet, PlanetarySystem
-from .ldp import LimbDarkening, QuadraticLimbDarkening, NonlinearLimbDarkening
+from .ldp import LimbDarkening, QuadraticLimbDarkening
 
 __version__ = "0.0.2"
 __author__ = "Dan Foreman-Mackey (danfm@nyu.edu)"
