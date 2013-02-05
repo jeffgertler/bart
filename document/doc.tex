@@ -252,7 +252,10 @@ In \bart, we parameterize the orbit of a planet with the parameters:
 Supplementing these $6\,K$ parameters with the mass of the star $M_\star$ and
 the inclination $i_\mathrm{obs}$ of the mean orbital angular momentum vector
 with respect to the observer, fully specifies the orbits of the $K$ planets in
-a planetary system.
+a planetary system as a function of time.
+Given these parameters and neglecting the planet-planet interactions, we can
+solve for the orbit of each planet independently using the standard techniques
+\citep[see][for example]{goldstein}.
 
 
 \subsection{Transit geometry}
@@ -295,21 +298,14 @@ where
 This is similar to Equation (1) from \citet{mandel} but we've explicitly
 computed $\lambda_\mathrm{uniform}$ as a function of the stellar radius in
 anticipation of the next section.
-The derivation of \eq{uniform-occ} can be found in the Appendix.
+A derivation of \eq{uniform-occ} can be found online at
+\project{MathWorld}\footnote{%
+\url{http://mathworld.wolfram.com/Circle-CircleIntersection.html}}.
 
 The impact parameter $b$ in the equations above can be computed from the
 physical and observational parameters of the system by solving for the orbit
-and then ``observing'' the system from infinity.
-To be explicit, we will briefly explain the parameterization that we use for
-the orbital elements in \bart.
-The host star's mass $M_\star$ and inclination of the mean orbital
-plane of the planets $i$ are the only stellar properties that enter
-the orbit computation.
-Then, for each each planet $k$, its orbit is
-specified by 6 parameters: the semi-major axis $a^{(k)}$, the orbital
-eccentricity $e^{(k)}$, the relative inclination $\delta i^{(k)}$, the time of
-a reference pericentre passage $t_0^{(k)}$, the longitude of the periapsis
-$\varpi^{(k)}$ AND ONE OTHER ANGLE.
+as described in the previous section and then ``observing'' the system from
+infinity.
 
 
 \subsection{Limb darkening}
@@ -398,108 +394,17 @@ Please use our code.  It is available at XXX.
 
 \acknowledgments
 
-\section{Appendix}
 
-The first case, $R+p < b$, corresponds to the case when the impact parameter
-of the planet is greater than the combined radii of the star and planet.
-Hence no flux is occulted.
-The third case, $b \leq R-p$, corresponds to the scenario where the entire
-planet is within the observers perception of the star.
-Hence the planet's entire area, $\pi \, p^2$, is occulted.
-The last case, $b \leq p-R$ implies $p-R \geq 0$ since $b$ is positive by
-definition, thus the apparent radius of the planet is larger than the star.
-Also, with $b$ less than the difference between between the planet's radius
-and the stellar radius, the entire area of the star is occulted, hence
-$\lambda = \pi R^2$.
-Thus the only non-trivial case is the second, $|R-p| < b \leq R+p$.
-
-The derivation of this formula comes in two parts, first we need to find the
-area of a generalized circular cap, and then use that formula twice to find
-the asymmetrical lens occulted in figure x (yo dan, how do you command your
-robot to display geometrical sexiness?)
-
-%\include{dan's sexiness}
-
-We would like to find the shaded area as a function of the radius of the
-circle (R) as well as the distance from the bottom of the cap to the center
-of circle (r).
-First note that the length of the chord (a) is given by
-\begin{eqnarray}
-    a & = & 2 \, r \, \mathrm{tan} \left( \frac{\theta}{2} \right) = 2 \, r \,
-        \left( \frac{\sqrt{R^2 - r^2}}{r} \right) = 2 \, \sqrt{R^2 - r^2}
-\end{eqnarray}
-also we note that the arclength $s$ is given by
-\begin{eqnarray}
-    s & = & R \, \theta = R \, \left( 2 \, \mathrm{cos}^{-1}
-                          \left( \frac{r}{R} \right) \right)
-\end{eqnarray}
-The area of the circular cap is then the total area of the wedge of angle
-$\theta$ less the area of the isosceles triangle of base $a$.
-\begin{eqnarray}
-    A(R,r) & = & (\pi \, R^2) \left( \frac{\theta}{2 \, \pi} \right)
-                                    - \frac{1}{2} a \, r \\
-           & = & \frac{1}{2} R \, (R \, \theta) - \frac{1}{2} r \, ( 2 \,
-                                    \sqrt{R^2 - r^2} ) \\
-           & = & \frac{1}{2} R \, s - r \, \sqrt{R^2 - r^2} = \frac{1}{2} R
-                                    \, \left( 2 \, R \, \mathrm{cos}^{-1}
-                                    \left( \frac{r}{R} \right) \right)
-                                    - r \, \sqrt{R^2 - r^2} \\
-           & = & R^2 \, \mathrm{cos}^{-1} \left( \frac{r}{R} \right)
-                                    - r \, \sqrt{R^2 - r^2}
-\end{eqnarray}
-Now we need only compute the proper $r$ for each half of the asymmetrical
-lens, the occulted area will follow.
-The equations of the two circles are $x^2 + y^2 = R$ and $(x-b)^2 + y^2 = p^2$.
-Subtracting these two formulas and solving for x yields
-\begin{eqnarray}
-    x & = & \frac{b^2 + R^2 - p^2}{2 \, b} \\
-    b - x & = & \frac{b^2 + p^2 - R^2}{2 \, b}
-\end{eqnarray}
-The heights of the isoceles triangles needed to calculate the area of their
-respective circular caps are then given by $r_R = x$ and $r_p = b-x$.  The
-occulted area is simply the sum of these two caps
-\begin{eqnarray}
-    \lambda(R,p,b) & = & A(R,r_R) + A(p,r_p) \\
-                   & = & \mathrm{cos}^{-1} \left( \frac{b^2 + R^2 - p^2}{2
-                                                        \, b } \right) + p^2
-                         \, \mathrm{cos}^{-1} \left( \frac{b^2 + p^2
-                                                - R^2}{2 \, p \, b} \right) \\
-                   & = & - \frac{b^2 + R^2 - p^2}{2 \, b} \sqrt{R^2 -
-                    \left( \frac{b^2 + R^2 - p^2}{2 \, b}
-                    \right)^2 } - \frac{b^2 + p^2 -R^2}{2 \, b}
-                    \sqrt{ p^2 - \left( \frac{b^2 + p^2 - R^2}{2 \, b}
-                    \right)^2 } \nonumber
-\end{eqnarray}
-\newpage
-In the third line above, one can factor by completing the squares to show
-that
-\begin{eqnarray}
-    \sqrt{R^2 - \left( \frac{b^2 + R^2 - p^2}{2 \, b} \right)^2 } \nonumber
-        & = & \sqrt{ p^2 - \left( \frac{b^2 + p^2 - R^2}{2 \, b}
-        \right)^2} \nonumber \\
-        & = & \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \nonumber
-\end{eqnarray}
-plugging this into the aforementioned expression
-\begin{eqnarray}
-    - \left( \frac{b^2 +R^2 - p^2}{2 \, b} + \frac{b^2 + p^2 - R^2}{2 \, b}
-    \right) \left( \frac{1}{2 \, b} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)}
-    \right) \nonumber \\
-         =  - \frac{1}{2} \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \nonumber
-\end{eqnarray}
-yielding the desired result
-\begin{eqnarray}
-    \lambda_{non-trivial} & = & R^2 \kappa_R + p^2 \kappa_p - \frac{1}{2}
-          \sqrt{(R+p+b)(R-p+b)(-R+p+b)(R+p-b)} \nonumber
-\end{eqnarray}
-with $\kappa_R = \mathrm{cos}^{-1} \left( \frac{-p^2 + b^2 +R^2}{2 \, b}
-\right)$ and $\kappa_p = \mathrm{cos}^{-1}
-\left( \frac{p^2 + b^2 -R^2}{2 \, a \, b} \right)$
 \newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
 \begin{thebibliography}{}\raggedright
 
+\bibitem[Goldstein et al.(2002)]{goldstein}
+    Goldstein, H., Poole, C., \& Safko, J.\ 2002, \emph{Classical mechanics}
+    (3rd ed.), Addison-Wesley
+
 \bibitem[Mandel \& Agol(2002)]{mandel}
         Mandel, K., \& Agol, E.\ 2002, \apjl, 580, L171
-        \arxiv{astro-ph/0210099} [astro-ph]
+        \arxiv{astro-ph/0210099}
 
 \end{thebibliography}
 
