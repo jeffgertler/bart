@@ -38,7 +38,7 @@ class LimbDarkeningParameters(MultipleParameter, LogParameter):
         # return -0.5 * d2
 
 
-class RelativeLimbDarkeningParameters(MultipleParameter, LogParameter):
+class RelativeLimbDarkeningParameters(MultipleParameter):
 
     def __init__(self, bins):
         self.N = len(bins) - 1
@@ -64,6 +64,7 @@ class RelativeLimbDarkeningParameters(MultipleParameter, LogParameter):
         star.ldp = LimbDarkening(self.bins, ldp)
 
     def lnprior(self, star):
-        if np.any(star.ldp.intensity <= 0.0):
+        d = star.ldp.intensity[1:] - star.ldp.intensity[:-1]
+        if np.any(star.ldp.intensity <= 0.0) or np.any(d > 0):
             return -np.inf
         return 0.0
