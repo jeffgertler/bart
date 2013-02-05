@@ -71,7 +71,7 @@ def main():
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
     star.parameters.append(LimbDarkeningParameters(star.ldp.bins,
                                                    star.ldp.intensity,
-                                                   eta=0.001))
+                                                   eta=0.01))
 
     # Set up the system.
     system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
