@@ -233,7 +233,26 @@ An approximate solution for the orbit can be obtained by solving Kepler's
 equation.
 This is a standard calculation that we solve in the case of a general
 eccentric orbit using Halley's Method.
-The second component
+For the limb darkening, we use a general non-parametric model that is
+described in section SOMESECTION.
+
+
+\subsection{Orbital elements}
+
+In \bart, we parameterize the orbit of a planet with the parameters:
+\begin{itemize}
+    {\item the mid-transit time $t_0$ of a reference transit,}
+    {\item the semi-major axis $a$,}
+    {\item the eccentricity $e$,}
+    {\item the longitude of perihelion $\varpi$, and}
+    {\item the inclination $\bvec{i}$ of the orbital angular momentum unit
+           vector with respect to the mean orbital momentum vector of the
+           system.}
+\end{itemize}
+Supplementing these $6\,K$ parameters with the mass of the star $M_\star$ and
+the inclination $i_\mathrm{obs}$ of the mean orbital angular momentum vector
+with respect to the observer, fully specifies the orbits of the $K$ planets in
+a planetary system.
 
 
 \subsection{Transit geometry}
@@ -499,23 +518,23 @@ with $\kappa_R = \mathrm{cos}^{-1} \left( \frac{-p^2 + b^2 +R^2}{2 \, b}
         star. \figlabel{geom}}
 \end{figure}
 
-\begin{figure}[htbp]
-    \begin{center}
-        \includegraphics[width=\textwidth]{figures/kepler6/lightcurves/0.png}
-    \end{center}
-    \caption{The observed light curve for Kepler-6b folded on the median
-        period HOWMANY days. The samples from the posterior probability are
-        shown in COLOR. \figlabel{kep6-lc}}
-\end{figure}
+% \begin{figure}[htbp]
+%     \begin{center}
+%         \includegraphics[width=\textwidth]{figures/kepler6/lightcurves/0.png}
+%     \end{center}
+%     \caption{The observed light curve for Kepler-6b folded on the median
+%         period HOWMANY days. The samples from the posterior probability are
+%         shown in COLOR. \figlabel{kep6-lc}}
+% \end{figure}
 
-\begin{figure}[htbp]
-    \begin{center}
-        \includegraphics[width=\textwidth]{figures/kepler6/ldp.png}
-    \end{center}
-    \caption{Samples from the posterior PDF for the limb darkening profile for
-        Kepler-6. The standard Kepler profile (CITE) is over-plotted in COLOR.
-        \figlabel{kep6-ldp}}
-\end{figure}
+% \begin{figure}[htbp]
+%     \begin{center}
+%         \includegraphics[width=\textwidth]{figures/kepler6/ldp.png}
+%     \end{center}
+%     \caption{Samples from the posterior PDF for the limb darkening profile for
+%         Kepler-6. The standard Kepler profile (CITE) is over-plotted in COLOR.
+%         \figlabel{kep6-ldp}}
+% \end{figure}
 
 
 \end{document}
