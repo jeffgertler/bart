@@ -36,8 +36,6 @@ class ResultsProcess(object):
             self.chain = np.array(f["mcmc"]["chain"][...])
             self.lnprob = np.array(f["mcmc"]["lnprob"][...])
 
-        # print(self.parlist)
-
         # Get the ``flatchain`` (see:
         #  https://github.com/dfm/emcee/blob/master/emcee/ensemble.py)
         s = self.chain.shape
@@ -49,7 +47,6 @@ class ResultsProcess(object):
             spec[i] = s.spec
         self.median_spec = np.median(spec, axis=0)
         self.system.spec = self.median_spec
-        print(self.median_spec)
 
         # Find the median stellar parameters.
         self.fstar = self.system.star.flux
@@ -72,8 +69,6 @@ class ResultsProcess(object):
         fig.axes[0].annotate(txt, [1, 1], xycoords="figure fraction",
                             xytext=[-5, -5], textcoords="offset points",
                             ha="right", va="top", fontsize=11)
-
-        # kwargs["dpi"] = kwargs.pop("dpi", 300)
 
         fn, ext = os.path.splitext(os.path.join(self.basepath, outfn))
         return [fig.savefig(fn + e, **kwargs) for e in
@@ -178,12 +173,14 @@ class ResultsProcess(object):
 
     def _time_plot(self, outdir):
         fig = pl.figure()
+        names = np.concatenate([p.names for p in self.parlist])
         for i in range(self.chain.shape[2]):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.plot(self.chain[:, :, i].T)
-            # ax.set_title(self.parlist[i].name)
-            self.savefig(os.path.join(outdir, "{0}.png".format(i)), fig=fig)
+            ax.set_title(names[i])
+            fig.savefig(os.path.join(self.basepath, outdir,
+                                     "{0}.png".format(i)))
 
     def time_plot(self, outdir="time"):
         try:
