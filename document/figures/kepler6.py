@@ -92,9 +92,10 @@ def main():
 
     # Do the fit.
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    system.fit((time, flux, ferr), 2000, thin=10, burnin=[500], nwalkers=64)
+    # system.fit((time, flux, ferr), 2000, thin=10, burnin=[500], nwalkers=64)
 
     # Plot the results.
+    print("Plotting results")
     results = system.results
     results.lc_plot()
     results.ldp_plot()

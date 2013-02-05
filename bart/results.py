@@ -180,7 +180,14 @@ class ResultsProcess(object):
             ax.plot(self.chain[:, :, i].T)
             ax.set_title(names[i])
             fig.savefig(os.path.join(self.basepath, outdir,
-                                     "{0}.png".format(i)))
+                                     "{0}.png".format(names[i].strip("$"))))
+
+        fig.clf()
+        ax = fig.add_subplot(111)
+        ax.plot(self.lnprob.T)
+        ax.set_title("ln-prob")
+        fig.savefig(os.path.join(self.basepath, outdir,
+                                    "lnprob.png".format(i)))
 
     def time_plot(self, outdir="time"):
         try:
