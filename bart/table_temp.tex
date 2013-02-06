@@ -6,7 +6,10 @@
 
 \tablecaption{ {{{caption}}} }
 
-\tablehead{\colhead{} & \multicolumn{3}{c}{ {{{title}}} } \\
+\tablehead{
+    {{#title}}
+    \colhead{} & \multicolumn{3}{c}{ {{{title}}} } \\
+    {{/title}}
 \colhead{} & \colhead{$X_{0.16}$} & \colhead{$X_{0.5}$} & \colhead{$X_{0.84}$}}
 
 \startdata
@@ -15,7 +18,11 @@
 
 \enddata
 
+{{#comments}}
 \tablecomments{ {{{comments}}} }
+{{/comments}}
+{{#references}}
 \tablerefs{ {{{references}}} }
+{{/references}}
 
 \end{deluxetable}
