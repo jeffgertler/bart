@@ -186,6 +186,10 @@ class ResultsProcess(object):
         ax.set_xlim(0, 1)
         d = ldps.max() - ldps.min()
         ax.set_ylim(ldps.min() - 0.1 * d, ldps.max() + 0.1 * d)
+
+        ax.set_xlabel("$r / R_\star$")
+        ax.set_ylabel("$I(r)$")
+
         self.savefig(outfn, fig=fig)
 
     def ldp_plot(self, outfn="ldp", fiducial=None):
