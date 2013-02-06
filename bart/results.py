@@ -132,7 +132,7 @@ class ResultsProcess(object):
         time = time % P - t0
         inds = (time < duration) * (time > -duration)
         ax.plot(time[inds], (flux[inds] / fstar - 1) * 1e3, ".",
-                alpha=1.0, color="#888888")
+                alpha=1.0, color="#888888", rasterized=True)
         ax.plot(t, (lc.T / fstar - 1) * 1e3, color="k")
 
         # Annotate the axes.
