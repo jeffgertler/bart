@@ -82,9 +82,6 @@ def main():
                                                    star.ldp.intensity,
                                                    eta=0.01))
 
-    # Store the initial vector.
-    vector0 = system.vector
-
     # Get the data.
     api = kepler.API()
     print("Downloading the data files.")
@@ -103,7 +100,6 @@ def main():
             # Do the fit.
             # system.vector = vector0
 
-    print(time.shape)
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
     # system.fit((time, flux, ferr), 2000, thin=10, burnin=[], nwalkers=64)
 
@@ -111,19 +107,20 @@ def main():
     print("Plotting results")
     results = system.results(thin=1, burnin=50)
     results.latex([
-            Column(r"$P$", lambda s: s.planets[0].get_period(s.star.mass)),
-            Column(r"$a$", lambda s: s.planets[0].a),
-            Column(r"$r$", lambda s: s.planets[0].r),
-            Column(r"$t_0$", lambda s: s.planets[0].t0),
-            Column(r"$i$", lambda s: s.iobs),
+            Column(r"$P\,[\mathrm{days}]$",
+                   lambda s: s.planets[0].get_period(s.star.mass)),
+            Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
+            Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
+            Column(r"$t_0\,[\mathmr{days}]$", lambda s: s.planets[0].t0),
+            Column(r"$i\,[\mathrm{deg}]$", lambda s: s.iobs),
         ])
 
     results.lc_plot()
     results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
     results.time_plot()
     results.corner_plot([
-            Column(r"$a$", lambda s: s.planets[0].a),
-            Column(r"$r$", lambda s: s.planets[0].r),
+            Column(r"$a$", lambda s: s.planets[0].a / s.star.radius),
+            Column(r"$r$", lambda s: s.planets[0].r / s.star.radius),
             Column(r"$t_0$", lambda s: s.planets[0].t0),
             Column(r"$i$", lambda s: s.iobs),
         ])

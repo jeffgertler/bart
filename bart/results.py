@@ -251,7 +251,7 @@ class ResultsProcess(object):
             fmt = "{{0:.{0}f}}".format(p)
 
             body += labels[i] + " & "
-            body += " & ".join([fmt.format(m) for m in [md, md - mn, mx - md]])
+            body += " & ".join([fmt.format(m) for m in [mn, md, mx]])
             body += " \\\\\n"
 
         with open(os.path.join(self.basepath, outfn), "w") as f:
