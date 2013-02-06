@@ -19,7 +19,9 @@ import triangle
 
 class ResultsProcess(object):
 
-    def __init__(self, filename="mcmc.h5", basepath=".", thin=1, burnin=0):
+    def __init__(self, filename="mcmc.h5", basepath=".", thin=1, burnin=0,
+                 subsamples=12):
+        self.subsamples = subsamples
         self.burnin = burnin
         self.thin = thin
         self.basepath = basepath
@@ -114,12 +116,14 @@ class ResultsProcess(object):
         t = np.linspace(-duration, duration, 5000)
 
         # Compute the light curve for each sample.
-        lc = np.empty((len(self.flatchain), len(t)))
+        lc = np.empty((self.subsamples, len(t)))
 
         # Loop over the samples.
-        for i, s in enumerate(self.itersteps()):
-            s.planets[planet_ind].t0 = 0.0
-            lc[i] = s.lightcurve(t)
+        inds = np.random.randint(len(self.flatchain), size=self.subsamples)
+        for i, v in enumerate(self.flatchain[inds, :]):
+            self.system.vector = v
+            self.system.planets[planet_ind].t0 = 0.0
+            lc[i] = self.system.lightcurve(t)
 
         # Plot the data and samples.
         fig = pl.figure()
@@ -128,7 +132,7 @@ class ResultsProcess(object):
         inds = (time < duration) * (time > -duration)
         ax.plot(time[inds], (flux[inds] / fstar - 1) * 1e3, ".",
                 alpha=1.0, color="#888888")
-        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="#000000", alpha=0.03)
+        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="k")
 
         # Annotate the axes.
         ax.set_xlim(-duration, duration)
@@ -154,24 +158,33 @@ class ResultsProcess(object):
         p.start()
 
     def _ldp_plot(self, outfn, fiducial):
+        N = self.subsamples
+
         # Load LDP samples.
         bins, i = self.system.star.ldp.plot()
-        ldps = np.empty([len(self.flatchain), i.shape[0], i.shape[1]])
-        for i, s in enumerate(self.itersteps()):
-            b, intensity = s.star.ldp.plot()
+        ldps = np.empty([N, i.shape[0], i.shape[1]])
+        inds = np.random.randint(len(self.flatchain), size=N)
+        for i, v in enumerate(self.flatchain[inds, :]):
+            self.system.vector = v
+            b, intensity = self.system.star.ldp.plot()
             ldps[i] = intensity
 
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        [ax.plot(bins[i], ldps[:, i].T, "k", alpha=0.1)
-                                        for i in range(len(bins))]
+        [ax.plot(bins.flatten() + 0.005 * np.random.randn(),
+                 l.flatten(), color="k", alpha=1) for l in ldps]
+        # [ax.plot(bins[i], ldps[:, i].T, "k", alpha=0.1)
+        #                                 for i in range(len(bins))]
 
         # Over-plot the default Kepler LDP.
         if fiducial is not None:
             rs = np.linspace(0, 1, 1000)
             ldp = fiducial(rs) / fiducial.norm
-            ax.plot(rs, ldp, color="#4682b4", lw=1.5)
+            ax.plot(rs, ldp, "--", color="#4682b4", lw=3)
 
+        ax.set_xlim(0, 1)
+        d = ldps.max() - ldps.min()
+        ax.set_ylim(ldps.min() - 0.1 * d, ldps.max() + 0.1 * d)
         self.savefig(outfn, fig=fig)
 
     def ldp_plot(self, outfn="ldp", fiducial=None):
@@ -206,6 +219,32 @@ class ResultsProcess(object):
 
         p = Process(target=self._time_plot, args=(outdir,))
         p.start()
+
+    def latex(self, parameters, outfn=None):
+        plotchain = np.empty([len(self.flatchain), len(parameters)])
+        for i, s in enumerate(self.itersteps()):
+            plotchain[i] = np.concatenate([p.getter(self.system)
+                                                    for p in parameters])
+
+        # Grab the labels.
+        labels = [p.name for p in parameters]
+        for i, vals in enumerate(plotchain.T):
+            vals = np.sort(vals)
+            mn, md, mx = (vals[int(0.16 * len(vals))],
+                          vals[int(0.5 * len(vals))],
+                          vals[int(0.84 * len(vals))])
+
+            # Compute the precision needed in the quantiles.
+            p = min(int(np.log10(md - mn)), int(np.log10(mx - md)))
+            if p < 0:
+                p = -p + 2
+            else:
+                p = 2
+            fmt = "{{0:.{0}f}}".format(p)
+
+            print(labels[i] + " & " +
+                  " & ".join([fmt.format(m) for m in [md, md - mn, mx - md]])
+                  + r" \\")
 
 
 class Column(object):

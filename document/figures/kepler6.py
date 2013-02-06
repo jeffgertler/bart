@@ -12,10 +12,10 @@ import bart
 from bart import kepler
 from bart.results import Column
 from bart.parameters.base import Parameter, LogParameter
-from bart.parameters.star import LimbDarkeningParameters
+from bart.parameters.star import RelativeLimbDarkeningParameters
 
 import numpy as np
-# import matplotlib.pyplot as pl
+import matplotlib.pyplot as pl
 
 
 # Reproducible Science.™
@@ -62,21 +62,28 @@ def main():
 
     # Set up the planet.
     planet = bart.Planet(r=r * rstar, a=a * rstar, t0=t0)
-    planet.parameters.append(Parameter(r"$r$", "r"))
-    planet.parameters.append(LogParameter(r"$a$", "a"))
-    planet.parameters.append(Parameter(r"$t_0$", "t0"))
 
     # Set up the star.
     ldp = kepler.fiducial_ldp(Teff, logg, feh, bins=15, alpha=0.5)
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
-    star.parameters.append(LimbDarkeningParameters(star.ldp.bins,
-                                                   star.ldp.intensity,
-                                                   eta=0.01))
 
     # Set up the system.
     system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
-    system.parameters.append(CosParameter(r"$i$", "iobs"))
     system.add_planet(planet)
+
+    # Fit parameters.
+    planet.parameters.append(Parameter(r"$r$", "r"))
+    planet.parameters.append(LogParameter(r"$a$", "a"))
+    planet.parameters.append(Parameter(r"$t_0$", "t0"))
+
+    system.parameters.append(CosParameter(r"$i$", "iobs"))
+
+    star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins,
+                                                   star.ldp.intensity,
+                                                   eta=0.01))
+
+    # Store the initial vector.
+    vector0 = system.vector
 
     # Get the data.
     api = kepler.API()
@@ -85,20 +92,32 @@ def main():
 
     # Read in the data.
     time, flux, ferr = np.array([]), np.array([]), np.array([])
-    for fn in data_files:
-        if "llc" in fn:
+    for i, fn in enumerate(data_files):
+        if "slc" in fn:
             t, f, fe = kepler.load(fn)
             time = np.append(time, t)
             flux = np.append(flux, f)
             ferr = np.append(ferr, fe)
+            break
 
-    # Do the fit.
+            # Do the fit.
+            # system.vector = vector0
+
+    print(time.shape)
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    system.fit((time, flux, ferr), 5000, thin=10, burnin=[200], nwalkers=64)
+    # system.fit((time, flux, ferr), 2000, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
-    results = system.results(thin=10, burnin=200)
+    results = system.results(thin=1, burnin=50)
+    results.latex([
+            Column(r"$P$", lambda s: s.planets[0].get_period(s.star.mass)),
+            Column(r"$a$", lambda s: s.planets[0].a),
+            Column(r"$r$", lambda s: s.planets[0].r),
+            Column(r"$t_0$", lambda s: s.planets[0].t0),
+            Column(r"$i$", lambda s: s.iobs),
+        ])
+
     results.lc_plot()
     results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
     results.time_plot()

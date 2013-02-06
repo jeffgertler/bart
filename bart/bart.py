@@ -9,6 +9,7 @@ import os
 import cPickle as pickle
 
 import numpy as np
+import scipy.optimize as op
 import emcee
 
 try:
@@ -389,6 +390,14 @@ class PlanetarySystem(Model):
 
         # Store the data.
         self._data = [t, f, ivar]
+
+    def optimize(self, data):
+        self._prepare_data(*data)
+        objective = lambda p: -self(p)
+        result = op.minimize(objective, self.vector)
+        print(result.x)
+        self.vector = result.x
+        return result.x
 
     def fit(self, data, iterations, start=None, filename="mcmc.h5", **kwargs):
         """
