@@ -349,9 +349,9 @@ can be computed using \eq{uniform-occ}
 \end{eqnarray}
 if we define $r_{-1} \equiv 0$ and $r_N \equiv R$.
 
-The light curve produced by \eq{numerical-occ} is very general because there is
-no constraint on the positions of the bin edges $r_n$ or on the intensity
-levels $I_n$.
+The light curve produced by \eq{numerical-occ} is very general because
+there is no constraint on the positions of the bin edges $r_n$ or on the
+intensity levels $I_n$.
 It is also a good idea to use this method for several reasons:
 \begin{enumerate}
     {\item a reason}
@@ -366,8 +366,13 @@ Namely, the surface integral of $I(r)$
 should be equal to one
 \begin{eqnarray}
     \sum_{n=1}^{N} I_n \, \left [ r_n^2 - r_{n-1}^2 \right ]
-    & \equiv & \frac{1}{\pi} \quad.
+        & \equiv & \frac{1}{\pi} \quad.
 \end{eqnarray}
+
+
+\section{Method}
+
+
 
 
 \section{Kepler KOI XXX}
@@ -392,7 +397,11 @@ in which both members of the binary have non-trivial limb darkening.
 
 Please use our code.  It is available at XXX.
 
-\acknowledgments
+\acknowledgments It is a pleasure to thank
+Fengji Hou (NYU),
+for helpful contributions to the ideas and code presented here.
+This project was partially supported by the NSF (grant AST-0908357), and NASA
+(grant NNX08AJ48G).
 
 
 \newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
