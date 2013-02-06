@@ -88,7 +88,7 @@
 
 % Planet parameters
 \newcommand{\nplanets}{\ensuremath{J}}
-\newcommand{\tzero}{\ensuremath{t_0}}
+\newcommand{\tzero}{\ensuremath{{t_0}}}
 \newcommand{\smaxis}{\ensuremath{a}}
 \newcommand{\ecc}{\ensuremath{e}}
 \newcommand{\pomega}{\ensuremath{\varpi}}
@@ -432,9 +432,10 @@ The set of parameters that describe the full system can be succinctly written
 as the set
 \begin{eqnarray}
     \model & = & \left (
-        \setof{\tzero,\,\smaxis,\,\ecc,\,\pomega,\,\incl},\,
-        \iobs,\,\mstar,\,\rstar,\,\fstar,\,\jitter
-    \right )
+        \setof{\tzero_j,\,\smaxis_j,\,\rplanet_j,\,\ecc_j,\,\pomega_j,\,
+        \incl_j},\,\iobs,\,\mstar,\,\rstar,\,\fstar,\,\jitter,\,
+        \setof{\rsurface_k,\,I_k}
+    \right ) \quad.
 \end{eqnarray}
 
 
@@ -482,6 +483,42 @@ This project was partially supported by the NSF (grant AST-0908357), and NASA
 
 
 \clearpage
+
+
+\begin{deluxetable}{cl}
+
+\tablecolumns{2}
+\tablewidth{0pc}
+
+\tablecaption{The parameters.}
+
+\tablehead{\colhead{Parameter} & \colhead{Description}}
+
+\startdata
+
+\rstar\ [$R_\odot$] & Radius of the star \\
+\mstar\ [$M_\odot$] & Mass of the star \\
+\fstar & Physical flux of the star \\
+\iobs\ [deg] & The viewing angle \\
+
+\hline
+\multicolumn{2}{c}{Planet parameters} \\\hline
+
+\tzero\ [days] & Time of a reference transit \\
+\smaxis\ [$R_\odot$] & Semi-major axis \\
+\rplanet\ [$R_\odot$] & Radius of the planet \\
+\ecc & Eccentricity \\
+\pomega\ [rad] & Longitude of perihelion \\
+\incl\ [\bvec{\mathrm{deg}}] & Inclination of angular momentum vector \\
+
+\hline
+\multicolumn{2}{c}{Limb darkening parameters} \\\hline
+
+\rsurface & The bin edges \\
+I & The intensity of the bins \\
+
+\enddata
+\end{deluxetable}
 
 \include{figures/kepler6}
 
