@@ -111,7 +111,7 @@ def main():
                    lambda s: s.planets[0].get_period(s.star.mass)),
             Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
             Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
-            Column(r"$t_0\,[\mathmr{days}]$", lambda s: s.planets[0].t0),
+            Column(r"$t_0\,[\mathrm{days}]$", lambda s: s.planets[0].t0),
             Column(r"$i\,[\mathrm{deg}]$", lambda s: s.iobs),
         ])
 
