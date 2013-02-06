@@ -12,3 +12,6 @@ triangle_plot>=0.0.3
 
 # For interacting with the Kepler API.
 requests>=1.1.0
+
+# For formatting LaTeX table output.
+pystache>=0.5.3
