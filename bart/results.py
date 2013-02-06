@@ -13,6 +13,7 @@ from multiprocessing import Process
 import h5py
 import numpy as np
 import matplotlib.pyplot as pl
+import pystache
 
 import triangle
 
@@ -220,7 +221,13 @@ class ResultsProcess(object):
         p = Process(target=self._time_plot, args=(outdir,))
         p.start()
 
-    def latex(self, parameters, outfn=None):
+    def latex(self, parameters, outfn="table.tex", title="",
+              caption="", refs=""):
+        # Load the template.
+        fn = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "table_temp.tex")
+        tmp = open(fn).read()
+
         plotchain = np.empty([len(self.flatchain), len(parameters)])
         for i, s in enumerate(self.itersteps()):
             plotchain[i] = np.concatenate([p.getter(self.system)
@@ -228,6 +235,7 @@ class ResultsProcess(object):
 
         # Grab the labels.
         labels = [p.name for p in parameters]
+        body = ""
         for i, vals in enumerate(plotchain.T):
             vals = np.sort(vals)
             mn, md, mx = (vals[int(0.16 * len(vals))],
@@ -242,9 +250,13 @@ class ResultsProcess(object):
                 p = 2
             fmt = "{{0:.{0}f}}".format(p)
 
-            print(labels[i] + " & " +
-                  " & ".join([fmt.format(m) for m in [md, md - mn, mx - md]])
-                  + r" \\")
+            body += labels[i] + " & "
+            body += " & ".join([fmt.format(m) for m in [md, md - mn, mx - md]])
+            body += " \\\\\n"
+
+        with open(os.path.join(self.basepath, outfn), "w") as f:
+            f.write(pystache.render(tmp, {"body": body, "title": title,
+                                          "caption": caption, "refs": refs}))
 
 
 class Column(object):
