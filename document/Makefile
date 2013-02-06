@@ -14,7 +14,7 @@ DOC_OUT = ${NAME}.${SUFF}
 
 all: figures ${DOC_OUT}
 
-%.pdf: %.tex
+%.pdf: %.tex figures/*.tex
 	${LATEX} $<
 	( ${CHECK_RERUN} && ${LATEX} $< ) || echo "Done."
 	( ${CHECK_RERUN} && ${LATEX} $< ) || echo "Done."
