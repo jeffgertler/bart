@@ -12,7 +12,7 @@ CHECK_RERUN = grep Rerun $*.log
 NAME    = doc
 DOC_OUT = ${NAME}.${SUFF}
 
-all: figures ${DOC_OUT}
+all: ${DOC_OUT}
 
 %.pdf: %.tex figures/*.tex
 	${LATEX} $<
