@@ -359,7 +359,7 @@ class PlanetarySystem(Model):
 
         return np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
 
-    def lightcurve(self, t):
+    def lightcurve(self, t, texp=6., K=2):
         """
         Get the light curve of the model at the current model.
 
@@ -371,7 +371,8 @@ class PlanetarySystem(Model):
         r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
         r, a, t0, e, pomega, ix, iy = zip(*r)
         ldp = self.star.ldp
-        lc, info = _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
+        lc, info = _bart.lightcurve(t, texp / 1440., K, s.flux, s.mass,
+                                s.radius, self.iobs,
                                 r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
