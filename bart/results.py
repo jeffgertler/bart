@@ -31,7 +31,7 @@ class ResultsProcess(object):
             self.system = pickle.loads(str(f["initial_pickle"][...]))
 
             # Load the data.
-            self.data = np.array(f["data"][...])
+            self.datasets = pickle.loads(str(f["datasets"][...]))
 
             # Get and un-pickle the parameter list.
             self.parlist = [pickle.loads(p) for p in f["parlist"][...]]
@@ -105,7 +105,8 @@ class ResultsProcess(object):
 
     def _lc_plot(self, args):
         outdir, planet_ind = args
-        time, flux, ivar = self.data
+        ds = self.datasets[0]
+        time, flux, ivar = ds.time, ds.flux, ds.ferr
 
         # Get the median parameters of the fit.
         fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
@@ -124,7 +125,7 @@ class ResultsProcess(object):
         for i, v in enumerate(self.flatchain[inds, :]):
             self.system.vector = v
             self.system.planets[planet_ind].t0 = 0.0
-            lc[i] = self.system.lightcurve(t)
+            lc[i] = self.system.lightcurve(t, texp=ds.texp)
 
         # Plot the data and samples.
         fig = pl.figure()

@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                                    os.path.abspath(__file__)))))
 import bart
 from bart import kepler
+from bart.dataset import KeplerDataset
 from bart.results import Column
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
@@ -88,24 +89,20 @@ def main():
     data_files = api.data("10874614").fetch_all(basepath="kepler6/data")
 
     # Read in the data.
-    time, flux, ferr = np.array([]), np.array([]), np.array([])
     for i, fn in enumerate(data_files):
         if "slc" in fn:
-            t, f, fe = kepler.load(fn)
-            time = np.append(time, t)
-            flux = np.append(flux, f)
-            ferr = np.append(ferr, fe)
+            system.add_dataset(KeplerDataset(fn))
             break
 
             # Do the fit.
             # system.vector = vector0
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    # system.fit((time, flux, ferr), 2000, thin=10, burnin=[], nwalkers=64)
+    system.fit(2000, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
-    results = system.results(thin=1, burnin=50)
+    results = system.results(thin=10, burnin=50)
     results.latex([
             Column(r"$P\,[\mathrm{days}]$",
                    lambda s: s.planets[0].get_period(s.star.mass)),
