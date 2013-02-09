@@ -204,7 +204,9 @@ class PlanetarySystem(Model):
         super(PlanetarySystem, self).__init__()
 
         self.basepath = basepath
-        self._data = None
+
+        # Data.
+        self.datasets = []
 
         # The properties of the system as a whole.
         self.star = star
@@ -212,6 +214,9 @@ class PlanetarySystem(Model):
 
         # The planets.
         self.planets = []
+
+    def add_dataset(self, ds):
+        self.datasets.append(ds)
 
     @property
     def spec(self):
@@ -348,63 +353,53 @@ class PlanetarySystem(Model):
         return -0.5 * self.chi2()
 
     def chi2(self):
-        assert self._data is not None
-        model = self.lightcurve(self._data[0])
-        delta = self._data[1] - model
+        c2 = 0.0
+        for ds in self.datasets:
+            model = self.lightcurve(ds.time, texp=ds.texp)
+            delta = ds.flux - model
 
-        # Add in the jitter.
-        ivar = np.array(self._data[2])
-        # inds = ivar > 0
-        # ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
+            # Add in the jitter.
+            # inds = ivar > 0
+            # ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
 
-        return np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
+            c2 += np.sum(delta * delta * ds.ivar) - np.sum(np.log(ds.ivar))
+        return c2
 
-    def lightcurve(self, t):
+    def lightcurve(self, t, texp=6, K=3):
         """
         Get the light curve of the model at the current model.
 
         :param t:
             The times where the light curve should be evaluated.
 
+        :param texp:
+            The exposure time in minutes.
+
+        :param K:
+            The number of bins to use when integrating over exposure time.
+
         """
         s = self.star
         r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
         r, a, t0, e, pomega, ix, iy = zip(*r)
         ldp = self.star.ldp
-        lc, info = _bart.lightcurve(t, s.flux, s.mass, s.radius, self.iobs,
+        lc, info = _bart.lightcurve(t, texp / 1440., K, s.flux, s.mass,
+                                s.radius, self.iobs,
                                 r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
         return lc
 
-    def _prepare_data(self, t, f, ferr):
-        """
-        Sanitize some light curve data.
-
-        """
-        # Deal with masked and problematic data points.
-        inds = ~(np.isnan(t) + np.isnan(f) + np.isnan(ferr)
-            + np.isinf(t) + np.isinf(f) + np.isinf(ferr)
-            + (f < 0) + (ferr <= 0))
-        t, f, ivar = t[inds], f[inds], 1.0 / ferr[inds] / ferr[inds]
-
-        # Store the data.
-        self._data = [t, f, ivar]
-
-    def optimize(self, data):
-        self._prepare_data(*data)
+    def optimize(self):
         objective = lambda p: -self(p)
         result = op.minimize(objective, self.vector)
         print(result.x)
         self.vector = result.x
         return result.x
 
-    def fit(self, data, iterations, start=None, filename="mcmc.h5", **kwargs):
+    def fit(self, iterations, start=None, filename="mcmc.h5", **kwargs):
         """
         Fit the data using MCMC to get constraints on the parameters.
-
-        :param data:
-            A tuple of the form ``(t, f, ferr)`` giving the data to fit.
 
         :param iterations:
             The number of MCMC steps to run in the production pass.
@@ -463,9 +458,6 @@ class PlanetarySystem(Model):
         burnin = kwargs.get("burnin", [300, ])
         K = kwargs.get("K", 4)
         thin = kwargs.get("thin", 1)
-
-        # Sanitize the data.
-        self._prepare_data(*data)
 
         # Initialize a sampler.
         s = emcee.EnsembleSampler(nwalkers, ndim, self, threads=threads)
@@ -550,15 +542,15 @@ class PlanetarySystem(Model):
             # Keep track of the current Bart version.
             f.attrs["version"] = __version__
 
-            # Save the dataset to the file.
-            f.create_dataset("data", data=np.vstack(self._data))
-
             # Save the list of parameters and their pickled representations
             # to the file.
             f.create_dataset("parlist", data=par_list)
 
             # Save the pickled version of ``self``.
             f.create_dataset("initial_pickle", data=initial_spec)
+
+            f.create_dataset("datasets",
+                             data=str(pickle.dumps(self.datasets)))
 
             # Add a group and headers for the MCMC results.
             g = f.create_group("mcmc")

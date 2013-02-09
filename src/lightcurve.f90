@@ -1,4 +1,4 @@
-      subroutine lightcurve(n, t, &
+      subroutine lightcurve(n, t, texp, nbin, &
                             fstar, mstar, rstar, iobs, &
                             np, r, a, t0, e, pomega, ix, iy, &
                             nld, rld, ild, &
@@ -11,6 +11,12 @@
         !
         ! :param t: (double precision(n))
         !   The times where the lightcurve should be evaluated in days.
+        !
+        ! :param texp: (double precision)
+        !   The exposure time in days.
+        !
+        ! :param nbin: (integer)
+        !   The number of bins to integrate for an exposure time.
         !
         ! :param fstar: (double precision)
         !   The un-occulted flux of the star in arbitrary units.
@@ -77,6 +83,10 @@
         integer, intent(in) :: n
         double precision, dimension(n), intent(in) :: t
 
+        ! Exposure time integration.
+        double precision, intent(in) :: texp
+        integer, intent(in) :: nbin
+
         ! The properties of the star and the system.
         double precision, intent(in) :: fstar,mstar,rstar,iobs
 
@@ -96,23 +106,32 @@
         integer, intent(out) :: info
 
         integer :: i, j
-        double precision, dimension(3, n) :: pos
-        double precision, dimension(n) :: b, tmp
+        double precision, dimension(3, n*nbin) :: pos
+        double precision, dimension(n*nbin) :: b, tmp, ttmp, ftmp
 
         info = 0
 
-        ! Initialize the full lightcurve to the un-occulted stellar
+        ! Add extra time slices for integration over exposure time.
+        do i=1,n
+          do j=1,nbin
+
+            ttmp((i-1)*nbin+j) = t(i) + texp * ((j-0.5)/float(nbin) - 0.5)
+
+          enddo
+        enddo
+
+        ! Initialize the full light curve to the un-occulted stellar
         ! flux.
-        flux(:) = fstar
+        ftmp(:) = fstar
 
         ! Loop over the planets and solve for their orbits and transit
         ! profiles.
         do i=1, np
 
-          call solve_orbit(n, t, mstar, &
-                           e(i), a(i), t0(i), pomega(i), &
-                           (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
-                           pos, info)
+          call solve_orbit(n*nbin, ttmp, mstar, &
+                          e(i), a(i), t0(i), pomega(i), &
+                          (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
+                          pos, info)
 
           ! Make sure that the orbit was properly solved.
           if (info.ne.0) then
@@ -122,15 +141,24 @@
           b = dsqrt(pos(2,:) * pos(2,:) + pos(3,:) * pos(3,:)) / rstar
 
           ! HACK: deal with positions behind star.
-          do j=1, n
+          do j=1,n*nbin
             if (pos(1,j) .le. 0.0d0) then
               b(j) = 1.1d0 + r(i)
             endif
           enddo
 
-          call ldlc(r(i) / rstar, nld, rld, ild, n, b, tmp)
-          flux = flux * tmp
+          call ldlc(r(i) / rstar, nld, rld, ild, n*nbin, b, tmp)
 
+          ftmp = ftmp * tmp
+
+        enddo
+
+        ! "Integrate" over exposure time.
+        flux(:) = 0
+        do i=1,n
+          do j=1,nbin
+            flux(i) = flux(i) + ftmp((i-1)*nbin + j) / float(nbin)
+          enddo
         enddo
 
       end subroutine

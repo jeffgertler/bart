@@ -4,54 +4,14 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["load", "fiducial_ldp"]
+__all__ = ["load", "fiducial_ldp", "API"]
 
 import os
 import json
-import pyfits
 import requests
 import numpy as np
 
 from .ldp import QuadraticLimbDarkening
-
-
-def load(fn):
-    """
-    Load, normalize and sanitize a Kepler light curve downloaded from MAST.
-    The median flux is divided out of the flux and flux uncertainty for
-    numerical stability.
-
-    :param fn:
-        The path to the FITS file.
-
-    :return time:
-        The times of the samples.
-
-    :return flux:
-        The brightness at the time samples.
-
-    :return ferr:
-        The quoted uncertainty on the flux.
-
-    """
-    f = pyfits.open(fn)
-    lc = np.array(f[1].data)
-    f.close()
-
-    time = lc["TIME"]
-    flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
-
-    # t0 = int(np.median(time[~np.isnan(time)]))
-    # time = time - t0
-
-    inds = ~np.isnan(time) * ~np.isnan(flux) * ~np.isnan(ferr)
-    time, flux, ferr = time[inds], flux[inds], ferr[inds]
-
-    mu = np.median(flux)
-    flux /= mu
-    ferr /= mu
-
-    return (time, flux, ferr)
 
 
 def fiducial_ldp(teff, logg, feh, bins=None, alpha=1.0):
@@ -147,17 +107,17 @@ class API(object):
         data_list = self.request("data_search", ktc_kepler_id=kepler_id)
         if data_list is None:
             return []
-        return DataList(data_list)
+        return APIDataList(data_list)
 
 
-class DataList(object):
+class APIDataList(object):
     """
     A list of :class:`Datasets`.
 
     """
 
     def __init__(self, datasets):
-        self._datasets = [Dataset(d) for d in datasets]
+        self._datasets = [APIDataset(d) for d in datasets]
 
     def __getitem__(self, i):
         return self._datasets[i]
@@ -174,10 +134,11 @@ class DataList(object):
         except os.error:
             pass
 
-        return [d.fetch(basepath) for d in self._datasets]
+        results = [d.fetch(basepath) for d in self._datasets]
+        return [r for r in results if r is not None]
 
 
-class Dataset(object):
+class APIDataset(object):
     """
     A Kepler dataset.
 
@@ -217,7 +178,7 @@ class Dataset(object):
         # Fetch the file.
         r = requests.get(url)
         if r.status_code != requests.codes.ok:
-            r.raise_for_status()
+            return None
         open(local_fn, "wb").write(r.content)
 
         return local_fn
