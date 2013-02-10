@@ -69,7 +69,7 @@ def main():
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
 
     # Set up the system.
-    system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
+    system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6-0.05")
     system.add_planet(planet)
 
     # Fit parameters.
@@ -81,7 +81,7 @@ def main():
 
     star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins,
                                                    star.ldp.intensity,
-                                                   eta=0.01))
+                                                   eta=0.05))
 
     # Get the data.
     api = kepler.API()
@@ -90,9 +90,9 @@ def main():
 
     # Read in the data.
     for i, fn in enumerate(data_files):
-        if "llc" in fn:
+        if "slc" in fn:
             system.add_dataset(KeplerDataset(fn))
-            # break
+            break
 
             # Do the fit.
             # system.vector = vector0
