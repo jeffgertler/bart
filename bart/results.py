@@ -105,8 +105,9 @@ class ResultsProcess(object):
 
     def _lc_plot(self, args):
         outdir, planet_ind = args
-        ds = self.datasets[0]
-        time, flux, ivar = ds.time, ds.flux, ds.ferr
+        time = np.concatenate([d.time for d in self.datasets])
+        flux = np.concatenate([d.flux for d in self.datasets])
+        texp = np.min([d.texp for d in self.datasets])
 
         # Get the median parameters of the fit.
         fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
@@ -125,7 +126,7 @@ class ResultsProcess(object):
         for i, v in enumerate(self.flatchain[inds, :]):
             self.system.vector = v
             self.system.planets[planet_ind].t0 = 0.0
-            lc[i] = self.system.lightcurve(t, texp=ds.texp)
+            lc[i] = self.system.lightcurve(t, texp=texp)
 
         # Plot the data and samples.
         fig = pl.figure()

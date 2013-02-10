@@ -90,15 +90,15 @@ def main():
 
     # Read in the data.
     for i, fn in enumerate(data_files):
-        if "slc" in fn:
+        if "llc" in fn:
             system.add_dataset(KeplerDataset(fn))
-            break
+            # break
 
             # Do the fit.
             # system.vector = vector0
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    # system.fit(2000, thin=10, burnin=[], nwalkers=64)
+    system.fit(2000, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
