@@ -69,7 +69,7 @@ def main():
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
 
     # Set up the system.
-    system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6")
+    system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6-0.05")
     system.add_planet(planet)
 
     # Fit parameters.
@@ -81,7 +81,7 @@ def main():
 
     star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins,
                                                    star.ldp.intensity,
-                                                   eta=0.01))
+                                                   eta=0.05))
 
     # Get the data.
     api = kepler.API()
@@ -98,7 +98,7 @@ def main():
             # system.vector = vector0
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    # system.fit(2000, thin=10, burnin=[], nwalkers=64)
+    system.fit(2000, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
