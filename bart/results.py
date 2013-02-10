@@ -135,7 +135,7 @@ class ResultsProcess(object):
         inds = (time < duration) * (time > -duration)
         ax.plot(time[inds], (flux[inds] / fstar - 1) * 1e3, ".",
                 alpha=1.0, color="#888888", rasterized=True)
-        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="k")
+        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="k", alpha=0.5)
 
         # Annotate the axes.
         ax.set_xlim(-duration, duration)
@@ -175,7 +175,7 @@ class ResultsProcess(object):
         fig = pl.figure()
         ax = fig.add_subplot(111)
         [ax.plot(bins.flatten() + 0.005 * np.random.randn(),
-                 l.flatten(), color="k", alpha=1) for l in ldps]
+                 l.flatten(), color="k", alpha=0.5) for l in ldps]
         # [ax.plot(bins[i], ldps[:, i].T, "k", alpha=0.1)
         #                                 for i in range(len(bins))]
 
