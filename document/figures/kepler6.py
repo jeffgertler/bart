@@ -98,7 +98,7 @@ def main():
             # system.vector = vector0
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    # system.fit(2000, thin=10, burnin=[], nwalkers=64)
+    system.fit(2000, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")

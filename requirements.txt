@@ -1,12 +1,14 @@
-# The standards
+# The standards.
 numpy>=1.6.2
 scipy>=0.11.0
 matplotlib>=1.2.0
+pyfits>=3.1.1
 
-# For saving MCMC chains
+# For saving MCMC chains.
 h5py>=2.1.0
 
-# My other modules
+# My other modules.
+acor>=1.0.2
 emcee>=1.1.2
 triangle_plot>=0.0.3
 
@@ -15,3 +17,6 @@ requests>=1.1.0
 
 # For formatting LaTeX table output.
 pystache>=0.5.3
+
+# For command line parsing.
+docopt>=0.6.1
