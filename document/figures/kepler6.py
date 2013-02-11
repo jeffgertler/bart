@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
 import bart
 from bart import kepler
 from bart.dataset import KeplerDataset
-from bart.results import Column
+from bart.results import ResultsProcess, Column
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
 
@@ -147,5 +147,40 @@ if __name__ == "__main__":
         in_fns = fns
 
     # Run the fit.
-    for eta in args["-e"]:
-        main(in_fns, float(eta), results_only=args["--results_only"])
+    etas = np.array([float(eta) for eta in args["-e"]])
+    for eta in etas:
+        main(in_fns, eta, results_only=args["--results_only"])
+
+    # Plot the combined histogram.
+    import matplotlib.pyplot as pl
+    hist_ax = pl.figure().add_subplot(111)
+    quant_ax = pl.figure().add_subplot(111)
+    for eta in np.sort(etas)[::-1]:
+        results = ResultsProcess(basepath="kepler6-{0}".format(eta),
+                                 burnin=50)
+        r = np.array([float(s.planets[0].r) for s in results.itersteps()])
+
+        # Compute quantiles.
+        r = np.sort(r)
+        mn, md, mx = (r[int(0.16 * len(r))],
+                      r[int(0.50 * len(r))],
+                      r[int(0.84 * len(r))])
+
+        # Plot the quantiles.
+        quant_ax.plot(eta, md, "ok")
+        quant_ax.plot([eta, eta], [mn, mx], "k")
+
+        # Plot the histogram.
+        hist_ax.hist(r, 50, normed=True, histtype="stepfilled", color="k",
+                     fc="k", alpha=0.1, lw=np.sqrt(10 * eta))
+        hist_ax.hist(r, 50, normed=True, histtype="step", color="k",
+                     lw=np.sqrt(10 * eta))
+
+    hist_ax.figure.savefig("k6-combined.png")
+    hist_ax.figure.savefig("k6-combined.pdf")
+
+    mn, mx = etas.min(), etas.max()
+    d = mx - mn
+    quant_ax.set_xlim([mn - 0.1 * d, mx + 0.1 * d])
+    quant_ax.figure.savefig("k6-rconstraint.png")
+    quant_ax.figure.savefig("k6-rconstraint.pdf")

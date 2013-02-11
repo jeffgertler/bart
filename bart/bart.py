@@ -204,6 +204,10 @@ class PlanetarySystem(Model):
         super(PlanetarySystem, self).__init__()
 
         self.basepath = basepath
+        try:
+            os.makedirs(basepath)
+        except os.error:
+            pass
 
         # Data.
         self.datasets = []

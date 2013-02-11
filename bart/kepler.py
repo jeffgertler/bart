@@ -32,7 +32,6 @@ def fiducial_ldp(teff, logg, feh, bins=None, alpha=1.0):
     feh0 = data[np.argmin(np.abs(data[:, 2] - feh)), 2]
     ind = (data[:, 0] == T0) * (data[:, 1] == logg0) * (data[:, 2] == feh0)
     mu1, mu2 = data[ind, 4:6][0]
-    print("LDP Parameters", mu1, mu2)
 
     # Generate a quadratic limb darkening profile.
     ldp = QuadraticLimbDarkening(mu1, mu2)

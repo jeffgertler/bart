@@ -133,14 +133,14 @@ class ResultsProcess(object):
         ax = fig.add_subplot(111)
         time = time % P - t0
         inds = (time < duration) * (time > -duration)
-        ax.plot(time[inds], (flux[inds] / fstar - 1) * 1e3, ".",
+        ax.plot(time[inds] * 24.0, flux[inds] / fstar, ".",
                 alpha=1.0, color="#888888", rasterized=True)
-        ax.plot(t, (lc.T / fstar - 1) * 1e3, color="k", alpha=0.5)
+        ax.plot(t * 24.0, lc.T / fstar, color="k", alpha=0.5)
 
         # Annotate the axes.
-        ax.set_xlim(-duration, duration)
-        ax.set_xlabel(u"Phase [days]")
-        ax.set_ylabel(r"Relative Brightness Variation [$\times 10^{-3}$]")
+        ax.set_xlim(-duration * 24.0, duration * 24.0)
+        ax.set_xlabel(u"Time [Hours Since Transit]")
+        ax.set_ylabel(r"Flux")
 
         self.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)),
                      fig=fig)
