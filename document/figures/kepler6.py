@@ -3,12 +3,13 @@
 """
 Demo of how you would use Bart to fit a Kepler light curve.
 
-Usage: kepler6.py [FILE...] [-e ETA]...
+Usage: kepler6.py [FILE...] [-e ETA]... [--results_only]
 
 Options:
-    -h --help  show this.
-    -e ETA     list of the strengths of the LDP prior. [default: 0.05]
-    FILE       a list of FITS files including the data.
+    -h --help       show this.
+    FILE            a list of FITS files including the data.
+    -e ETA          the strength of the LDP prior. [default: 0.05]
+    --results_only  only plot the results, don't do the fit.
 
 """
 
@@ -45,7 +46,7 @@ class CosParameter(Parameter):
         return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
 
 
-def main(fns, eta):
+def main(fns, eta, results_only=False):
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
@@ -91,7 +92,8 @@ def main(fns, eta):
         system.add_dataset(KeplerDataset(fn))
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
-    system.fit(2000, thin=10, burnin=[], nwalkers=64)
+    if not results_only:
+        system.fit(2000, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
@@ -146,4 +148,4 @@ if __name__ == "__main__":
 
     # Run the fit.
     for eta in args["-e"]:
-        main(fns, float(eta))
+        main(fns, float(eta), results_only=args["--results_only"])
