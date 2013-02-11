@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Demo of how you would use Bart to fit a Kepler light curve.
+
+Usage: kepler6.py [--eta ETA ...] [-i FILE ...]
+
+Options:
+    -h --help  show this.
+    --eta ETA  list of the strengths of the LDP prior. [default: 0.05]
+    -i FILE    a list of FITS files including the data.
+
+"""
 
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
@@ -16,7 +27,6 @@ from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
 
 import numpy as np
-import matplotlib.pyplot as pl
 
 
 # Reproducible Science.™
@@ -35,30 +45,22 @@ class CosParameter(Parameter):
         return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
 
 
-def main():
+def main(fns, eta):
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
 
-    # mstar = 1.209  # +0.044 -0.038 M_sun
     rstar = 1.391  # +0.017 -0.034 R_sun
     Teff = 5647.
     logg = 4.24
     feh = 0.34
 
     P = 3.234723  # ± 0.000017 days
-    # E = 2454954.48636  # ± 0.00014 HJD
-
-    # a = 9.80650134 / rstar  # Mine
     a = 7.05  # +0.11 -0.06 R_*
-
-    # r = 0.12342658 / rstar  # Mine.
     r = 0.09829  # +0.00014 -0.00050 R_*
-
-    # i = 90.0  # Mine.
     i = 86.8  # ± 0.3 degrees
 
-    # Compute the reference transit time.
+    # The reference "transit" time.
     t0 = 1.795  # Found by eye.
 
     # Set up the planet.
@@ -69,7 +71,8 @@ def main():
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
 
     # Set up the system.
-    system = bart.PlanetarySystem(star, iobs=i, basepath="kepler6-0.05")
+    system = bart.PlanetarySystem(star, iobs=i,
+                                  basepath="kepler6-{0}".format(eta))
     system.add_planet(planet)
 
     # Fit parameters.
@@ -81,21 +84,11 @@ def main():
 
     star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins,
                                                    star.ldp.intensity,
-                                                   eta=0.05))
-
-    # Get the data.
-    api = kepler.API()
-    print("Downloading the data files.")
-    data_files = api.data("10874614").fetch_all(basepath="kepler6/data")
+                                                   eta=eta))
 
     # Read in the data.
-    for i, fn in enumerate(data_files):
-        if "slc" in fn:
-            system.add_dataset(KeplerDataset(fn))
-            break
-
-            # Do the fit.
-            # system.vector = vector0
+    for fn in fns:
+        system.add_dataset(KeplerDataset(fn))
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
     system.fit(2000, thin=10, burnin=[], nwalkers=64)
@@ -123,5 +116,32 @@ def main():
         ])
 
 
+def download_data(bp):
+    # Get the data.
+    api = kepler.API()
+    print("Downloading the data files.")
+    return api.data("10874614").fetch_all(basepath=bp)
+
+
 if __name__ == "__main__":
-    main()
+    # Parse the command line arguments.
+    from docopt import docopt
+    args = docopt(__doc__)
+    print(args)
+
+    # Download the data files.
+    if len(args["-i"]) > 0:
+        bp = os.path.dirname(args["-i"][0])
+    else:
+        bp = "kepler6/data"
+    fns = download_data(bp)
+    print("  .. Finished.")
+
+    # Figure out which data files to use.
+    if len(args["-i"]) > 0:
+        assert all([fn in fns for fn in args["-i"]])
+        fns = args["-i"]
+
+    # Run the fit.
+    for eta in args["--eta"]:
+        main(fns, float(eta))

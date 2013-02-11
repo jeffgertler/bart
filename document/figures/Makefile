@@ -6,14 +6,14 @@ geom.pdf: geom.py utils.py
 	python geom.py
 
 kepler6:
-	python kepler6.py
-	cp kepler6/ldp.png k6-ldp.png
-	cp kepler6/ldp.pdf k6-ldp.pdf
-	cp kepler6/corner.png k6-corner.png
-	cp kepler6/corner.pdf k6-corner.pdf
-	cp kepler6/lightcurves/0.png k6-lc.png
-	cp kepler6/lightcurves/0.pdf k6-lc.pdf
-	cp kepler6/table.tex kepler6.tex
+	python kepler6.py --eta 0.01 0.05 0.1 0.5 -i kepler6/data/kplr010874614-2011271113734_slc.fits
+	cp kepler6-0.05/ldp.png k6-ldp.png
+	cp kepler6-0.05/ldp.pdf k6-ldp.pdf
+	cp kepler6-0.05/corner.png k6-corner.png
+	cp kepler6-0.05/corner.pdf k6-corner.pdf
+	cp kepler6-0.05/lightcurves/0.png k6-lc.png
+	cp kepler6-0.05/lightcurves/0.pdf k6-lc.pdf
+	cp kepler6-0.05/table.tex kepler6.tex
 
 # case1.pdf: cases.py utils.py
 # 	python cases.py 1
