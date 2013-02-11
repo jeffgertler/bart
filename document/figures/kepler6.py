@@ -3,12 +3,12 @@
 """
 Demo of how you would use Bart to fit a Kepler light curve.
 
-Usage: kepler6.py [--eta ETA ...] [-i FILE ...]
+Usage: kepler6.py [FILE...] [-e ETA]...
 
 Options:
     -h --help  show this.
-    --eta ETA  list of the strengths of the LDP prior. [default: 0.05]
-    -i FILE    a list of FITS files including the data.
+    -e ETA     list of the strengths of the LDP prior. [default: 0.05]
+    FILE       a list of FITS files including the data.
 
 """
 
@@ -127,21 +127,23 @@ if __name__ == "__main__":
     # Parse the command line arguments.
     from docopt import docopt
     args = docopt(__doc__)
-    print(args)
+
+    in_fns = args["FILE"]
 
     # Download the data files.
-    if len(args["-i"]) > 0:
-        bp = os.path.dirname(args["-i"][0])
+    if len(in_fns) > 0:
+        bp = os.path.dirname(in_fns[0])
     else:
         bp = "kepler6/data"
     fns = download_data(bp)
     print("  .. Finished.")
 
     # Figure out which data files to use.
-    if len(args["-i"]) > 0:
-        assert all([fn in fns for fn in args["-i"]])
-        fns = args["-i"]
+    if len(in_fns) > 0:
+        assert all([fn in fns for fn in in_fns])
+    else:
+        in_fns = fns
 
     # Run the fit.
-    for eta in args["--eta"]:
+    for eta in args["-e"]:
         main(fns, float(eta))
