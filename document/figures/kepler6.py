@@ -148,4 +148,4 @@ if __name__ == "__main__":
 
     # Run the fit.
     for eta in args["-e"]:
-        main(fns, float(eta), results_only=args["--results_only"])
+        main(in_fns, float(eta), results_only=args["--results_only"])
