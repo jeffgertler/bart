@@ -8,15 +8,18 @@ import matplotlib.pyplot as pl
 G = 2945.4625385377644
 
 mstar = 1.0
+mplanet = 1e-3
 e, a, i = 0.6, 14.0, 0
 t0 = 0.15
-pomega = 1.5 * np.pi
+pomega = 0.1 * np.pi
 
 T = 2 * np.pi * np.sqrt(a * a * a / G / mstar)
 t = np.linspace(0, T, 10000)
 
-pos = _bart.solve_orbit(t, mstar, e, a, t0, pomega, i, 0.0)
-pphi = _bart.solve_orbit(t0, mstar, e, a, t0, pomega, i, 0.0)
+pos, rv, info = _bart.solve_orbit(t, mstar, mplanet, e, a, t0, pomega, i, 0.0)
+pphi, rvphi, infophi = _bart.solve_orbit(t0, mstar, mplanet, e, a, t0,
+                                         pomega, i, 0.0)
+
 ee = np.arccos((e + np.cos(pomega)) / (1 + e * np.cos(pomega)))
 
 ax = pl.figure().add_axes((0, 0, 1, 1), frameon=False,
@@ -51,3 +54,8 @@ ax.set_ylim(1.1 * np.array(ax.get_ylim()))
 ax.set_xlim(np.array([1.1, 1.2]) * np.array(ax.get_xlim()))
 
 pl.savefig("orbit.png")
+
+pl.clf()
+pl.plot(t, rv)
+pl.gca().axvline(t0)
+pl.savefig("rv.png")

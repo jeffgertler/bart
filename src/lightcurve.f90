@@ -1,6 +1,6 @@
       subroutine lightcurve(n, t, texp, nbin, &
                             fstar, mstar, rstar, iobs, &
-                            np, r, a, t0, e, pomega, ix, iy, &
+                            np, mass, r, a, t0, e, pomega, ix, iy, &
                             nld, rld, ild, &
                             flux, info)
 
@@ -33,6 +33,9 @@
         !
         ! :param np: (integer)
         !   The number of planets in the system.
+        !
+        ! :param mass: (double precision(np))
+        !   The masses of the planets in Solar masses.
         !
         ! :param r: (double precision(np))
         !   The sizes of the planets in Solar radii.
@@ -74,6 +77,10 @@
         ! :returns flux: (double precision(n))
         !   The observed flux at each time ``t`` in the same units as
         !   the input ``fstar``.
+        !
+        ! :returns info: (integer)
+        !   Was the computation successful? If ``info==0``, it was.
+        !   Otherwise, no solution was found for Kepler's equation.
 
         implicit none
 
@@ -93,7 +100,7 @@
         ! The planets.
         integer, intent(in) :: np
         double precision, dimension(np), intent(in) :: &
-                                          r, a, e, t0, pomega, ix, iy
+                                      mass, r, a, e, t0, pomega, ix, iy
 
         ! The limb-darkening profile.
         integer, intent(in) :: nld
@@ -107,7 +114,7 @@
 
         integer :: i, j
         double precision, dimension(3, n*nbin) :: pos
-        double precision, dimension(n*nbin) :: b, tmp, ttmp, ftmp
+        double precision, dimension(n*nbin) :: b, tmp, ttmp, ftmp, rvtmp
 
         info = 0
 
@@ -128,10 +135,10 @@
         ! profiles.
         do i=1, np
 
-          call solve_orbit(n*nbin, ttmp, mstar, &
-                          e(i), a(i), t0(i), pomega(i), &
-                          (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
-                          pos, info)
+          call solve_orbit(n*nbin, ttmp, mstar, mass(i), &
+                           e(i), a(i), t0(i), pomega(i), &
+                           (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
+                           pos, rvtmp, info)
 
           ! Make sure that the orbit was properly solved.
           if (info.ne.0) then
