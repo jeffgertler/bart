@@ -28,6 +28,7 @@ from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
 
 import numpy as np
+from matplotlib.ticker import MaxNLocator
 
 
 # Reproducible Science.™
@@ -125,6 +126,12 @@ def download_data(bp):
     return api.data("10874614").fetch_all(basepath=bp)
 
 
+def quantiles(r):
+    r = np.sort(r)
+    l = len(r)
+    return [r[int(q * l)] for q in [0.16, 0.50, 0.84]]
+
+
 if __name__ == "__main__":
     # Parse the command line arguments.
     from docopt import docopt
@@ -153,34 +160,42 @@ if __name__ == "__main__":
 
     # Plot the combined histogram.
     import matplotlib.pyplot as pl
-    hist_ax = pl.figure().add_subplot(111)
-    quant_ax = pl.figure().add_subplot(111)
+    # hist_ax = pl.figure(figsize=(4, 4)).add_axes([0.1, 0.2, 0.8, 0.75])
+
+    columns = {
+            "r": Column(r"$r / R_\star$",
+                        lambda s: float(s.planets[0].r / s.star.radius)),
+            "a": Column(r"$a / R_\star$",
+                        lambda s: float(s.planets[0].a / s.star.radius)),
+            "i": Column(r"$i$", lambda s: float(s.iobs)),
+        }
+    axes = dict([(k, pl.figure(figsize=(4, 3.5))
+                       .add_axes([0.25, 0.2, 0.7, 0.7])) for k in columns])
+
     for eta in np.sort(etas)[::-1]:
         results = ResultsProcess(basepath="kepler6-{0}".format(eta),
                                  burnin=50)
-        r = np.array([float(s.planets[0].r) for s in results.itersteps()])
+
+        # Get the samples.
+        samples = dict([(k, []) for k in columns])
+        for s in results.itersteps():
+            for k, c in columns.iteritems():
+                samples[k].append(c.getter(s))
 
         # Compute quantiles.
-        r = np.sort(r)
-        mn, md, mx = (r[int(0.16 * len(r))],
-                      r[int(0.50 * len(r))],
-                      r[int(0.84 * len(r))])
-
-        # Plot the quantiles.
-        quant_ax.plot(eta, md, "ok")
-        quant_ax.plot([eta, eta], [mn, mx], "k")
-
-        # Plot the histogram.
-        hist_ax.hist(r, 50, normed=True, histtype="stepfilled", color="k",
-                     fc="k", alpha=0.1, lw=np.sqrt(10 * eta))
-        hist_ax.hist(r, 50, normed=True, histtype="step", color="k",
-                     lw=np.sqrt(10 * eta))
-
-    hist_ax.figure.savefig("k6-combined.png")
-    hist_ax.figure.savefig("k6-combined.pdf")
+        for k, s in samples.iteritems():
+            mn, md, mx = quantiles(s)
+            axes[k].plot(eta, md, "ok")
+            axes[k].plot([eta, eta], [mn, mx], "k")
 
     mn, mx = etas.min(), etas.max()
     d = mx - mn
-    quant_ax.set_xlim([mn - 0.1 * d, mx + 0.1 * d])
-    quant_ax.figure.savefig("k6-rconstraint.png")
-    quant_ax.figure.savefig("k6-rconstraint.pdf")
+    for k, ax in axes.iteritems():
+        ax.set_xlim([0, mx + 0.1 * d])
+        ax.xaxis.set_major_locator(MaxNLocator(4))
+        ax.yaxis.set_major_locator(MaxNLocator(4))
+        [l.set_rotation(45) for l in ax.get_yticklabels()]
+        ax.set_xlabel(r"$\eta$")
+        ax.set_ylabel(columns[k].name)
+        ax.figure.savefig("k6-{0}.png".format(k))
+        ax.figure.savefig("k6-{0}.pdf".format(k))
