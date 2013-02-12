@@ -130,6 +130,9 @@ class Planet(Model):
     :param a:
         The semi-major axis of the orbit in Solar radii.
 
+    :param mass: (optional)
+        The mass of the planet in Solar masses.
+
     :param t0: (optional)
         The time of a reference pericenter passage.
 
@@ -149,11 +152,13 @@ class Planet(Model):
 
     """
 
-    def __init__(self, r, a, t0=0.0, e=0.0, pomega=0.0, ix=0.0, iy=0.0):
+    def __init__(self, r, a, mass=0.0, t0=0.0, e=0.0, pomega=0.0, ix=0.0,
+                 iy=0.0):
         super(Planet, self).__init__()
 
         self.r = r
         self.a = a
+        self.mass = mass
         self.t0 = t0
         self.e = e
         self.pomega = pomega
@@ -384,12 +389,13 @@ class PlanetarySystem(Model):
 
         """
         s = self.star
-        r = [(p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy) for p in self.planets]
-        r, a, t0, e, pomega, ix, iy = zip(*r)
+        r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
+                                                    for p in self.planets]
+        mass, r, a, t0, e, pomega, ix, iy = zip(*r)
         ldp = self.star.ldp
         lc, info = _bart.lightcurve(t, texp / 1440., K, s.flux, s.mass,
                                 s.radius, self.iobs,
-                                r, a, t0, e, pomega, ix, iy,
+                                mass, r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
         return lc
