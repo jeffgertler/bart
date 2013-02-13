@@ -3,13 +3,15 @@
 """
 Demo of how you would use Bart to fit a Kepler light curve.
 
-Usage: kepler6.py [FILE...] [-e ETA]... [--results_only]
+Usage: kepler6.py [FILE...] [-e ETA]... [--results_only] [-n STEPS] [-b BURN]
 
 Options:
-    -h --help       show this.
-    FILE            a list of FITS files including the data.
-    -e ETA          the strength of the LDP prior. [default: 0.05]
-    --results_only  only plot the results, don't do the fit.
+    -h --help       show this
+    FILE            a list of FITS files including the data
+    -e ETA          the strength of the LDP prior [default: 0.05]
+    --results_only  only plot the results, don't do the fit
+    -n STEPS        the number of steps to take [default: 2000]
+    -b BURN         the number of burn in steps to take [default: 50]
 
 """
 
@@ -47,7 +49,7 @@ class CosParameter(Parameter):
         return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
 
 
-def main(fns, eta, results_only=False):
+def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
@@ -95,11 +97,11 @@ def main(fns, eta, results_only=False):
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
     if not results_only:
-        system.fit(2000, thin=10, burnin=[], nwalkers=64)
+        system.fit(nsteps, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
-    results = system.results(thin=10, burnin=50)
+    results = system.results(thin=10, burnin=nburn)
     results.latex([
             Column(r"$P\,[\mathrm{days}]$",
                    lambda s: s.planets[0].get_period(s.star.mass)),
@@ -164,7 +166,8 @@ if __name__ == "__main__":
     # Run the fit.
     etas = np.array([float(eta) for eta in args["-e"]])
     for eta in etas:
-        main(in_fns, eta, results_only=args["--results_only"])
+        main(in_fns, eta, results_only=args["--results_only"],
+             nsteps=int(args["-n"]), nburn=int(args["-b"]))
 
     # Plot the combined histogram.
     import matplotlib.pyplot as pl

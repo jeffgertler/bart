@@ -420,7 +420,6 @@ class PlanetarySystem(Model):
     def optimize(self):
         objective = lambda p: -self(p)
         result = op.minimize(objective, self.vector)
-        print(result.x)
         self.vector = result.x
         return result.x
 
