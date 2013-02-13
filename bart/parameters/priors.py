@@ -31,3 +31,13 @@ class UniformPrior(Prior):
 
     def __repr__(self):
         return "UniformPrior({0.mn}, {0.mx})".format(self)
+
+
+class GaussianPrior(Prior):
+
+    def __init__(self, mu, std):
+        self.mu = mu
+        self.ivar = 1.0 / std / std
+
+    def __call__(self, v):
+        return -0.5 * np.sum(self.ivar * (v - self.mu) ** 2)

@@ -28,6 +28,7 @@ import bart
 from bart import kepler
 from bart.dataset import KeplerDataset, RVDataset
 from bart.results import ResultsProcess, Column
+from bart.parameters.priors import GaussianPrior
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
 from bart.parameters.planet import EccentricityParameter
@@ -93,6 +94,10 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     system.parameters.append(CosParameter(r"$i$", "iobs"))
     system.parameters.append(Parameter(r"$v_0$", "rv0"))
 
+    star.parameters.append(LogParameter(r"$M_\star$", "mass",
+                                        prior=GaussianPrior(star.mass, 0.1)))
+    star.parameters.append(LogParameter(r"$R_\star$", "radius",
+                                        prior=GaussianPrior(1.391, 0.034)))
     star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins,
                                                    star.ldp.intensity,
                                                    eta=eta))
@@ -103,8 +108,8 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
+    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=1.1)
     if fitrv:
-        ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=1.1)
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)
 
@@ -125,18 +130,21 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
 
     # RV plot.
     ax = results._rv_plots("rv")[0]
-    ax.errorbar(24 * (rv[:, 0] % P), rv[:, 2], yerr=rv[:, 3], fmt=".k")
+    ax.errorbar(24 * (ds.time % P), ds.rv, yerr=ds.rverr, fmt=".k")
     ax.figure.savefig("rv.png")
 
     # Other results plots.
     results.lc_plot()
     results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
     results.time_plot()
+
     results.corner_plot([
-            Column(r"$a$", lambda s: s.planets[0].a / s.star.radius),
-            Column(r"$r$", lambda s: s.planets[0].r / s.star.radius),
+            Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
+            Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
             Column(r"$t_0$", lambda s: s.planets[0].t0),
             Column(r"$i$", lambda s: s.iobs),
+            Column(r"$e$", lambda s: s.planets[0].e),
+            Column(r"$\varpi$", lambda s: s.planets[0].pomega),
         ])
 
 

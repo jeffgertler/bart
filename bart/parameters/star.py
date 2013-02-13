@@ -42,20 +42,22 @@ class LimbDarkeningParameters(MultipleParameter, LogParameter):
 class RelativeLimbDarkeningParameters(LimbDarkeningParameters):
 
     def __init__(self, bins, fiducial, eta=0.1):
-        super(RelativeLimbDarkeningParameters, self).__init__(bins, fiducial,
+        super(RelativeLimbDarkeningParameters, self).__init__(bins[1:],
+                                                              fiducial,
                                                               eta=eta)
+        self.bins = bins
 
     def __len__(self):
-        return self.N - 1
+        return self.N
 
     def getter(self, star):
         intensity = star.ldp.intensity
-        assert len(intensity) == self.N
+        assert len(intensity) == self.N + 1
         return np.array([intensity[i] - intensity[i + 1]
-                        for i in range(self.N - 1)])
+                        for i in range(self.N)])
 
     def setter(self, star, vec):
-        ldp = np.empty(self.N)
+        ldp = np.empty(self.N + 1)
         ldp[0] = 1
         for i, v in enumerate(vec):
             ldp[i + 1] = ldp[i] - v

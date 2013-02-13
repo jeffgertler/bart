@@ -142,8 +142,8 @@ class MultipleParameter(Parameter):
         return "[" + ", ".join(self.names) + "]"
 
     def __repr__(self):
-        return "MultipleParameter({0.names}, {0.length}, prior={0.priors})" \
-                                                                .format(self)
+        return "{1}({0.names}, priors={0.priors})" \
+                                    .format(self, self.__class__.__name__)
 
     def __len__(self):
         return len(self.names)

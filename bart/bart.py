@@ -361,7 +361,7 @@ class PlanetarySystem(Model):
         for planet in self.planets:
             lnp += [p.lnprior(planet) for p in planet.parameters]
         for d in self.datasets:
-            lnp += [p.lnprior(d) for p in planet.parameters]
+            lnp += [p.lnprior(d) for p in d.parameters]
         if np.isinf(np.any(lnp)):
             return -np.inf
         return np.sum(lnp)

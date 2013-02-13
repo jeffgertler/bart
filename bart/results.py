@@ -90,7 +90,7 @@ class ResultsProcess(object):
     def _corner_plot(self, outfn, parameters):
         plotchain = np.empty([len(self.flatchain), len(parameters)])
         for i, s in enumerate(self.itersteps()):
-            plotchain[i] = np.concatenate([p.getter(self.system)
+            plotchain[i] = np.array([float(p.getter(self.system))
                                                     for p in parameters])
 
         # Grab the labels.
