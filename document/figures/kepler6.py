@@ -61,12 +61,13 @@ def main(fns, eta, results_only=False):
     a = 7.05  # +0.11 -0.06 R_*
     r = 0.09829  # +0.00014 -0.00050 R_*
     i = 86.8  # ± 0.3 degrees
+    mass = 0.669 * 9.5492e-4  # Solar masses.
 
     # The reference "transit" time.
     t0 = 1.795  # Found by eye.
 
     # Set up the planet.
-    planet = bart.Planet(r=r * rstar, a=a * rstar, t0=t0)
+    planet = bart.Planet(r=r * rstar, a=a * rstar, t0=t0, mass=mass)
 
     # Set up the star.
     ldp = kepler.fiducial_ldp(Teff, logg, feh, bins=15, alpha=0.5)
