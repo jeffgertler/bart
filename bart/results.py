@@ -165,12 +165,15 @@ class ResultsProcess(object):
 
     def _rv_plot(self, args):
         outdir, planet_ind = args
-        time = np.concatenate([d.time for d in self.datasets
-                                      if d.__type__ == "rv"])
-        rv_data = np.concatenate([d.rv for d in self.datasets
-                                       if d.__type__ == "rv"])
-        rverr_data = np.concatenate([d.rverr for d in self.datasets
-                                             if d.__type__ == "rv"])
+        try:
+            time = np.concatenate([d.time for d in self.datasets
+                                          if d.__type__ == "rv"])
+            rv_data = np.concatenate([d.rv for d in self.datasets
+                                          if d.__type__ == "rv"])
+            rverr_data = np.concatenate([d.rverr for d in self.datasets
+                                                if d.__type__ == "rv"])
+        except ValueError:
+            time, rv_data, rverr_data = 3 * [np.array([])]
 
         # Get the median parameters of the fit.
         fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
@@ -190,7 +193,7 @@ class ResultsProcess(object):
         # Plot the data and samples.
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        ax.errorbar(time * 24.0, rv_data, yerr=rverr_data, fmt=".",
+        ax.errorbar((time % P) * 24.0, rv_data, yerr=rverr_data, fmt=".",
                 alpha=1.0, color="#888888")
         ax.plot(t * 24.0, rv.T, color="k", alpha=0.5)
 

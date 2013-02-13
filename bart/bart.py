@@ -175,14 +175,14 @@ class Planet(Model):
     def spec(self, v):
         self.r, self.a, self.t0, self.e, self.pomega, self.ix, self.iy = v
 
-    def get_mstar(self, T):
+    def get_mstar(self, P):
         """
         Get the mass of the host star implied by the semi-major axis of this
         planet and an input period.
 
         """
         a = self.a
-        return a * a * a * 4 * np.pi * np.pi / _G / T / T
+        return a * a * a * 4 * np.pi * np.pi / _G / P / P - self.mass
 
     def get_period(self, mstar):
         """
@@ -190,7 +190,7 @@ class Planet(Model):
 
         """
         a = self.a
-        return 2 * np.pi * np.sqrt(a * a * a / _G / mstar)
+        return 2 * np.pi * np.sqrt(a * a * a / _G / (mstar + self.mass))
 
 
 class PlanetarySystem(Model):
@@ -231,7 +231,7 @@ class PlanetarySystem(Model):
     @property
     def spec(self):
         return np.concatenate([[float(self.iobs)], self.star.spec,
-                               np.concatenate([p.spec for p in self.planets])])
+                              np.concatenate([p.spec for p in self.planets])])
 
     @spec.setter  # NOQA
     def spec(self, v):
@@ -273,7 +273,8 @@ class PlanetarySystem(Model):
         """
         v = super(PlanetarySystem, self).vector
         return np.concatenate([v, self.star.vector]
-                              + [p.vector for p in self.planets])
+                              + [p.vector for p in self.planets]
+                              + [d.vector for d in self.datasets])
 
     @vector.setter  # NOQA
     def vector(self, v):
@@ -290,6 +291,9 @@ class PlanetarySystem(Model):
         for p in self.planets:
             p.vector = v[i:i + len(p)]
             i += len(p)
+        for d in self.datasets:
+            d.vector = v[i:i + len(d)]
+            i += len(d)
 
     def sample(self, size, std=1e-5):
         """
@@ -306,6 +310,11 @@ class PlanetarySystem(Model):
 
         for p in self.planets:
             pv = p.sample(size, std=std)
+            if pv is not None:
+                l.append(pv)
+
+        for d in self.datasets:
+            pv = d.sample(size, std=std)
             if pv is not None:
                 l.append(pv)
 
@@ -351,6 +360,8 @@ class PlanetarySystem(Model):
         lnp += [p.lnprior(self.star) for p in self.star.parameters]
         for planet in self.planets:
             lnp += [p.lnprior(planet) for p in planet.parameters]
+        for d in self.datasets:
+            lnp += [p.lnprior(d) for p in planet.parameters]
         if np.isinf(np.any(lnp)):
             return -np.inf
         return np.sum(lnp)
@@ -367,21 +378,20 @@ class PlanetarySystem(Model):
         for ds in self.datasets:
             if ds.__type__ == "lc":
                 model = self.lightcurve(ds.time, texp=ds.texp)
-                delta = ds.flux - model
-
-                # Add in the jitter.
-                # inds = ivar > 0
-                # ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
-
-                c2 += np.sum(delta * delta * ds.ivar) - np.sum(np.log(ds.ivar))
+                delta = ds.flux - ds.zp * model
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
                 delta = ds.rv - model
-                c2 += np.sum(delta * delta * ds.ivar) - np.sum(np.log(ds.ivar))
 
             else:
                 raise TypeError()
+
+            # Add in the jitter.
+            ivar = ds.ivar
+            inds = ivar > 0
+            ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
+            c2 += np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
 
         return c2
 
@@ -491,7 +501,7 @@ class PlanetarySystem(Model):
 
         # Parse the other input parameters.
         threads = kwargs.get("threads", 10)
-        burnin = kwargs.get("burnin", [300, ])
+        burnin = kwargs.get("burnin", [])
         K = kwargs.get("K", 4)
         thin = kwargs.get("thin", 1)
 

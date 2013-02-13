@@ -54,6 +54,8 @@ class Parameter(object):
 
     def sample(self, obj, std=1e-5, size=1):
         v0 = self.conv(self.getter(obj))
+        if np.abs(v0) < std:
+            return v0 + std * np.random.randn(size)
         return v0 * (1 + std * np.random.randn(size))
 
     def conv(self, val):

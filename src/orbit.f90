@@ -30,9 +30,9 @@
         do it=1,maxit
 
           ! Compute the function and derivatives.
-          spsi0 = dsin(psi0)
+          spsi0 = sin(psi0)
           f = psi0 - e * spsi0 - wt
-          fp = 1.d0 - e * dcos(psi0)
+          fp = 1.d0 - e * cos(psi0)
           fpp = e * spsi0
 
           ! Take a second order step.

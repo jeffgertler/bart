@@ -30,6 +30,7 @@ from bart.dataset import KeplerDataset, RVDataset
 from bart.results import ResultsProcess, Column
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
+from bart.parameters.planet import EccentricityParameter
 
 import numpy as np
 from matplotlib.ticker import MaxNLocator
@@ -86,8 +87,11 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     planet.parameters.append(Parameter(r"$r$", "r"))
     planet.parameters.append(LogParameter(r"$a$", "a"))
     planet.parameters.append(Parameter(r"$t_0$", "t0"))
+    planet.parameters.append(LogParameter(r"$M_p$", "mass"))
+    planet.parameters.append(EccentricityParameter())
 
     system.parameters.append(CosParameter(r"$i$", "iobs"))
+    system.parameters.append(Parameter(r"$v_0$", "rv0"))
 
     star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins,
                                                    star.ldp.intensity,
@@ -100,9 +104,10 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
     if fitrv:
-        system.add_dataset(RVDataset(rv[:, 0], rv[:, 2], rv[:, 3]))
+        ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=1.1)
+        ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
+        system.add_dataset(ds)
 
-    # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
     if not results_only:
         system.fit(nsteps, thin=10, burnin=[], nwalkers=64)
 
