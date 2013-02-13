@@ -205,7 +205,7 @@ class PlanetarySystem(Model):
 
     """
 
-    def __init__(self, star, basepath=".", iobs=90.0):
+    def __init__(self, star, basepath=".", iobs=90.0, rv0=0.0):
         super(PlanetarySystem, self).__init__()
 
         self.basepath = basepath
@@ -220,6 +220,7 @@ class PlanetarySystem(Model):
         # The properties of the system as a whole.
         self.star = star
         self.iobs = iobs
+        self.rv0 = rv0
 
         # The planets.
         self.planets = []
@@ -374,6 +375,11 @@ class PlanetarySystem(Model):
             c2 += np.sum(delta * delta * ds.ivar) - np.sum(np.log(ds.ivar))
         return c2
 
+    def _get_pars(self):
+        r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
+                                                    for p in self.planets]
+        return zip(*r)
+
     def lightcurve(self, t, texp=6, K=3):
         """
         Get the light curve of the model at the current model.
@@ -388,17 +394,28 @@ class PlanetarySystem(Model):
             The number of bins to use when integrating over exposure time.
 
         """
+        mass, r, a, t0, e, pomega, ix, iy = self._get_pars()
         s = self.star
-        r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
-                                                    for p in self.planets]
-        mass, r, a, t0, e, pomega, ix, iy = zip(*r)
-        ldp = self.star.ldp
+        ldp = s.ldp
         lc, info = _bart.lightcurve(t, texp / 1440., K, s.flux, s.mass,
                                 s.radius, self.iobs,
                                 mass, r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
         return lc
+
+    def radial_velocity(self, t):
+        s = self.star
+        result = np.zeros_like(t)
+        for p in self.planets:
+            pos, rv, info = _bart.solve_orbit(t, s.mass, p.mass, p.e, p.a,
+                                            p.t0, p.pomega,
+                                            np.radians(90 - self.iobs + p.ix),
+                                            np.radians(p.iy))
+            result += rv
+
+        # Add systemic velocity and convert to m/s.
+        return self.rv0 + 8050.0 * result
 
     def optimize(self):
         objective = lambda p: -self(p)

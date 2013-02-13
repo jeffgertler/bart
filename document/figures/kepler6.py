@@ -95,11 +95,11 @@ def main(fns, eta, results_only=False):
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
     if not results_only:
-        system.fit(2000, thin=10, burnin=[], nwalkers=64)
+        system.fit(100, thin=10, burnin=[], nwalkers=64)
 
     # Plot the results.
     print("Plotting results")
-    results = system.results(thin=10, burnin=50)
+    results = system.results(thin=1, burnin=0)
     results.latex([
             Column(r"$P\,[\mathrm{days}]$",
                    lambda s: s.planets[0].get_period(s.star.mass)),
@@ -108,6 +108,12 @@ def main(fns, eta, results_only=False):
             Column(r"$t_0\,[\mathrm{days}]$", lambda s: s.planets[0].t0),
             Column(r"$i\,[\mathrm{deg}]$", lambda s: s.iobs),
         ])
+
+    # RV plot.
+    rv = np.loadtxt("")
+    ax = results._rv_plots("rv")[0]
+    ax.set_title("blah")
+    ax.figure.savefig("rv.png")
 
     results.lc_plot()
     results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))

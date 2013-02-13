@@ -137,7 +137,8 @@
 
           call solve_orbit(n*nbin, ttmp, mstar, mass(i), &
                            e(i), a(i), t0(i), pomega(i), &
-                           (90.d0 - iobs + ix(i)) / 180.d0 * pi, iy, &
+                           (90.d0 - iobs + ix(i)) / 180.d0 * pi, &
+                           iy / 180.d0 * pi, &
                            pos, rvtmp, info)
 
           ! Make sure that the orbit was properly solved.

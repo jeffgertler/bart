@@ -160,6 +160,60 @@ class ResultsProcess(object):
         p = Process(target=self._lc_plots, args=(outdir,))
         p.start()
 
+    def _rv_plot(self, args):
+        outdir, planet_ind = args
+        # time = np.concatenate([d.time for d in self.datasets])
+        # flux = np.concatenate([d.flux for d in self.datasets])
+        # texp = np.min([d.texp for d in self.datasets])
+
+        # Get the median parameters of the fit.
+        fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
+        P, t0, a, r = (self.periods[planet_ind], self.epochs[planet_ind],
+                       self.semimajors[planet_ind], self.radii[planet_ind])
+
+        # Compute the light curve for each sample.
+        t = np.linspace(0, P, 5000)
+        rv = np.empty((self.subsamples, len(t)))
+
+        # Loop over the samples.
+        inds = np.random.randint(len(self.flatchain), size=self.subsamples)
+        for i, v in enumerate(self.flatchain[inds, :]):
+            self.system.vector = v
+            rv[i] = self.system.radial_velocity(t)
+
+        # Plot the data and samples.
+        fig = pl.figure()
+        ax = fig.add_subplot(111)
+        # time = time % P - t0
+        # inds = (time < duration) * (time > -duration)
+        # ax.plot(time[inds] * 24.0, flux[inds] / fstar, ".",
+        #         alpha=1.0, color="#888888", rasterized=True)
+        ax.plot(t * 24.0, rv.T, color="k", alpha=0.5)
+
+        # Annotate the axes.
+        ax.set_xlabel(u"Time")
+        ax.set_ylabel(r"Velocity [m s$^{-1}$]")
+
+        self.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)),
+                     fig=fig)
+
+        return ax
+
+    def _rv_plots(self, outdir):
+        # Try to make the directory.
+        try:
+            os.makedirs(os.path.join(self.basepath, outdir))
+        except os.error:
+            pass
+
+        # Generate the plots.
+        return map(self._rv_plot,
+            [(outdir, i) for i in range(self.system.nplanets)])
+
+    def rv_plot(self, outdir="rv"):
+        p = Process(target=self._rv_plots, args=(outdir,))
+        p.start()
+
     def _ldp_plot(self, outfn, fiducial):
         N = self.subsamples
 
