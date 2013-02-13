@@ -139,7 +139,7 @@
                            e(i), a(i), t0(i), pomega(i), &
                            (90.d0 - iobs + ix(i)) / 180.d0 * pi, &
                            iy / 180.d0 * pi, &
-                           pos, rvtmp, info)
+                           0, pos, rvtmp, info)
 
           ! Make sure that the orbit was properly solved.
           if (info.ne.0) then

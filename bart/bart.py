@@ -421,7 +421,7 @@ class PlanetarySystem(Model):
             pos, rv, info = _bart.solve_orbit(t, s.mass, p.mass, p.e, p.a,
                                             p.t0, p.pomega,
                                             np.radians(90 - self.iobs + p.ix),
-                                            np.radians(p.iy))
+                                            np.radians(p.iy), 1)
             result += rv
 
         # Add systemic velocity and convert to m/s.

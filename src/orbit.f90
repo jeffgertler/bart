@@ -88,7 +88,7 @@
       end subroutine
 
       subroutine solve_orbit(n, t, mstar, mplanet, e, a, t0, pomega, &
-                             ix, iy, pos, radvel, info)
+                             ix, iy, rvflag, pos, radvel, info)
 
         ! Solve Kepler's equations for the 3D position of a point mass
         ! eccetrically orbiting a larger mass.
@@ -126,6 +126,9 @@
         !   The inclination of the orbit in the plane of the sky in
         !   radians.
         !
+        ! :param rvflag: (integer)
+        !   Should we compute the radial velocity? 0: no, 1: yes.
+        !
         ! :returns pos: (double precision(3, n))
         !   The output array of positions (x,y,z) in solar radii.
         !   The x-axis points to the observer.
@@ -143,7 +146,7 @@
         double precision :: G=2945.4625385377644d0
         double precision :: pi=3.141592653589793238462643d0
 
-        integer, intent(in) :: n
+        integer, intent(in) :: n, rvflag
         double precision, dimension(n), intent(in) :: t
         double precision, intent(in) :: mstar,mplanet,e,a,t0,pomega,ix,&
                                         iy
@@ -157,7 +160,10 @@
                             xsx,psi0,t1,K,th,spsi
 
         period = 2 * pi * dsqrt(a * a * a / G / (mstar + mplanet))
-        call velocity_amplitude(mstar, mplanet, 0.5*pi-ix, e, period, K)
+
+        if (rvflag.eq.1) then
+          call velocity_amplitude(mstar,mplanet,0.5*pi-ix,e,period,K)
+        endif
 
         psi0 = 2 * datan2(dtan(0.5 * pomega), dsqrt((1 + e) / (1 - e)))
         t1 = t0 -  0.5 * period * (psi0 - e * dsin(psi0)) / pi
@@ -176,26 +182,30 @@
           spsi = dsin(psi)
           d = 1.0d0 - e * cpsi
           cth = (cpsi - e) / d
-          r = a * d
 
-          ! In the plane of the orbit.
-          x = r * cth
-          y = r * dsign(dsqrt(1 - cth * cth), spsi)
+          if (rvflag.eq.0) then
+            ! In the plane of the orbit.
+            r = a * d
+            x = r * cth
+            y = r * dsign(dsqrt(1 - cth * cth), spsi)
 
-          ! Rotate by pomega.
-          xp = x * dcos(pomega) + y * dsin(pomega)
-          yp = -x * dsin(pomega) + y * dcos(pomega)
+            ! Rotate by pomega.
+            xp = x * dcos(pomega) + y * dsin(pomega)
+            yp = -x * dsin(pomega) + y * dcos(pomega)
 
-          ! Rotate by the inclination angles.
-          xsx = xp * dsin(ix)
-          pos(1,i) = xp * dcos(ix)
-          pos(2,i) = yp * dcos(iy) - xsx * dsin(iy)
-          pos(3,i) = yp * dsin(iy) + xsx * dcos(iy)
+            ! Rotate by the inclination angles.
+            xsx = xp * dsin(ix)
+            pos(1,i) = xp * dcos(ix)
+            pos(2,i) = yp * dcos(iy) - xsx * dsin(iy)
+            pos(3,i) = yp * dsin(iy) + xsx * dcos(iy)
+          endif
 
           ! Compute the radial velocity.
-          th = dacos(cth)
-          th = th * dsign(1.d0, dsin(th)) * dsign(1.d0, dsin(psi))
-          radvel(i) = K*(dsin(th-pomega) - e*dsin(pomega))
+          if (rvflag.eq.1) then
+            th = dacos(cth)
+            th = th * dsign(1.d0, dsin(th)) * dsign(1.d0, spsi)
+            radvel(i) = K*(dsin(th-pomega) - e*dsin(pomega))
+          endif
 
         enddo
 
