@@ -4,6 +4,7 @@
 Demo of how you would use Bart to fit a Kepler light curve.
 
 Usage: kepler6.py [FILE...] [-e ETA]... [--results_only] [-n STEPS] [-b BURN]
+                  [--rv]
 
 Options:
     -h --help       show this
@@ -12,6 +13,7 @@ Options:
     --results_only  only plot the results, don't do the fit
     -n STEPS        the number of steps to take [default: 2000]
     -b BURN         the number of burn in steps to take [default: 50]
+    --rv            fit radial velocity?
 
 """
 
@@ -49,7 +51,7 @@ class CosParameter(Parameter):
         return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
 
 
-def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
+def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
@@ -97,7 +99,8 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
-    system.add_dataset(RVDataset(rv[:, 0], rv[:, 2], rv[:, 3]))
+    if fitrv:
+        system.add_dataset(RVDataset(rv[:, 0], rv[:, 2], rv[:, 3]))
 
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
     if not results_only:
@@ -170,7 +173,8 @@ if __name__ == "__main__":
     etas = np.array([float(eta) for eta in args["-e"]])
     for eta in etas:
         main(in_fns, eta, results_only=args["--results_only"],
-             nsteps=int(args["-n"]), nburn=int(args["-b"]))
+             nsteps=int(args["-n"]), nburn=int(args["-b"]),
+             fitrv=args["--rv"])
 
     # Plot the combined histogram.
     import matplotlib.pyplot as pl
