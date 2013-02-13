@@ -4,13 +4,15 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["Dataset", "KeplerDataset"]
+__all__ = ["Dataset", "KeplerDataset", "RVDataset"]
 
 import pyfits
 import numpy as np
 
 
 class Dataset(object):
+
+    __type__ = "lc"
 
     def __init__(self, time, flux, ferr, texp):
         self.texp = texp
@@ -43,3 +45,16 @@ class KeplerDataset(Dataset):
         self.flux /= self.median
         self.ferr /= self.median
         self.ivar *= self.median * self.median
+
+
+class RVDataset(Dataset):
+
+    __type__ = "rv"
+
+    def __init__(self, time, rv, rverr):
+        inds = ~np.isnan(time) * ~np.isnan(rv) * ~np.isnan(rverr)
+
+        self.time = time[inds]
+        self.rv = rv[inds]
+        self.rverr = rverr[inds]
+        self.ivar = 1.0 / self.rverr / self.rverr

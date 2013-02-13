@@ -365,14 +365,24 @@ class PlanetarySystem(Model):
     def chi2(self):
         c2 = 0.0
         for ds in self.datasets:
-            model = self.lightcurve(ds.time, texp=ds.texp)
-            delta = ds.flux - model
+            if ds.__type__ == "lc":
+                model = self.lightcurve(ds.time, texp=ds.texp)
+                delta = ds.flux - model
 
-            # Add in the jitter.
-            # inds = ivar > 0
-            # ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
+                # Add in the jitter.
+                # inds = ivar > 0
+                # ivar[inds] = 1. / (1. / ivar[inds] + self.jitter)
 
-            c2 += np.sum(delta * delta * ds.ivar) - np.sum(np.log(ds.ivar))
+                c2 += np.sum(delta * delta * ds.ivar) - np.sum(np.log(ds.ivar))
+
+            elif ds.__type__ == "rv":
+                model = self.radial_velocity(ds.time)
+                delta = ds.rv - model
+                c2 += np.sum(delta * delta * ds.ivar) - np.sum(np.log(ds.ivar))
+
+            else:
+                raise TypeError()
+
         return c2
 
     def _get_pars(self):

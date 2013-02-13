@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                                    os.path.abspath(__file__)))))
 import bart
 from bart import kepler
-from bart.dataset import KeplerDataset
+from bart.dataset import KeplerDataset, RVDataset
 from bart.results import ResultsProcess, Column
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
@@ -95,6 +95,10 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
     for fn in fns:
         system.add_dataset(KeplerDataset(fn))
 
+    # Add the RV data.
+    rv = np.loadtxt("k6-rv.txt")
+    system.add_dataset(RVDataset(rv[:, 0], rv[:, 2], rv[:, 3]))
+
     # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
     if not results_only:
         system.fit(nsteps, thin=10, burnin=[], nwalkers=64)
@@ -112,7 +116,6 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
         ])
 
     # RV plot.
-    rv = np.loadtxt("k6-rv.txt")
     ax = results._rv_plots("rv")[0]
     ax.errorbar(24 * (rv[:, 0] % P), rv[:, 2], yerr=rv[:, 3], fmt=".k")
     ax.figure.savefig("rv.png")

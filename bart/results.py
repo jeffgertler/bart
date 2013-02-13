@@ -105,9 +105,12 @@ class ResultsProcess(object):
 
     def _lc_plot(self, args):
         outdir, planet_ind = args
-        time = np.concatenate([d.time for d in self.datasets])
-        flux = np.concatenate([d.flux for d in self.datasets])
-        texp = np.min([d.texp for d in self.datasets])
+        time = np.concatenate([d.time for d in self.datasets
+                                      if d.__type__ == "lc"])
+        flux = np.concatenate([d.flux for d in self.datasets
+                                      if d.__type__ == "lc"])
+        texp = np.min([d.texp for d in self.datasets
+                              if d.__type__ == "lc"])
 
         # Get the median parameters of the fit.
         fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
@@ -162,9 +165,12 @@ class ResultsProcess(object):
 
     def _rv_plot(self, args):
         outdir, planet_ind = args
-        # time = np.concatenate([d.time for d in self.datasets])
-        # flux = np.concatenate([d.flux for d in self.datasets])
-        # texp = np.min([d.texp for d in self.datasets])
+        time = np.concatenate([d.time for d in self.datasets
+                                      if d.__type__ == "rv"])
+        rv_data = np.concatenate([d.rv for d in self.datasets
+                                       if d.__type__ == "rv"])
+        rverr_data = np.concatenate([d.rverr for d in self.datasets
+                                             if d.__type__ == "rv"])
 
         # Get the median parameters of the fit.
         fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
@@ -184,10 +190,8 @@ class ResultsProcess(object):
         # Plot the data and samples.
         fig = pl.figure()
         ax = fig.add_subplot(111)
-        # time = time % P - t0
-        # inds = (time < duration) * (time > -duration)
-        # ax.plot(time[inds] * 24.0, flux[inds] / fstar, ".",
-        #         alpha=1.0, color="#888888", rasterized=True)
+        ax.errorbar(time * 24.0, rv_data, yerr=rverr_data, fmt=".",
+                alpha=1.0, color="#888888")
         ax.plot(t * 24.0, rv.T, color="k", alpha=0.5)
 
         # Annotate the axes.
