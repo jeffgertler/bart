@@ -204,7 +204,7 @@
           if (rvflag.eq.1) then
             th = dacos(cth)
             th = th * dsign(1.d0, dsin(th)) * dsign(1.d0, spsi)
-            radvel(i) = K*(dsin(th-pomega) - e*dsin(pomega))
+            radvel(i) = -K*(dsin(th-pomega) - e*dsin(pomega))
           endif
 
         enddo

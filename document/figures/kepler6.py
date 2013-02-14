@@ -81,7 +81,7 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
 
     # Set up the system.
-    system = bart.PlanetarySystem(star, iobs=i,
+    system = bart.PlanetarySystem(star, iobs=i, rv0=-15.0,
                                   basepath="kepler6-{0}".format(eta))
     system.add_planet(planet)
 
@@ -109,18 +109,22 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
-    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=1.1)
+    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=5.0)
     if fitrv:
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)
 
-    #
-    # pl.plot(system.datasets[0].time % P, system.datasets[0].flux, ".k",
-    #         alpha=0.1)
-    # ts = np.linspace(0, P, 5000)
-    # pl.plot(ts, system.lightcurve(ts))
-    # pl.savefig("blah.png")
-    # assert 0
+    # Plot initial conditions.
+    pl.plot(system.datasets[0].time % P, system.datasets[0].flux, ".k",
+            alpha=0.1)
+    ts = np.linspace(0, P, 5000)
+    pl.plot(ts, system.lightcurve(ts))
+    pl.savefig("initial_lc.png")
+    pl.clf()
+    pl.errorbar(ds.time % P, ds.rv,
+                yerr=np.sqrt(ds.rverr ** 2 + ds.jitter ** 2), fmt=".k")
+    pl.plot(ts, system.radial_velocity(ts))
+    pl.savefig("initial_rv.png")
 
     if not results_only:
         system.fit(nsteps, thin=10, burnin=[], nwalkers=64)
