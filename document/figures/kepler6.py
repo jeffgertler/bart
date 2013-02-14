@@ -34,6 +34,7 @@ from bart.parameters.star import RelativeLimbDarkeningParameters
 from bart.parameters.planet import EccentricityParameter
 
 import numpy as np
+import matplotlib.pyplot as pl
 from matplotlib.ticker import MaxNLocator
 
 
@@ -70,7 +71,7 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     mass = 0.669 * 9.5492e-4  # Solar masses.
 
     # The reference "transit" time.
-    t0 = 1.795  # Found by eye.
+    t0 = 0.28  # Found by eye.
 
     # Set up the planet.
     planet = bart.Planet(r=r * rstar, a=a * rstar, t0=t0, mass=mass)
@@ -113,6 +114,14 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)
 
+    #
+    # pl.plot(system.datasets[0].time % P, system.datasets[0].flux, ".k",
+    #         alpha=0.1)
+    # ts = np.linspace(0, P, 5000)
+    # pl.plot(ts, system.lightcurve(ts))
+    # pl.savefig("blah.png")
+    # assert 0
+
     if not results_only:
         system.fit(nsteps, thin=10, burnin=[], nwalkers=64)
 
@@ -130,7 +139,8 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
 
     # RV plot.
     ax = results._rv_plots("rv")[0]
-    ax.errorbar(24 * (ds.time % P), ds.rv, yerr=ds.rverr, fmt=".k")
+    ax.errorbar(24 * (ds.time % results.periods[0]), ds.rv, yerr=ds.rverr,
+                fmt=".k")
     ax.figure.savefig("rv.png")
 
     # Other results plots.
@@ -190,7 +200,6 @@ if __name__ == "__main__":
              fitrv=args["--rv"])
 
     # Plot the combined histogram.
-    import matplotlib.pyplot as pl
     # hist_ax = pl.figure(figsize=(4, 4)).add_axes([0.1, 0.2, 0.8, 0.75])
 
     columns = {

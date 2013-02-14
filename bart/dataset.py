@@ -33,6 +33,10 @@ class KeplerDataset(Dataset):
     def __init__(self, fn, jitter=0.0):
         f = pyfits.open(fn)
         lc = np.array(f[1].data)
+
+        # Time correction.
+        t0 = f[1].header["BJDREFI"] + f[1].header["BJDREFF"]
+
         cadence = 0 if f[0].header["OBSMODE"] == "short cadence" else 1
         f.close()
 
@@ -40,7 +44,7 @@ class KeplerDataset(Dataset):
         # http://archive.stsci.edu/mast_faq.php?mission=KEPLER#50
         texp = [54.2, 1626][cadence]
 
-        time = lc["TIME"]
+        time = lc["TIME"] + t0
         flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
 
         super(KeplerDataset, self).__init__(time, flux, ferr, texp / 60.,
