@@ -44,7 +44,7 @@ class KeplerDataset(Dataset):
         # http://archive.stsci.edu/mast_faq.php?mission=KEPLER#50
         texp = [54.2, 1626][cadence]
 
-        time = lc["TIME"] + t0
+        time = lc["TIME"]  # + t0
         flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
 
         super(KeplerDataset, self).__init__(time, flux, ferr, texp / 60.,
@@ -64,7 +64,7 @@ class RVDataset(Model):
     def __init__(self, time, rv, rverr, jitter=0.0):
         super(RVDataset, self).__init__()
         inds = ~np.isnan(time) * ~np.isnan(rv) * ~np.isnan(rverr)
-        self.time = time[inds]
+        self.time = time[inds] - 2454833.0
         self.rv = rv[inds]
         self.rverr = rverr[inds]
         self.ivar = 1.0 / self.rverr / self.rverr

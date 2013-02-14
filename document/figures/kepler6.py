@@ -71,7 +71,7 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     mass = 0.669 * 9.5492e-4  # Solar masses.
 
     # The reference "transit" time.
-    t0 = 0.28  # Found by eye.
+    t0 = 1.795  # 0.28  # Found by eye.
 
     # Set up the planet.
     planet = bart.Planet(r=r * rstar, a=a * rstar, t0=t0, mass=mass)
@@ -106,10 +106,12 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     # Read in the data.
     for fn in fns:
         system.add_dataset(KeplerDataset(fn))
+        print(system.datasets[-1].time)
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
     ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=5.0)
+    print(ds.time)
     if fitrv:
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)

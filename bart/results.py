@@ -262,14 +262,19 @@ class ResultsProcess(object):
     def _time_plot(self, outdir):
         fig = pl.figure()
         names = np.concatenate([p.names for p in self.parlist])
+        print(names)
         for i in range(self._chain.shape[2]):
             fig.clf()
             ax = fig.add_subplot(111)
             ax.plot(self._chain[:, :, i].T)
             ax.axvline(self.burnin, color="k", ls="dashed")
-            ax.set_title(names[i])
+            try:
+                n = names[i]
+            except IndexError:
+                n = "blah-{0}".format(i)
+            ax.set_title(n)
             fig.savefig(os.path.join(self.basepath, outdir,
-                                     "{0}.png".format(names[i].strip("$"))))
+                                    "{0}.png".format(n.strip("$"))))
 
         fig.clf()
         ax = fig.add_subplot(111)
