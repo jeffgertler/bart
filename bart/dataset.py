@@ -20,7 +20,7 @@ class Dataset(Model):
         super(Dataset, self).__init__()
 
         self.texp = texp
-        self.jitter = 0.0
+        self.jitter = jitter
         self.zp = zp
 
         # Sanitize the data.
@@ -44,7 +44,7 @@ class KeplerDataset(Dataset):
         time = lc["TIME"]  # + t0
         flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
 
-        super(KeplerDataset, self).__init__(time, flux, ferr, texp / 60.,
+        super(KeplerDataset, self).__init__(time, flux, ferr, texp,
                                             jitter=jitter)
 
         # Remove the arbitrary median.

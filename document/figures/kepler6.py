@@ -112,7 +112,7 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
-    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=5.0)
+    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=1.5)
     if fitrv:
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)
