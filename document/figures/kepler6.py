@@ -4,6 +4,7 @@
 Demo of how you would use Bart to fit a Kepler light curve.
 
 Usage: kepler6.py [FILE...] [-e ETA]... [--results_only] [-n STEPS] [-b BURN]
+                  [--rv] [-s INIT]
 
 Options:
     -h --help       show this
@@ -12,6 +13,8 @@ Options:
     --results_only  only plot the results, don't do the fit
     -n STEPS        the number of steps to take [default: 2000]
     -b BURN         the number of burn in steps to take [default: 50]
+    --rv            fit radial velocity?
+    -s INIT         initialize from a previous run
 
 """
 
@@ -26,10 +29,14 @@ import bart
 from bart import kepler
 from bart.dataset import KeplerDataset, RVDataset
 from bart.results import ResultsProcess, Column
+from bart.parameters.priors import GaussianPrior
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
+from bart.parameters.planet import EccentricityParameter
 
+import h5py
 import numpy as np
+import matplotlib.pyplot as pl
 from matplotlib.ticker import MaxNLocator
 
 
@@ -49,7 +56,8 @@ class CosParameter(Parameter):
         return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
 
 
-def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
+def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,
+         start=None):
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
@@ -66,7 +74,7 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
     mass = 0.669 * 9.5492e-4  # Solar masses.
 
     # The reference "transit" time.
-    t0 = 1.795  # Found by eye.
+    t0 = 1.795  # 0.28  # Found by eye.
 
     # Set up the planet.
     planet = bart.Planet(r=r * rstar, a=a * rstar, t0=t0, mass=mass)
@@ -76,7 +84,7 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
     star = bart.Star(mass=planet.get_mstar(P), radius=rstar, ldp=ldp)
 
     # Set up the system.
-    system = bart.PlanetarySystem(star, iobs=i,
+    system = bart.PlanetarySystem(star, iobs=i, rv0=-15.0,
                                   basepath="kepler6-{0}".format(eta))
     system.add_planet(planet)
 
@@ -84,9 +92,16 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
     planet.parameters.append(Parameter(r"$r$", "r"))
     planet.parameters.append(LogParameter(r"$a$", "a"))
     planet.parameters.append(Parameter(r"$t_0$", "t0"))
+    planet.parameters.append(LogParameter(r"$M_p$", "mass"))
+    planet.parameters.append(EccentricityParameter())
 
     system.parameters.append(CosParameter(r"$i$", "iobs"))
+    system.parameters.append(Parameter(r"$v_0$", "rv0"))
 
+    star.parameters.append(LogParameter(r"$M_\star$", "mass",
+                                        prior=GaussianPrior(star.mass, 0.1)))
+    star.parameters.append(LogParameter(r"$R_\star$", "radius",
+                                        prior=GaussianPrior(1.391, 0.034)))
     star.parameters.append(RelativeLimbDarkeningParameters(star.ldp.bins,
                                                    star.ldp.intensity,
                                                    eta=eta))
@@ -97,11 +112,25 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
-    system.add_dataset(RVDataset(rv[:, 0], rv[:, 2], rv[:, 3]))
+    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=1.5)
+    if fitrv:
+        ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
+        system.add_dataset(ds)
 
-    # system.fit((time, flux, ferr), 1, thin=1, burnin=[], nwalkers=64)
+    # Plot initial conditions.
+    pl.plot(system.datasets[0].time % P, system.datasets[0].flux, ".k",
+            alpha=0.1)
+    ts = np.linspace(0, P, 5000)
+    pl.plot(ts, system.lightcurve(ts))
+    pl.savefig("initial_lc.png")
+    pl.clf()
+    pl.errorbar(ds.time % P, ds.rv,
+                yerr=np.sqrt(ds.rverr ** 2 + ds.jitter ** 2), fmt=".k")
+    pl.plot(ts, system.radial_velocity(ts))
+    pl.savefig("initial_rv.png")
+
     if not results_only:
-        system.fit(nsteps, thin=10, burnin=[], nwalkers=64)
+        system.fit(nsteps, thin=10, burnin=[], nwalkers=64, start=start)
 
     # Plot the results.
     print("Plotting results")
@@ -117,18 +146,22 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50):
 
     # RV plot.
     ax = results._rv_plots("rv")[0]
-    ax.errorbar(24 * (rv[:, 0] % P), rv[:, 2], yerr=rv[:, 3], fmt=".k")
+    ax.errorbar(24 * (ds.time % results.periods[0]), ds.rv, yerr=ds.rverr,
+                fmt=".k")
     ax.figure.savefig("rv.png")
 
     # Other results plots.
     results.lc_plot()
     results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
     results.time_plot()
+
     results.corner_plot([
-            Column(r"$a$", lambda s: s.planets[0].a / s.star.radius),
-            Column(r"$r$", lambda s: s.planets[0].r / s.star.radius),
+            Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
+            Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
             Column(r"$t_0$", lambda s: s.planets[0].t0),
             Column(r"$i$", lambda s: s.iobs),
+            Column(r"$e$", lambda s: s.planets[0].e),
+            Column(r"$\varpi$", lambda s: s.planets[0].pomega),
         ])
 
 
@@ -166,14 +199,22 @@ if __name__ == "__main__":
     else:
         in_fns = fns
 
+    # Initialization.
+    init_fn = args["-s"]
+    if init_fn is not None:
+        with h5py.File(init_fn) as f:
+            start = f["mcmc"]["chain"][:, -1, :]
+    else:
+        start = None
+
     # Run the fit.
     etas = np.array([float(eta) for eta in args["-e"]])
     for eta in etas:
         main(in_fns, eta, results_only=args["--results_only"],
-             nsteps=int(args["-n"]), nburn=int(args["-b"]))
+             nsteps=int(args["-n"]), nburn=int(args["-b"]),
+             fitrv=args["--rv"], start=start)
 
     # Plot the combined histogram.
-    import matplotlib.pyplot as pl
     # hist_ax = pl.figure(figsize=(4, 4)).add_axes([0.1, 0.2, 0.8, 0.75])
 
     columns = {

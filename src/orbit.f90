@@ -30,9 +30,9 @@
         do it=1,maxit
 
           ! Compute the function and derivatives.
-          spsi0 = dsin(psi0)
+          spsi0 = sin(psi0)
           f = psi0 - e * spsi0 - wt
-          fp = 1.d0 - e * dcos(psi0)
+          fp = 1.d0 - e * cos(psi0)
           fpp = e * spsi0
 
           ! Take a second order step.
@@ -204,7 +204,7 @@
           if (rvflag.eq.1) then
             th = dacos(cth)
             th = th * dsign(1.d0, dsin(th)) * dsign(1.d0, spsi)
-            radvel(i) = K*(dsin(th-pomega) - e*dsin(pomega))
+            radvel(i) = -K*(dsin(th-pomega) - e*dsin(pomega))
           endif
 
         enddo

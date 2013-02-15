@@ -8,14 +8,20 @@ __all__ = ["Dataset", "KeplerDataset", "RVDataset"]
 
 import pyfits
 import numpy as np
+from .bart import Model
+from . import kepler
 
 
-class Dataset(object):
+class Dataset(Model):
 
     __type__ = "lc"
 
-    def __init__(self, time, flux, ferr, texp):
+    def __init__(self, time, flux, ferr, texp, zp=1.0, jitter=0.0):
+        super(Dataset, self).__init__()
+
         self.texp = texp
+        self.jitter = jitter
+        self.zp = zp
 
         # Sanitize the data.
         inds = ~np.isnan(time) * ~np.isnan(flux) * ~np.isnan(ferr)
@@ -25,20 +31,21 @@ class Dataset(object):
 
 class KeplerDataset(Dataset):
 
-    def __init__(self, fn):
+    def __init__(self, fn, jitter=0.0):
         f = pyfits.open(fn)
         lc = np.array(f[1].data)
-        cadence = 0 if f[0].header["OBSMODE"] == "short cadence" else 1
+        self.cadence = 0 if f[0].header["OBSMODE"] == "short cadence" else 1
         f.close()
 
         # Get the exposure time.
         # http://archive.stsci.edu/mast_faq.php?mission=KEPLER#50
-        texp = [54.2, 1626][cadence]
+        texp = kepler.EXPOSURE_TIMES[self.cadence]
 
-        time = lc["TIME"]
+        time = lc["TIME"]  # + t0
         flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
 
-        super(KeplerDataset, self).__init__(time, flux, ferr, texp / 60.)
+        super(KeplerDataset, self).__init__(time, flux, ferr, texp,
+                                            jitter=jitter)
 
         # Remove the arbitrary median.
         self.median = np.median(self.flux)
@@ -47,14 +54,15 @@ class KeplerDataset(Dataset):
         self.ivar *= self.median * self.median
 
 
-class RVDataset(Dataset):
+class RVDataset(Model):
 
     __type__ = "rv"
 
-    def __init__(self, time, rv, rverr):
+    def __init__(self, time, rv, rverr, jitter=0.0):
+        super(RVDataset, self).__init__()
         inds = ~np.isnan(time) * ~np.isnan(rv) * ~np.isnan(rverr)
-
-        self.time = time[inds]
+        self.time = time[inds] - kepler.TIME_ZERO
         self.rv = rv[inds]
         self.rverr = rverr[inds]
         self.ivar = 1.0 / self.rverr / self.rverr
+        self.jitter = jitter

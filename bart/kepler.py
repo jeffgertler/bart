@@ -4,7 +4,7 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["load", "fiducial_ldp", "API"]
+__all__ = ["fiducial_ldp", "API", "EXPOSURE_TIMES", "TIME_ZERO"]
 
 import os
 import json
@@ -12,6 +12,10 @@ import requests
 import numpy as np
 
 from .ldp import QuadraticLimbDarkening
+
+
+EXPOSURE_TIMES = [54.2, 1626.0]
+TIME_ZERO = 2454833.0
 
 
 def fiducial_ldp(teff, logg, feh, bins=None, alpha=1.0):

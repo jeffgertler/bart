@@ -54,6 +54,8 @@ class Parameter(object):
 
     def sample(self, obj, std=1e-5, size=1):
         v0 = self.conv(self.getter(obj))
+        if np.abs(v0) < std:
+            return v0 + std * np.random.randn(size)
         return v0 * (1 + std * np.random.randn(size))
 
     def conv(self, val):
@@ -140,8 +142,8 @@ class MultipleParameter(Parameter):
         return "[" + ", ".join(self.names) + "]"
 
     def __repr__(self):
-        return "MultipleParameter({0.names}, {0.length}, prior={0.priors})" \
-                                                                .format(self)
+        return "{1}({0.names}, priors={0.priors})" \
+                                    .format(self, self.__class__.__name__)
 
     def __len__(self):
         return len(self.names)
