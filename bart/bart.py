@@ -400,7 +400,7 @@ class PlanetarySystem(Model):
                                                     for p in self.planets]
         return zip(*r)
 
-    def lightcurve(self, t, texp=6, K=3):
+    def lightcurve(self, t, texp=54.2, K=3):
         """
         Get the light curve of the model at the current model.
 
@@ -408,7 +408,7 @@ class PlanetarySystem(Model):
             The times where the light curve should be evaluated.
 
         :param texp:
-            The exposure time in minutes.
+            The exposure time in seconds.
 
         :param K:
             The number of bins to use when integrating over exposure time.
@@ -417,7 +417,7 @@ class PlanetarySystem(Model):
         mass, r, a, t0, e, pomega, ix, iy = self._get_pars()
         s = self.star
         ldp = s.ldp
-        lc, info = _bart.lightcurve(t, texp / 1440., K, s.flux, s.mass,
+        lc, info = _bart.lightcurve(t, texp / 68400., K, s.flux, s.mass,
                                 s.radius, self.iobs,
                                 mass, r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
@@ -511,16 +511,19 @@ class PlanetarySystem(Model):
         # Do some HACKISH initialization. Start with a small ball and then
         # iterate (shrinking the size of the ball each time) until the range
         # of log-probabilities is "acceptable".
-        print("Initializing walkers.")
-        ball = 1e-5
-        p0 = self.sample(nwalkers, std=ball)
-        lp = s._get_lnprob(p0)[0]
-        dlp = np.var(lp)
-        while dlp > 2:
-            ball *= 0.5
+        if start is None:
+            print("Initializing walkers.")
+            ball = 1e-5
             p0 = self.sample(nwalkers, std=ball)
             lp = s._get_lnprob(p0)[0]
             dlp = np.var(lp)
+            while dlp > 2:
+                ball *= 0.5
+                p0 = self.sample(nwalkers, std=ball)
+                lp = s._get_lnprob(p0)[0]
+                dlp = np.var(lp)
+        else:
+            p0 = np.array(start)
 
         # Run the burn-in iterations. After each burn-in run, cluster the
         # walkers and discard the worst ones.
@@ -574,6 +577,8 @@ class PlanetarySystem(Model):
         pars = self.parameters + self.star.parameters
         for p in self.planets:
             pars += p.parameters
+        for d in self.datasets:
+            pars += d.parameters
         par_list = np.array([str(pickle.dumps(p, 0)) for p in pars])
 
         # Pickle the initial conditions of ``self`` so that we can start again

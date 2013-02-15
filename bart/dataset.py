@@ -8,7 +8,8 @@ __all__ = ["Dataset", "KeplerDataset", "RVDataset"]
 
 import pyfits
 import numpy as np
-from bart.bart import Model
+from .bart import Model
+from . import kepler
 
 
 class Dataset(Model):
@@ -33,16 +34,12 @@ class KeplerDataset(Dataset):
     def __init__(self, fn, jitter=0.0):
         f = pyfits.open(fn)
         lc = np.array(f[1].data)
-
-        # Time correction.
-        t0 = f[1].header["BJDREFI"] + f[1].header["BJDREFF"]
-
-        cadence = 0 if f[0].header["OBSMODE"] == "short cadence" else 1
+        self.cadence = 0 if f[0].header["OBSMODE"] == "short cadence" else 1
         f.close()
 
         # Get the exposure time.
         # http://archive.stsci.edu/mast_faq.php?mission=KEPLER#50
-        texp = [54.2, 1626][cadence]
+        texp = kepler.EXPOSURE_TIMES[self.cadence]
 
         time = lc["TIME"]  # + t0
         flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
@@ -64,7 +61,7 @@ class RVDataset(Model):
     def __init__(self, time, rv, rverr, jitter=0.0):
         super(RVDataset, self).__init__()
         inds = ~np.isnan(time) * ~np.isnan(rv) * ~np.isnan(rverr)
-        self.time = time[inds] - 2454833.0
+        self.time = time[inds] - kepler.TIME_ZERO
         self.rv = rv[inds]
         self.rverr = rverr[inds]
         self.ivar = 1.0 / self.rverr / self.rverr
