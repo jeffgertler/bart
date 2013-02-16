@@ -133,23 +133,20 @@ class ResultsProcess(object):
         for d in self.datasets:
             trange = [min(trange[0], np.min(d.time)),
                       max(trange[1], np.max(d.time))]
+            t = 24 * (d.time % P)
             if d.__type__ == "lc":
-                t = (d.time) % P - t0 % P
-                d.cadence = 0 if d.texp < 1 else 1
-                inds = (t < duration) * (t > -duration)
-                folded_ax[d.cadence].plot(24 * t[inds],
-                                          d.flux[inds], ".", color="#888888",
+                folded_ax[d.cadence].plot(t, d.flux, ".", color="#888888",
                                           rasterized=True)
                 full_ax[d.cadence].plot(d.time, d.flux, ".", color="#888888",
                                         rasterized=True)
             else:
-                rv_ax.errorbar((d.time % P) * 24., d.rv, yerr=d.rverr, fmt=".",
+                rv_ax.errorbar(t, d.rv, yerr=d.rverr, fmt=".",
                                color="#888888")
                 full_ax[2].errorbar(d.time, d.rv, yerr=d.rverr, fmt=".",
                                     color="#888888")
 
         t_full = np.arange(trange[0], trange[1], 0.1)
-        t_folded = np.linspace(-duration, duration, 5000)
+        t_folded = np.linspace(0, P, 5000)
         t_short = np.linspace(0, P, 5000)
 
         # Loop over the samples.
@@ -162,28 +159,30 @@ class ResultsProcess(object):
                        alpha=0.5, zorder=-1)
 
             # Plot the full curves.
-            full_ax[0].plot(t_full, self.system.lightcurve(t_full,
-                                            texp=kepler.EXPOSURE_TIMES[0]),
-                            "k", alpha=0.5)
-            full_ax[1].plot(t_full, self.system.lightcurve(t_full,
-                                            texp=kepler.EXPOSURE_TIMES[1]),
-                            "k", alpha=0.5)
-            full_ax[2].plot(t_full, self.system.radial_velocity(t_full),
-                            "k", alpha=0.5, zorder=-1)
+            if i == 0:
+                full_ax[0].plot(t_full, self.system.lightcurve(t_full,
+                                                texp=kepler.EXPOSURE_TIMES[0]),
+                                "k", alpha=0.3)
+                full_ax[1].plot(t_full, self.system.lightcurve(t_full,
+                                                texp=kepler.EXPOSURE_TIMES[1]),
+                                "k", alpha=0.3)
+                full_ax[2].plot(t_full, self.system.radial_velocity(t_full),
+                                "k", alpha=0.3)
 
             # Center the transit and plot the folded models.
-            self.system.planets[planet_ind].t0 = 0.0
+            # self.system.planets[planet_ind].t0 = 1.795
             folded_ax[0].plot(t_folded * 24, self.system.lightcurve(t_folded,
                                             texp=kepler.EXPOSURE_TIMES[0]),
-                            "k", alpha=0.5)
+                              "k", alpha=0.5)
             folded_ax[1].plot(t_folded * 24, self.system.lightcurve(t_folded,
                                             texp=kepler.EXPOSURE_TIMES[1]),
-                            "k", alpha=0.5)
+                              "k", alpha=0.5)
 
         # Set axes ranges.
         [ax.set_xlim(*trange) for ax in full_ax]
         [ax.set_ylim(0.981, 1.009) for ax in full_ax[:-1]]
-        [ax.set_xlim(-24 * duration, 24 * duration) for ax in folded_ax]
+        [ax.set_xlim(24 * (t0 - duration), 24 * (t0 + duration))
+                                                    for ax in folded_ax]
         [ax.set_ylim(0.981, 1.009) for ax in folded_ax]
 
         # Annotations.

@@ -130,7 +130,11 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,
     pl.savefig("initial_rv.png")
 
     if not results_only:
-        system.fit(nsteps, thin=10, burnin=[], nwalkers=64, start=start)
+        if start is None:
+            bsch = []
+        else:
+            bsch = [10, ]
+        system.fit(nsteps, thin=10, burnin=bsch, nwalkers=64, start=start)
 
     # Plot the results.
     print("Plotting results")
