@@ -62,7 +62,7 @@ setup(
     include_package_data=True,
     packages=["bart", ],
     ext_modules=[bart, kmeans, period],
-    install_requires=["emcee", "triangle_plot"],
+    install_requires=[l.strip() for l in open("requirements.txt")],
     classifiers=[
         # "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
