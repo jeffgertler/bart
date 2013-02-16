@@ -1,8 +1,30 @@
 Bart
 ====
 
-Summary
--------
+**Bart** is a set of tools for working with observations of `exoplanets
+<http://en.wikipedia.org/wiki/Extrasolar_planet>`_. There are two main
+components: a standalone **Fortran library** for quickly generating extremely
+general models of exoplanet transits and radial velocity observations, and
+**Python bindings** to this library that make it extremely easy to fit for
+the physical parameters of an exoplanetary system given a heterogeneous set
+of observations.
+
+
+Features
+--------
+
+- Built-in integration with the Kepler data repository
+- General non-parametric limb-darkening
+- Sophisticated but user-friendly model building syntax
+- Efficient MCMC sampling using `emcee <http://dan.iel.fm/emcee>`_
+
+User Guide
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+   user/quickstart
 
 
 Authors & Contributions
