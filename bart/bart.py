@@ -502,7 +502,7 @@ class PlanetarySystem(Model):
         # Parse the other input parameters.
         threads = kwargs.get("threads", 10)
         burnin = kwargs.get("burnin", [])
-        K = kwargs.get("K", 4)
+        K = kwargs.get("K", 2)
         thin = kwargs.get("thin", 1)
 
         # Initialize a sampler.
