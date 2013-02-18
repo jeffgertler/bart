@@ -10,7 +10,7 @@ h5py>=2.1.0
 # My other modules.
 acor>=1.0.2
 emcee>=1.1.2
-triangle_plot>=0.0.3
+triangle_plot>=0.0.4
 
 # For interacting with the Kepler API.
 requests>=1.1.0
