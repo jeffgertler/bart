@@ -25,6 +25,7 @@ except ImportError:
     h5py = None
 
 from bart import _bart, mog
+from bart.km import km1d
 from bart.ldp import LimbDarkening
 from bart.results import ResultsProcess
 
@@ -531,13 +532,10 @@ class PlanetarySystem(Model):
             print(u"Burn-in pass {0}...".format(i + 1))
             p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
 
-            # Cluster the positions of the walkers at their final position
-            # in log-probability using K-means.
-            mix = mog.MixtureModel(K, np.atleast_2d(lprob).T)
-            mix.run_kmeans()
-
-            # Extract the cluster memberships.
-            rs, rmxs = mix.kmeans_rs, np.argsort(mix.means.flatten())
+            lp = s.lnprobability
+            mu, rs = km1d(lp.reshape(lp.size), k=K)
+            rs = rs.reshape(lp.shape)[:, -1]
+            rmxs = np.argsort(mu)
 
             # Determine the "best" cluster that actually has walkers in it.
             for rmx in rmxs[::-1]:
