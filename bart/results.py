@@ -98,7 +98,8 @@ class ResultsProcess(object):
         # Grab the labels.
         labels = [p.name for p in parameters]
 
-        fig = triangle.corner(plotchain, labels=labels, bins=20)
+        fig = triangle.corner(plotchain, labels=labels, bins=20,
+                              quantiles=[0.16, 0.5, 0.84])
         self.savefig(outfn, fig=fig)
 
     def corner_plot(self, parameters, outfn="corner"):
