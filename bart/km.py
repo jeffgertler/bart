@@ -11,6 +11,9 @@ import numpy as np
 
 
 def km1d(x, k=2, maxiter=256, miniter=2):
+    mu, var = np.mean(x), np.var(x)
+    x = (np.array(x) - mu) / var
+
     means = x[np.random.randint(len(x), size=k)]
     r0 = None
 
@@ -30,7 +33,7 @@ def km1d(x, k=2, maxiter=256, miniter=2):
     if j >= maxiter - 1:
         print("Warning: K-means didn't converge.")
 
-    return means, rs
+    return means * var + mu, rs
 
 
 if __name__ == "__main__":
