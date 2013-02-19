@@ -107,12 +107,18 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,
                                                    eta=eta))
 
     # Read in the data.
+    datasets = []
     for fn in fns:
-        system.add_dataset(KeplerDataset(fn))
+        datasets.append(KeplerDataset(fn))
+    mu_t = np.median(np.concatenate([d.time for d in datasets]))
+    mu_t -= mu_t % P
+    for d in datasets:
+        d.time -= mu_t
+        system.add_dataset(d)
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
-    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=1.5)
+    ds = RVDataset(rv[:, 0] - mu_t, rv[:, 2], rv[:, 3], jitter=0.5)
     if fitrv:
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)
