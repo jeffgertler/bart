@@ -24,7 +24,7 @@ try:
 except ImportError:
     h5py = None
 
-from bart import _bart, mog
+from bart import _bart
 from bart.km import km1d
 from bart.ldp import LimbDarkening
 from bart.results import ResultsProcess
@@ -503,7 +503,7 @@ class PlanetarySystem(Model):
         # Parse the other input parameters.
         threads = kwargs.get("threads", 10)
         burnin = kwargs.get("burnin", [])
-        K = kwargs.get("K", 2)
+        K = kwargs.get("K", 4)
         thin = kwargs.get("thin", 1)
 
         # Initialize a sampler.
@@ -530,7 +530,7 @@ class PlanetarySystem(Model):
         # walkers and discard the worst ones.
         for i, nburn in enumerate(burnin):
             print(u"Burn-in pass {0}...".format(i + 1))
-            p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
+            p0, lprob, state = s.run_mcmc(p0, nburn)
 
             lp = s.lnprobability
             mu, rs = km1d(lp.reshape(lp.size), k=K)
