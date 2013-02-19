@@ -38,9 +38,6 @@ if u"interface" in sys.argv or not all(interfaces_exist):
 bart = Extension("bart._bart", ["bart/bart.pyf", "src/lightcurve.f90",
                                 "src/ld.f90", "src/orbit.f90"])
 
-# Define the K-means C extension.
-kmeans = Extension("bart._algorithms", ["bart/_algorithms.c", ])
-
 # Define the periodogram extension.
 period = Extension("bart.period._period", ["bart/period/period.pyf",
                                            "src/period/periodogram.f90"])
