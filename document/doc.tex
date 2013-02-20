@@ -477,9 +477,31 @@ simulation to draw samples
     \model_k \sim \pr{\model\,|\setof{\fobs},\,\setof{\tobs},\,\setof{\ferr}}
     \quad.
 \end{eqnarray}
-In particular, we use the \emcee\ sampler as described by \citet{emcee} and
-\citet{goodman}.
-\emcee\ provides an efficient sampling algorithm based on the stre
+In particular, we use the \emcee\ sampler as described by \citet{emcee}
+based on \citet{goodman}.
+The interested reader is directed to the original papers for detailed
+information about the sampling procedure but we will outline the basic
+information here.
+\emcee\ works by simultaneously evolving an ensemble of coupled ``walkers''
+in the vector space spanned by the model parameters.
+Each walker starts at an initial position in the space and then a new position
+is proposed for each walker based on the current position of all of the other
+walkers.
+This proposal is then accepted with a probability that is similar to the
+standard Metropolis--Hastings acceptance probability.
+If there are $K$ walkers in the ensemble and we advance the chain $N$ steps,
+we will have produced $N \times K$ un-biased samples from the PDF.
+The number of \emph{independent} samples will depend on the integrated
+autocorrelation time of the series.
+
+As with all MCMC algorithms, the user must choose an initial set of
+parameters where the chain should start.
+In practice, the performance of the sampler depends sensitively on this
+choice and we will discuss qualitatively in section SOMESECTION and in more
+detail in a forthcoming paper.
+For the purposes of this \paper---since we will only be considering previously
+discovered planets---we will simply initialize the parameters at the location
+of the published values.
 
 
 \section{Kepler-6b}
