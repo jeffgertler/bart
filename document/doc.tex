@@ -122,6 +122,7 @@
                         K\"onigstuhl 17, D-69117 Heidelberg, Germany}
 
 \begin{abstract}
+
 With enormous numbers of transiting exoplanets being discovered by
 \project{Kepler}, it is finally becoming possible to hierarchically infer the
 parameters of the entire population of exoplanets.
@@ -130,19 +131,19 @@ probabilistic transit modeling---sampling the posterior PDF for the
 parameters of an arbitrary multi-planet exoplanet system given stellar
 light-curve data and parameterized priors.
 We present a computationally efficient and extremely flexible system
-called \project{Bart} for performing these inferences.
-\project{Bart} uses a non-parametric limb-darkening law
+called \bart\ for performing these inferences.
+\bart\ uses a non-parametric limb-darkening law
 for each star; it is much more flexible than the classic analytic
 results in current use, at minimal computational cost.
-We apply \project{Bart} to all NNN planets observed in the
-\project{Kepler} photometric time series for the system Kepler-XXXXX
-and the IR light curve of BLAH observed by \project{Spitzer}.
-The code is designed so that radial velocity and astrometric observations can
-be easily incorporated as further constraints for a joint analysis when
-available.
+We demonstrate the power of a general exoplanet data analysis tool like
+\bart\ by simultaneously modeling all the \kepler\ observations---both
+long and short cadence---and radial velocity measurements of the Kepler-6
+system.
 
-\project{Bart} is implemented in Python and it is available under the
-\license\ online at \url{http://dan.iel.fm/bart}.
+At its core, \project{Bart} is a standalone Fortran library with convenient
+and well-tested Python bindings.
+It is available under the \license\ online at \url{http://dan.iel.fm/bart}.
+
 \end{abstract}
 
 \keywords{%
