@@ -470,6 +470,17 @@ For the limb darkening parameters, we assume uniform priors in
 This forces the profile to be monotonically decreasing but it produces huge
 correlations between parameters. FIXME?
 
+To determine the form of the posterior PDF, we use a Markov chain Monte Carlo
+\citep[MCMC; see, for example,][]{nr-book,bishop-book,mackay-book,gelman-book}
+simulation to draw samples
+\begin{eqnarray}
+    \model_k \sim \pr{\model\,|\setof{\fobs},\,\setof{\tobs},\,\setof{\ferr}}
+    \quad.
+\end{eqnarray}
+In particular, we use the \emcee\ sampler as described by \citet{emcee} and
+\citet{goodman}.
+\emcee\ provides an efficient sampling algorithm based on the stre
+
 
 \section{Kepler-6b}
 
@@ -479,8 +490,8 @@ It is a hot Jupiter orbiting a high metallicity star nearby star.
 The transit has high signal-to-noise making it an excellent test candidate.
 There are 37 calibrated light curves available from the \kepler\ data
 archive\footnote{%
-\url{http://keplergo.arc.nasa.gov/DataAnalysisRetrieval.shtml}} taken between
-2009 and 2012.
+\url{http://keplergo.arc.nasa.gov/DataAnalysisRetrieval.shtml} DFM CHECK URL}
+taken between 2009 and 2012.
 Of these, 13 are long cadence observations and the rest are short cadence.
 \citet{kepler6b} also published radial velocity measurements taken using HIRES
 on Keck.
@@ -532,18 +543,40 @@ This project was partially supported by the NSF (grant AST-0908357), and NASA
 \newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
 \begin{thebibliography}{}\raggedright
 
+\bibitem[Bishop(2003)]{bishop-book}
+Bishop, C.~M., \emph{Pattern Recognition and Machine Learning}, Springer, 2009
+
 \bibitem[Dawson \& Johnson(2012)]{dawson}
 Dawson, R.~I., \& Johnson, J.~A.\ 2012, \apj, 756, 122
 
-\bibitem[Dunham et al.(2010)]{kepler6b}
+\bibitem[Dunham \etal(2010)]{kepler6b}
 Dunham, E.~W., Borucki, W.~J., Koch, D.~G., et al.\ 2010, \apjl, 713, L136
 
-\bibitem[Goldstein et al.(2002)]{goldstein}
+\bibitem[Foreman-Mackey \etal(2012)]{emcee}
+Foreman-Mackey, D., Hogg, D.~W., Lang, D., \& Goodman, J.\ 2013, \pasp\ in
+press
+
+\bibitem[Gelman \etal(2003)]{gelman-book}
+Gelman, A., Carlin, J.~B., Stern, H.~S., Rubin, D.~B., \& Dunson, D.~B.,
+\emph{Bayesian Data Analysis}, Chapman \& Hall, 2003
+
+\bibitem[Goldstein \etal(2002)]{goldstein}
 Goldstein, H., Poole, C., \& Safko, J.\ 2002, \emph{Classical mechanics}
     (3rd ed.), Addison-Wesley
 
+\bibitem[Goodman~\&\ Weare(2010)]{gw}
+Goodman,~J. \& Weare,\ J.\ 2010, Comm.\ App.\ Math.\ Comp.\ Sci., 5, 65
+
+\bibitem[MacKay(2003))]{mackay-book}
+MacKay, D., \emph{Information Theory, Inference, and Learning Algorithms},
+Cambridge University Press, 2003
+
 \bibitem[Mandel \& Agol(2002)]{mandel}
 Mandel, K., \& Agol, E.\ 2002, \apjl, 580, L171 \arxiv{astro-ph/0210099}
+
+\bibitem[Press \etal(2007)]{nr-book}
+Press, W.~H., Teukolsky, S.~A., Vetterling, W.~T., \& Flannery, B.~P.,
+\emph{Numerical Recipes}, Cambridge University Press, 2007
 
 \end{thebibliography}
 
