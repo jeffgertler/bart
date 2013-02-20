@@ -447,6 +447,29 @@ as the set
     \right ) \quad.
 \end{eqnarray}
 
+The quantity that we are interested in constraining is the posterior
+probability function---the probability of the model parameters given all the
+data---which, by Bayes' theorem, is given by
+\begin{eqnarray}
+    \pr{\model\,|\setof{\fobs},\,\setof{\tobs},\,\setof{\ferr}}
+    & \propto & \pr{\model} \, \pr{\setof{\fobs}\,|\,\setof{\tobs},
+                                   \,\setof{\ferr},\,\model}
+\end{eqnarray}
+where $\pr{\model}$ quantifies our prior probability for a given set of
+parameters.
+For the stellar parameters, we generally choose Gaussian priors
+that approximate the constraints determined by stellar models and spectral
+observations.
+We assume uniform priors in \tzero, $\ln\smaxis$, $\ln\rplanet$,
+\incl, $\ecc\,\sin\pomega$, $\ecc\,\cos\pomega$, $\ln\mplanet$, $\cos \iobs$,
+and $\ln\jitter$.
+For the limb darkening parameters, we assume uniform priors in
+\begin{eqnarray}
+    \ln\left ( I_k - I_{k+1} \right ) \quad.
+\end{eqnarray}
+This forces the profile to be monotonically decreasing but it produces huge
+correlations between parameters. FIXME?
+
 
 \section{Kepler-6b}
 
