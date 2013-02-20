@@ -73,7 +73,6 @@
 \newcommand{\ferr}{\ensuremath{\sigma_n^2}}
 \newcommand{\fullerr}{\ensuremath{s_n^2}}
 
-% limb darkening.
 \newcommand{\rstar}{\ensuremath{R_\star}}
 \newcommand{\rplanet}{\ensuremath{r}}
 \newcommand{\impactpar}{\ensuremath{b}}
@@ -94,6 +93,7 @@
 \newcommand{\ecc}{\ensuremath{e}}
 \newcommand{\pomega}{\ensuremath{\varpi}}
 \newcommand{\incl}{\ensuremath{\bvec{\delta i}}}
+\newcommand{\mplanet}{\ensuremath{{M_\mathrm{p}}}}
 
 % Other parameters.
 \newcommand{\jitter}{\ensuremath{\delta^2}}
@@ -291,10 +291,11 @@ In \bart, we parameterize the orbit of a planet with the parameters:
     {\item the mid-transit time \tzero\ of a reference transit,}
     {\item the semi-major axis \smaxis,}
     {\item the eccentricity \ecc,}
-    {\item the longitude of perihelion \pomega, and}
+    {\item the longitude of perihelion \pomega,}
     {\item the inclination \incl\ of the orbital angular momentum unit
            vector with respect to the mean orbital momentum vector of the
-           system.}
+           system, and}
+    {\item the mass of the planet \mplanet.}
 \end{itemize}
 Supplementing these $6\,\nplanets$ parameters with the mass of the star
 \mstar\ and the inclination \iobs\ of the mean orbital angular momentum vector
@@ -441,7 +442,7 @@ as the set
 \begin{eqnarray}
     \model & = & \left (
         \setof{\tzero_j,\,\smaxis_j,\,\rplanet_j,\,\ecc_j,\,\pomega_j,\,
-        \incl_j},\,\iobs,\,\mstar,\,\rstar,\,\fstar,\,\jitter,\,
+        \incl_j, \mplanet_j},\,\iobs,\,\mstar,\,\rstar,\,\fstar,\,\jitter,\,
         \setof{\rsurface_k,\,I_k}
     \right ) \quad.
 \end{eqnarray}
