@@ -452,6 +452,33 @@ as the set
 
 Kepler-6b is one of the first planets confirmed by the \kepler\ team
 \citep{kepler6b}.
+It is a hot Jupiter orbiting a high metallicity star nearby star.
+The transit has high signal-to-noise making it an excellent test candidate.
+There are 37 calibrated light curves available from the \kepler\ data
+archive\footnote{%
+\url{http://keplergo.arc.nasa.gov/DataAnalysisRetrieval.shtml}} taken between
+2009 and 2012.
+Of these, 13 are long cadence observations and the rest are short cadence.
+\citet{kepler6b} also published radial velocity measurements taken using HIRES
+on Keck.
+
+For simplicity, we use the ``PDC'' corrected flux values for the light curve.
+This introduces correlations between data points that we will neglect for now
+but see section SOMESECTION for a discussion of this effect.
+
+The light curves provided by the \kepler\ reduction and de-trending pipeline
+use arbitrary and inconsistent units so the datasets cannot be naively
+combined.
+Instead, we normalize the light curves by dividing out the median flux.
+This is only an approximate solution to this problem and it would be more
+rigorous to simply infer the zero point of each dataset independently but we
+find that it is a very good approximation.
+
+For numerical stability, we also subtract the median time\footnote{It is worth
+noting that the times provided in the \kepler\ light curve files are given in
+Barycentric Julian Day (BJD) minus 2454833.0 and it is important that we
+correct for this when doing a joint analysis of both the radial velocity and
+the light curve observations.} from all of the observations.
 
 
 \section{Discussion}
