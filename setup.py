@@ -55,7 +55,7 @@ setup(
     author_email="danfm@nyu.edu",
     description="",
     long_description=open("README.rst").read(),
-    packages=["bart"],
+    packages=["bart", "bart.parameters"],
     package_data={"": ["README.rst"], "bart": ["ld.txt"]},
     package_dir={"bart": "bart"},
     include_package_data=True,

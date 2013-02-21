@@ -530,6 +530,7 @@ class PlanetarySystem(Model):
                 p0 = self.sample(nwalkers, std=ball)
                 lp = s._get_lnprob(p0)[0]
                 dlp = np.var(lp)
+                print(ball, dlp)
         else:
             p0 = np.array(start)
 

@@ -8,6 +8,7 @@ __all__ = ["Star", "Planet", "PlanetarySystem", "LimbDarkening",
 
 from .bart import Star, Planet, PlanetarySystem
 from .ldp import LimbDarkening, QuadraticLimbDarkening
+from . import parameters
 
 __version__ = "0.0.2"
 __author__ = "Dan Foreman-Mackey (danfm@nyu.edu)"
