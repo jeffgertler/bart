@@ -32,7 +32,7 @@ from bart.results import ResultsProcess, Column
 from bart.parameters.priors import GaussianPrior
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
-from bart.parameters.planet import EccentricityParameter
+from bart.parameters.planet import EccentricityParameter, CosParameter
 
 import h5py
 import numpy as np
@@ -42,18 +42,6 @@ from matplotlib.ticker import MaxNLocator
 
 # Reproducible Science.™
 np.random.seed(100)
-
-
-class CosParameter(Parameter):
-
-    def getter(self, obj):
-        return np.cos(np.radians(obj.iobs))
-
-    def setter(self, obj, val):
-        obj.iobs = np.degrees(np.arccos(val))
-
-    def sample(self, obj, std=1e-5, size=1):
-        return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
 
 
 def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,

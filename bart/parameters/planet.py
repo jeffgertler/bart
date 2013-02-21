@@ -4,10 +4,10 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["EccentricityParameter"]
+__all__ = ["EccentricityParameter", "CosParameter"]
 
 import numpy as np
-from .base import MultipleParameter
+from .base import MultipleParameter, Parameter
 
 
 class EccentricityParameter(MultipleParameter):
@@ -39,3 +39,15 @@ class EccentricityParameter(MultipleParameter):
         if 0 <= obj.e < 1 and -np.pi <= obj.pomega <= np.pi:
             return 0.0
         return -np.inf
+
+
+class CosParameter(Parameter):
+
+    def getter(self, obj):
+        return np.cos(np.radians(obj.iobs))
+
+    def setter(self, obj, val):
+        obj.iobs = np.degrees(np.arccos(val))
+
+    def sample(self, obj, std=1e-5, size=1):
+        return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))

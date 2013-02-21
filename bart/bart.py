@@ -218,6 +218,9 @@ class PlanetarySystem(Model):
         # Data.
         self.datasets = []
 
+        # Priors.
+        self.priors = []
+
         # The properties of the system as a whole.
         self.star = star
         self.iobs = iobs
@@ -228,6 +231,9 @@ class PlanetarySystem(Model):
 
     def add_dataset(self, ds):
         self.datasets.append(ds)
+
+    def add_prior(self, p):
+        self.priors.append(p)
 
     @property
     def spec(self):
@@ -357,7 +363,8 @@ class PlanetarySystem(Model):
         Compute the log-prior of the current model.
 
         """
-        lnp = [p.lnprior(self) for p in self.parameters]
+        lnp = [p(self) for p in self.priors]
+        lnp += [p.lnprior(self) for p in self.parameters]
         lnp += [p.lnprior(self.star) for p in self.star.parameters]
         for planet in self.planets:
             lnp += [p.lnprior(planet) for p in planet.parameters]
