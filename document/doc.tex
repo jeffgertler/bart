@@ -483,9 +483,9 @@ This de-trending is a black box from our perspective; it must
 introduce correlations in the residuals away from any simple
 constant-star model, and it must introduce other (possibly very small)
 problems.
-Even in the absence of pipeline issues, intrinsic stellar variability
-will also in general introduce statistical correlations in the
-residuals over finite time intervals.
+Even in the absence of pipeline issues, intrinsic stochastic or
+quasi-periodic stellar variability will also in general introduce
+statistical correlations in the residuals over finite time intervals.
 The generative model in this project permits a stellar luminosity
 ``jitter'' but effectively assumes that both the observational noise
 and the jitter is uncorrelated from observation to observation.
@@ -497,8 +497,9 @@ de-trending, the residuals ought to be describable by some kind of
 Gaussian Process (DFM CITE RASMUSSEN) with non-trivial covariance
 structure (Hou et al, forthcoming).
 There are well developed probabilistic inference methods for Gaussian
-Processes, it ought to be possible to extend \bart\ top perform rapid
-transit modeling in the presence of (at least weak) variability.
+Processes, it ought to be possible to extend \bart\ top perform
+responsible and rapid transit modeling in the presence of (at least
+weak) stochastic or quasi-periodic variability.
 
 Please use our code.  It is available at XXX.
 
