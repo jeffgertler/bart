@@ -75,6 +75,7 @@ class API(object):
         """
         params["action"] = params.get("action", "Search")
         params["outputformat"] = "JSON"
+        params["verb"] = 3
         r = requests.get(self.base_url.format(category), params=params)
         if r.status_code != requests.codes.ok:
             r.raise_for_status()
