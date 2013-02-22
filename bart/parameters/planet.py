@@ -47,10 +47,18 @@ class EccentricityParameter(MultipleParameter):
 class CosParameter(Parameter):
 
     def getter(self, obj):
-        return np.cos(np.radians(obj.iobs))
+        return np.cos(np.radians(obj.ix))
 
     def setter(self, obj, val):
-        obj.iobs = np.degrees(np.arccos(val))
+        obj.ix = np.degrees(np.arccos(val))
+
+    def lnprior(self, obj):
+        if 0 <= obj.ix < 90.0:
+            return 0.0
+        return -np.inf
 
     def sample(self, obj, std=1e-5, size=1):
-        return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
+        i = obj.ix * (1 + std * np.random.randn(size))
+        while np.any(i > 90):
+            i[i > 90] = 180 - i[i > 90]
+        return np.cos(np.radians(i))
