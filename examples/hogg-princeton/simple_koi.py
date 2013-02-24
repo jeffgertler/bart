@@ -3,7 +3,8 @@
 """
 Fit an arbitrary KOI using Bart.
 
-Usage: simple_koi.py KOI [--results_only] [-n STEPS] [-b BURN] [-s INIT]
+Usage: simple_koi.py KOI [KOI...] [--results_only] [-n STEPS] [-b BURN]
+                     [-s INIT]
 
 Options:
     -h --help       show this
@@ -124,6 +125,8 @@ def simple_koi(kepoi="1.01", restart=None, results_only=False,
 if __name__ == "__main__":
     from docopt import docopt
     args = docopt(__doc__)
-    simple_koi(kepoi=args["KOI"], restart=args["-s"],
-               results_only=args["--results_only"],
-               nsteps=int(args["-n"]), burnin=int(args["-b"]))
+    for koi in args["KOI"]:
+        print("Starting KOI {0}".format(koi))
+        simple_koi(kepoi=koi, restart=args["-s"],
+                   results_only=args["--results_only"],
+                   nsteps=int(args["-n"]), burnin=int(args["-b"]))
