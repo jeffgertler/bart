@@ -64,6 +64,7 @@ def simple_koi(kepoi="1.01", restart=None, results_only=False,
         # cataloged inclination seems to be wrong.
         b = float(d["Impact Parameter"])
         i = np.degrees(np.arccos(b * rstar / a))
+        # i = float(d["Inclination"])
         P = float(d["Period"])
         t0 = float(d["Time of Transit Epoch"]) % P
 
@@ -76,6 +77,8 @@ def simple_koi(kepoi="1.01", restart=None, results_only=False,
         mass += planet.get_mstar(P) / len(data)
 
         planets.append(planet)
+
+    print("{0} planets".format(len(planets)))
 
     # Set up the star.
     ldp = kepler.fiducial_ldp(teff, logg, feh, bins=40)
@@ -92,11 +95,15 @@ def simple_koi(kepoi="1.01", restart=None, results_only=False,
                                                 for d in system.datasets])))
 
     # Plot the initial fit.
-    [pl.plot(d.time % P, d.flux, ".k", alpha=0.1) for d in system.datasets]
-    ts = np.linspace(t0 - 1, t0 + 1, 5000)
-    pl.plot(ts, system.lightcurve(ts))
-    pl.xlim(t0 - 1, t0 + 1)
-    pl.savefig("{0}/initial_lc.png".format(kepid))
+    for i, p in enumerate(planets):
+        P = p.get_period(star.mass)
+        t0 = p.t0
+        pl.clf()
+        [pl.plot(d.time % P, d.flux, ".k", alpha=0.1) for d in system.datasets]
+        ts = np.linspace(t0 - 1, t0 + 1, 5000)
+        pl.plot(ts, system.lightcurve(ts))
+        pl.xlim(t0 - 1, t0 + 1)
+        pl.savefig("{0}/initial_lc_{1}.png".format(kepid, i))
 
     if restart is not None:
         with h5py.File(restart) as f:
@@ -108,7 +115,7 @@ def simple_koi(kepoi="1.01", restart=None, results_only=False,
 
     if not results_only:
         system.fit(nsteps, thin=10, burnin=bi,
-                   nwalkers=len(system.planets) * 16, start=start)
+                   nwalkers=16, start=start)
 
     results = system.results(thin=1, burnin=burnin)
     results.lc_plot()
@@ -127,6 +134,11 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     for koi in args["KOI"]:
         print("Starting KOI {0}".format(koi))
-        simple_koi(kepoi=koi, restart=args["-s"],
-                   results_only=args["--results_only"],
-                   nsteps=int(args["-n"]), burnin=int(args["-b"]))
+        try:
+            simple_koi(kepoi=koi, restart=args["-s"],
+                       results_only=args["--results_only"],
+                       nsteps=int(args["-n"]), burnin=int(args["-b"]))
+        except:
+            print("KOI {0} failed.".format(koi))
+            import traceback
+            traceback.print_exc()

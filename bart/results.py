@@ -135,9 +135,12 @@ class ResultsProcess(object):
             trange = [min(trange[0], np.min(d.time)),
                       max(trange[1], np.max(d.time))]
             t = 24 * (d.time % P)
+            t_f = (d.time - t0) % P
+            t_f[t_f > duration] -= P
+            inds = (t_f < duration) * (t_f > -duration)
             if d.__type__ == "lc":
-                folded_ax[d.cadence].plot(t, d.flux, ".", color="#888888",
-                                          rasterized=True)
+                folded_ax[d.cadence].plot(24 * t_f[inds], d.flux[inds], ".",
+                                          color="#888888", rasterized=True)
                 full_ax[d.cadence].plot(d.time, d.flux, ".", color="#888888",
                                         rasterized=True)
             else:
@@ -147,7 +150,7 @@ class ResultsProcess(object):
                                     color="#888888")
 
         t_full = np.arange(trange[0], trange[1], 0.1)
-        t_folded = np.linspace(0, P, 5000)
+        t_folded = np.linspace(-duration, duration, 5000)
         t_short = np.linspace(0, P, 5000)
 
         # Loop over the samples.
@@ -171,20 +174,19 @@ class ResultsProcess(object):
                                 "k", alpha=0.3)
 
             # Center the transit and plot the folded models.
-            # self.system.planets[planet_ind].t0 = 1.795
+            self.system.planets[planet_ind].t0 = 0.0
             folded_ax[0].plot(t_folded * 24, self.system.lightcurve(t_folded,
-                                            texp=kepler.EXPOSURE_TIMES[0]),
+                                             texp=kepler.EXPOSURE_TIMES[0]),
                               "k", alpha=0.5)
             folded_ax[1].plot(t_folded * 24, self.system.lightcurve(t_folded,
-                                            texp=kepler.EXPOSURE_TIMES[1]),
+                                             texp=kepler.EXPOSURE_TIMES[1]),
                               "k", alpha=0.5)
 
         # Set axes ranges.
         [ax.set_xlim(*trange) for ax in full_ax]
-        [ax.set_ylim(0.981, 1.009) for ax in full_ax[:-1]]
-        [ax.set_xlim(24 * (t0 - duration), 24 * (t0 + duration))
-                                                    for ax in folded_ax]
-        [ax.set_ylim(0.981, 1.009) for ax in folded_ax]
+        # [ax.set_ylim(0.981, 1.009) for ax in full_ax[:-1]]
+        [ax.set_xlim(-24 * duration, 24 * duration) for ax in folded_ax]
+        # [ax.set_ylim(0.981, 1.009) for ax in folded_ax]
 
         # Annotations.
         folded_ax[0].set_xlabel("Time [Hours Since Transit]")
@@ -315,7 +317,6 @@ class ResultsProcess(object):
     def _time_plot(self, outdir):
         fig = pl.figure()
         names = np.concatenate([p.names for p in self.parlist])
-        print(names)
         for i in range(self._chain.shape[2]):
             fig.clf()
             ax = fig.add_subplot(111)
