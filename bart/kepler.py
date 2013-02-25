@@ -18,7 +18,7 @@ EXPOSURE_TIMES = [54.2, 1626.0]
 TIME_ZERO = 2454833.0
 
 
-def fiducial_ldp(teff, logg, feh, bins=None, alpha=1.0):
+def fiducial_ldp(teff=5778, logg=4.44, feh=0.0, bins=None, alpha=1.0):
     """
     Get the standard Kepler limb-darkening profile.
 
