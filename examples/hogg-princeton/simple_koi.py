@@ -8,7 +8,7 @@ Usage: simple_koi.py KOI [KOI...] [--results_only] [-n STEPS] [-b BURN]
 
 Options:
     -h --help       show this
-    KOI             the KOI number to fit
+    KOI             the KOI number or Kepler ID to fit
     --results_only  only plot the results, don't do the fit
     -n STEPS        the number of steps to take [default: 1500]
     -b BURN         the number of burn in steps to take [default: 50]
@@ -31,17 +31,18 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 
-def simple_koi(kepoi="1.01", restart=None, results_only=False,
+def simple_koi(kepoi=None, kepid=None, restart=None, results_only=False,
                nsteps=1500, burnin=40):
     # Fetch the parameters from the API.
     api = kepler.API()
 
-    # Find the Kepler ID associated with this KOI.
-    data = api.kois(kepoi=kepoi)
-    assert data is not None and len(data) > 0, "Unknown KOI."
+    if kepid is None:
+        assert kepoi is not None, "Choose a KOI or Kepler ID"
+        # Find the Kepler ID associated with this KOI.
+        data = api.kois(kepoi=kepoi)
+        assert data is not None and len(data) > 0, "Unknown KOI."
+        kepid = data[0]["Kepler ID"]
 
-    # Get all the KOIs associated with this star.
-    kepid = data[0]["Kepler ID"]
     data = api.kois(kepid=kepid)
 
     # Download the data files.
@@ -135,9 +136,15 @@ if __name__ == "__main__":
     for koi in args["KOI"]:
         print("Starting KOI {0}".format(koi))
         try:
-            simple_koi(kepoi=koi, restart=args["-s"],
+            kwargs = {}
+            if "." in koi:
+                kwargs["kepoi"] = koi
+            else:
+                kwargs["kepid"] = koi
+            simple_koi(restart=args["-s"],
                        results_only=args["--results_only"],
-                       nsteps=int(args["-n"]), burnin=int(args["-b"]))
+                       nsteps=int(args["-n"]), burnin=int(args["-b"]),
+                       **kwargs)
         except:
             print("KOI {0} failed.".format(koi))
             import traceback
