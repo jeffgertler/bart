@@ -140,7 +140,8 @@ class ResultsProcess(object):
             inds = (t_f < duration) * (t_f > -duration)
             if d.__type__ == "lc":
                 folded_ax[d.cadence].plot(24 * t_f[inds], d.flux[inds], ".",
-                                          color="#888888", rasterized=True)
+                                          color="#888888", rasterized=True,
+                                          alpha=0.5)
                 full_ax[d.cadence].plot(d.time, d.flux, ".", color="#888888",
                                         rasterized=True)
             else:
@@ -150,7 +151,7 @@ class ResultsProcess(object):
                                     color="#888888")
 
         t_full = np.arange(trange[0], trange[1], 0.1)
-        t_folded = np.linspace(-duration, duration, 5000)
+        t_folded = np.linspace(-duration, duration, 10000)
         t_short = np.linspace(0, P, 5000)
 
         # Loop over the samples.
@@ -187,6 +188,14 @@ class ResultsProcess(object):
         # [ax.set_ylim(0.981, 1.009) for ax in full_ax[:-1]]
         [ax.set_xlim(-24 * duration, 24 * duration) for ax in folded_ax]
         # [ax.set_ylim(0.981, 1.009) for ax in folded_ax]
+
+        # Hogg's insanity.
+        q1 = np.median(np.concatenate([d.ferr for d in self.datasets
+                                       if hasattr(d, "ferr")]))
+        q2 = (r / rstar) ** 2
+        Q = np.sqrt((8 * q1) ** 2 + (2 * q2) ** 2)
+        print(q1, q2, Q)
+        [ax.set_ylim(1 - Q, 1 + 0.5 * Q) for ax in folded_ax]
 
         # Annotations.
         folded_ax[0].set_xlabel("Time [Hours Since Transit]")
