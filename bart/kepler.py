@@ -10,12 +10,43 @@ import os
 import json
 import requests
 import numpy as np
+from scipy.interpolate import LSQUnivariateSpline
 
 from .ldp import QuadraticLimbDarkening
 
 
 EXPOSURE_TIMES = [54.2, 1626.0]
 TIME_ZERO = 2454833.0
+
+
+def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-1, maxiter=15):
+    if yerr is None:
+        yerr = np.ones_like(y)
+
+    inds = np.argsort(x)
+    x, y, yerr = x[inds], y[inds], yerr[inds]
+    w = 1. / yerr / yerr
+    t = np.arange(x[0], x[-1], dt)[1:]
+
+    inds = np.ones_like(x, dtype=bool)
+    s0 = None
+    for i in range(maxiter):
+        ti = (t > x[inds].min()) * (t < x[inds].max())
+        p = LSQUnivariateSpline(x[inds], y[inds], t[ti], w=w[inds], k=3)
+        delta = (y - p(x)) ** 2 / yerr ** 2
+        sigma = np.median(delta[inds])
+        if s0 is not None and np.abs(s0 - sigma) < tol:
+            break
+        s0 = sigma
+        inds = delta < Q * sigma
+
+    return y / p(x)
+
+
+def window_detrend(x, y, yerr=None, dt=2):
+    for i in range(len(x)):
+        y[i] /= np.median(y[np.abs(x - x[i]) < dt])
+    return y
 
 
 def fiducial_ldp(teff=5778, logg=4.44, feh=0.0, bins=None, alpha=1.0):
