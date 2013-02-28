@@ -384,14 +384,18 @@ class PlanetarySystem(Model):
         return -0.5 * self.chi2()
 
     def chi2(self):
+        Nmax = 100
         c2 = 0.0
         for ds in self.datasets:
             if ds.__type__ == "lc":
                 model = self.lightcurve(ds.time, texp=ds.texp)
                 delta = ds.flux - ds.zp * model
-                gp = george.GaussianProccess([1.0, 2.0])
-                gp.fit(ds.time, delta, yerr=ds.ferr)
-                c2 -= 2 * gp.evaluate()
+                gp = george.GaussianProcess([1.0, 2.0])
+                for i in range(0, len(ds.time), Nmax):
+                    gp.fit(ds.time[i:i + Nmax], delta[i:i + Nmax],
+                           yerr=ds.ferr[i:i + Nmax])
+                    v = gp.evaluate()
+                    c2 -= 2 * v
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
@@ -405,6 +409,8 @@ class PlanetarySystem(Model):
 
             else:
                 raise TypeError()
+
+        print(c2)
 
         return c2
 
