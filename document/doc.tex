@@ -468,7 +468,7 @@ What is so good about what we have done?
 What are the limitations of what we have done?
 
 We didn't do anything beyond limb darkening:  No sunspots or convection.
-How could we (in principle) make those changes within the \bart\ framework?
+Is there any way we could (in principle) make those changes within the \bart\ framework?
 
 Related to the above, are there elliptical generalizations of any of the above?
 
@@ -476,6 +476,30 @@ We didn't do anything about reflection or emission from the companion.
 How could we (in principle) make that change within the framework?
 Along these lines, \bart\ could be used to model eclipsing binaries,
 in which both members of the binary have non-trivial limb darkening.
+
+In this demonstration of \bart, we have used data reduced and
+de-trended by the \kepler\ pipelines.
+This de-trending is a black box from our perspective; it must
+introduce correlations in the residuals away from any simple
+constant-star model, and it must introduce other (possibly very small)
+problems.
+Even in the absence of pipeline issues, intrinsic stochastic or
+quasi-periodic stellar variability will also in general introduce
+statistical correlations in the residuals over finite time intervals.
+The generative model in this project permits a stellar luminosity
+``jitter'' but effectively assumes that both the observational noise
+and the jitter is uncorrelated from observation to observation.
+This assumption almost certainly leads to an unrealistically narrow
+posterior PDF; a more general noise model ought to increase the
+uncertainties on the inferred parameters.
+For certain kinds of (low level) stellar variability or pipeline
+de-trending, the residuals ought to be describable by some kind of
+Gaussian Process (DFM CITE RASMUSSEN) with non-trivial covariance
+structure (Hou et al, forthcoming).
+There are well developed probabilistic inference methods for Gaussian
+Processes, it ought to be possible to extend \bart\ top perform
+responsible and rapid transit modeling in the presence of (at least
+weak) stochastic or quasi-periodic variability.
 
 Please use our code.  It is available at XXX.
 

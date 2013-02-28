@@ -7,7 +7,8 @@ __all__ = ["Star", "Planet", "PlanetarySystem", "LimbDarkening",
            "QuadraticLimbDarkening"]
 
 from .bart import Star, Planet, PlanetarySystem
-from .ldp import LimbDarkening, QuadraticLimbDarkening
+from .dataset import KeplerDataset
+from . import parameters, kepler
 
 __version__ = "0.0.2"
 __author__ = "Dan Foreman-Mackey (danfm@nyu.edu)"

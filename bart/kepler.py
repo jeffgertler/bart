@@ -18,7 +18,7 @@ EXPOSURE_TIMES = [54.2, 1626.0]
 TIME_ZERO = 2454833.0
 
 
-def fiducial_ldp(teff, logg, feh, bins=None, alpha=1.0):
+def fiducial_ldp(teff=5778, logg=4.44, feh=0.0, bins=None, alpha=1.0):
     """
     Get the standard Kepler limb-darkening profile.
 
@@ -75,6 +75,7 @@ class API(object):
         """
         params["action"] = params.get("action", "Search")
         params["outputformat"] = "JSON"
+        params["verb"] = 3
         r = requests.get(self.base_url.format(category), params=params)
         if r.status_code != requests.codes.ok:
             r.raise_for_status()

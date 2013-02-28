@@ -13,3 +13,4 @@ venv
 MANIFEST
 dist
 COMMIT
+*.egg-info
