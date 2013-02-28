@@ -42,7 +42,8 @@ class KeplerDataset(Dataset):
         texp = kepler.EXPOSURE_TIMES[self.cadence]
 
         time = lc["TIME"]  # + t0
-        flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
+        flux, ferr = lc["SAP_FLUX"], lc["SAP_FLUX_ERR"]
+        # flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
 
         super(KeplerDataset, self).__init__(time, flux, ferr, texp,
                                             jitter=jitter)
