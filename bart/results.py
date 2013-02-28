@@ -13,6 +13,7 @@ from multiprocessing import Process
 import h5py
 import numpy as np
 import matplotlib.pyplot as pl
+from matplotlib.ticker import MaxNLocator
 import pystache
 
 import triangle
@@ -143,7 +144,7 @@ class ResultsProcess(object):
                                           color="#888888", rasterized=True,
                                           alpha=0.5)
                 full_ax[d.cadence].plot(d.time, d.flux, ".", color="#888888",
-                                        rasterized=True)
+                                        rasterized=True, alpha=0.5)
             else:
                 rv_ax.errorbar(t, d.rv, yerr=d.rverr, fmt=".",
                                color="#888888")
@@ -185,25 +186,34 @@ class ResultsProcess(object):
 
         # Set axes ranges.
         [ax.set_xlim(*trange) for ax in full_ax]
-        # [ax.set_ylim(0.981, 1.009) for ax in full_ax[:-1]]
         [ax.set_xlim(-24 * duration, 24 * duration) for ax in folded_ax]
-        # [ax.set_ylim(0.981, 1.009) for ax in folded_ax]
 
         # Hogg's insanity.
         q1 = np.median(np.concatenate([d.ferr for d in self.datasets
                                        if hasattr(d, "ferr")]))
         q2 = (r / rstar) ** 2
         Q = np.sqrt((8 * q1) ** 2 + (2 * q2) ** 2)
-        print(q1, q2, Q)
         [ax.set_ylim(1 - Q, 1 + 0.5 * Q) for ax in folded_ax]
+        [ax.set_ylim(1 - Q, 1 + 0.5 * Q) for ax in full_ax[:-1]]
+
+        # Ticks.
+        [ax.yaxis.set_major_locator(MaxNLocator(4))
+                    for ax in folded_ax + full_ax]
+        [ax.set_xticklabels([]) for ax in [folded_ax[0]] + full_ax[:-1]]
+
+        folded_ax[-1].xaxis.set_major_locator(MaxNLocator(4))
+        full_ax[-1].xaxis.set_major_locator(MaxNLocator(4))
 
         # Annotations.
-        folded_ax[0].set_xlabel("Time [Hours Since Transit]")
+        folded_ax[-1].set_xlabel("Time [Hours Since Transit]")
+        full_ax[-1].set_xlabel("KBJD")
         [ax.annotate(s, [1, 1], xycoords="axes fraction",
                      xytext=[-5, -5], textcoords="offset points",
                      ha="right", va="top")
-                for s, ax in zip(["short cadence", "long cadence"],
-                                 folded_ax)]
+                for s, ax in zip(["short cadence", "long cadence",
+                                  "short cadence", "long cadence",
+                                  "radial velocity"],
+                                 folded_ax + full_ax)]
 
         for d, f in [("folded", folded_lc_fig),
                      ("full", full_fig),

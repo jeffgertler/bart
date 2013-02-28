@@ -44,6 +44,7 @@ def simple_koi(kepoi=None, kepid=None, restart=None, results_only=False,
         kepid = data[0]["Kepler ID"]
 
     data = api.kois(kepid=kepid)
+    print("KOI {0}".format(data[0]["KOI Number"]))
 
     # Download the data files.
     files = api.data(kepid).fetch_all("{0}/data".format(kepid))
@@ -134,13 +135,14 @@ if __name__ == "__main__":
     from docopt import docopt
     args = docopt(__doc__)
     for koi in args["KOI"]:
-        print("Starting KOI {0}".format(koi))
+        kwargs = {}
+        if "." in koi:
+            print("Starting KOI: {0}".format(koi))
+            kwargs["kepoi"] = koi
+        else:
+            print("Starting Kepler ID: {0}".format(koi))
+            kwargs["kepid"] = koi
         try:
-            kwargs = {}
-            if "." in koi:
-                kwargs["kepoi"] = koi
-            else:
-                kwargs["kepid"] = koi
             simple_koi(restart=args["-s"],
                        results_only=args["--results_only"],
                        nsteps=int(args["-n"]), burnin=int(args["-b"]),

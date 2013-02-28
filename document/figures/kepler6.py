@@ -133,14 +133,14 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,
     # Plot the results.
     print("Plotting results")
     results = system.results(thin=10, burnin=nburn)
-    results.latex([
-            Column(r"$P\,[\mathrm{days}]$",
-                   lambda s: s.planets[0].get_period(s.star.mass)),
-            Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
-            Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
-            Column(r"$t_0\,[\mathrm{days}]$", lambda s: s.planets[0].t0),
-            Column(r"$i\,[\mathrm{deg}]$", lambda s: s.iobs),
-        ])
+    # results.latex([
+    #         Column(r"$P\,[\mathrm{days}]$",
+    #                lambda s: s.planets[0].get_period(s.star.mass)),
+    #         Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
+    #         Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
+    #         Column(r"$t_0\,[\mathrm{days}]$", lambda s: s.planets[0].t0),
+    #         Column(r"$i\,[\mathrm{deg}]$", lambda s: s.iobs),
+    #     ])
 
     # RV plot.
     ax = results._rv_plots("rv")[0]
@@ -150,17 +150,17 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,
 
     # Other results plots.
     results.lc_plot()
-    results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
-    results.time_plot()
+    # results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
+    # results.time_plot()
 
-    results.corner_plot([
-            Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
-            Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
-            Column(r"$t_0$", lambda s: s.planets[0].t0),
-            Column(r"$i$", lambda s: s.iobs),
-            Column(r"$e$", lambda s: s.planets[0].e),
-            Column(r"$\varpi$", lambda s: s.planets[0].pomega),
-        ])
+    # results.corner_plot([
+    #         Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
+    #         Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
+    #         Column(r"$t_0$", lambda s: s.planets[0].t0),
+    #         Column(r"$i$", lambda s: s.iobs),
+    #         Column(r"$e$", lambda s: s.planets[0].e),
+    #         Column(r"$\varpi$", lambda s: s.planets[0].pomega),
+    #     ])
 
 
 def download_data(bp):
