@@ -24,8 +24,6 @@ try:
 except ImportError:
     h5py = None
 
-import george
-
 from bart import _bart
 from bart.km import km1d
 from bart.ldp import LimbDarkening
@@ -384,33 +382,24 @@ class PlanetarySystem(Model):
         return -0.5 * self.chi2()
 
     def chi2(self):
-        Nmax = 100
         c2 = 0.0
         for ds in self.datasets:
             if ds.__type__ == "lc":
                 model = self.lightcurve(ds.time, texp=ds.texp)
                 delta = ds.flux - ds.zp * model
-                gp = george.GaussianProcess([1.0, 2.0])
-                for i in range(0, len(ds.time), Nmax):
-                    gp.fit(ds.time[i:i + Nmax], delta[i:i + Nmax],
-                           yerr=ds.ferr[i:i + Nmax])
-                    v = gp.evaluate()
-                    c2 -= 2 * v
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
                 delta = ds.rv - model
 
-                # Add in the jitter.
-                ivar = ds.ivar
-                inds = ivar > 0
-                ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
-                c2 += np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
-
             else:
                 raise TypeError()
 
-        print(c2)
+        # Add in the jitter.
+        ivar = ds.ivar
+        inds = ivar > 0
+        ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
+        c2 += np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
 
         return c2
 
