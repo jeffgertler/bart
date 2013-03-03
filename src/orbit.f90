@@ -21,10 +21,16 @@
         double precision, intent(in) :: wt, e
         double precision, intent(out) :: psi
         integer, intent(out) :: info
-        double precision :: psi0, spsi0, f, fp, fpp, tol=1.48e-8
+        double precision :: psi0, spsi0, f, fp, fpp, tol=1.48e-8, eps
         integer :: it, maxit=100
 
         info = 0
+
+        eps = 2 * epsilon(0.d0)
+        if (abs(e - 1.d0) .lt. eps .and. abs(wt) .lt. eps) then
+          psi0 = 0.d0
+          return
+        endif
 
         psi0 = wt
         do it=1,maxit
@@ -173,7 +179,7 @@
 
           manom = 2 * pi * (t(i) - t1) / period
 
-          call wt2psi(manom, e, psi, info)
+          call wt2psi(dmod(manom, 2 * pi), e, psi, info)
           if (info.ne.0) then
             return
           endif
