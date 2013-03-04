@@ -168,13 +168,14 @@ class Planet(Model):
 
     @property
     def spec(self):
-        return np.array([float(self.r), float(self.a), float(self.t0),
-                         float(self.e), float(self.pomega),
+        return np.array([float(self.r), float(self.a), float(self.mass),
+                         float(self.t0), float(self.e), float(self.pomega),
                          float(self.ix), float(self.iy)])
 
     @spec.setter  # NOQA
     def spec(self, v):
-        self.r, self.a, self.t0, self.e, self.pomega, self.ix, self.iy = v
+        (self.r, self.a, self.mass, self.t0, self.e, self.pomega, self.ix,
+         self.iy) = v
 
     def get_mstar(self, P):
         """
@@ -206,7 +207,8 @@ class PlanetarySystem(Model):
 
     """
 
-    def __init__(self, star, basepath=".", iobs=90.0, rv0=0.0):
+    def __init__(self, star, basepath=".", iobs=90.0, rv0=0.0, pbad=1e-4,
+                 vbad=1e-2):
         super(PlanetarySystem, self).__init__()
 
         self.basepath = basepath
@@ -229,6 +231,10 @@ class PlanetarySystem(Model):
         # The planets.
         self.planets = []
 
+        # The background model.
+        self.pbad = pbad
+        self.vbad = vbad
+
     def add_dataset(self, ds):
         self.datasets.append(ds)
 
@@ -237,17 +243,24 @@ class PlanetarySystem(Model):
 
     @property
     def spec(self):
-        return np.concatenate([[float(self.iobs)], self.star.spec,
+        return np.concatenate([[float(self.iobs), float(self.rv0),
+                                float(self.pbad), float(self.vbad)],
+                                self.star.spec,
                               np.concatenate([p.spec for p in self.planets])])
 
     @spec.setter  # NOQA
     def spec(self, v):
+        nspec = 4
         self.iobs = v[0]
+        self.rv0 = v[1]
+        self.pbad = v[2]
+        self.vbad = v[3]
+
         ls = len(self.star.spec)
-        self.star.spec = v[1:ls + 1]
+        self.star.spec = v[nspec:ls + nspec]
         lp = len(self.planets[0].spec)
         for i, p in enumerate(self.planets):
-            p.spec = v[ls + 1 + i * lp:ls + 1 + (i + 1) * lp]
+            p.spec = v[ls + nspec + i * lp:ls + nspec + (i + 1) * lp]
 
     def results(self, *args, **kwargs):
         kwargs["basepath"] = kwargs.pop("basepath", self.basepath)
@@ -376,32 +389,44 @@ class PlanetarySystem(Model):
 
     def lnlike(self):
         """
-        Compute the log-likelihood of the current model.
+        Compute the ln-likelihood of the current model.
 
         """
-        return -0.5 * self.chi2()
+        lnlike = 0.0
 
-    def chi2(self):
-        c2 = 0.0
         for ds in self.datasets:
+            # Add in the jitter.
+            ivar = ds.ivar
+            inds = ivar > 0
+            ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
+
             if ds.__type__ == "lc":
+                # Compute the "foreground" model probability.
                 model = self.lightcurve(ds.time, texp=ds.texp)
                 delta = ds.flux - ds.zp * model
+                e1 = np.log(1 - self.pbad) + 0.5 * np.log(ivar) \
+                     - 0.5 * delta * delta * ivar
+
+                # Compute the background model probability.
+                ivar_bg = np.zeros_like(ivar)
+                ivar_bg[inds] = 1. / (1. / ds.ivar[inds]
+                                      + self.vbad * self.vbad)
+                delta_bg = ds.flux - ds.zp
+                e2 = np.log(self.pbad) + 0.5 * np.log(ivar_bg) \
+                     - 0.5 * delta_bg * delta_bg * ivar_bg
+
+                lnlike += np.sum(np.logaddexp(e1, e2))
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
                 delta = ds.rv - model
+                c2 = np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
+                lnlike -= 0.5 * c2
 
             else:
                 raise TypeError()
 
-        # Add in the jitter.
-        ivar = ds.ivar
-        inds = ivar > 0
-        ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
-        c2 += np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
-
-        return c2
+        return lnlike
 
     def _get_pars(self):
         r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
