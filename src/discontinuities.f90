@@ -37,13 +37,13 @@
 
       end subroutine
 
-      subroutine discontinuities(n, t, chi, dt, Q, ind)
+      subroutine discontinuities(n, t, chi, dt, Q, thresh, ind)
 
         implicit none
 
         integer, intent(in) :: n
         double precision, dimension(n), intent(in) :: t, chi
-        double precision, intent(in) :: dt, Q
+        double precision, intent(in) :: dt, Q, thresh
         integer, intent(out) :: ind
 
         integer :: i
@@ -61,7 +61,7 @@
           val = 0.d0
           call kernel(n, t, tmid, dt, softr, val)
 
-          if (val .ge. 1.d0 .and. val .ge. maxv) then
+          if (val .ge. thresh .and. val .ge. maxv) then
             ind = i - 1
             maxv = val
           endif

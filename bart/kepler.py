@@ -7,7 +7,6 @@ from __future__ import (division, print_function, absolute_import,
 __all__ = ["fiducial_ldp", "API", "EXPOSURE_TIMES", "TIME_ZERO"]
 
 import os
-import time
 import json
 import requests
 import numpy as np
@@ -74,7 +73,6 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-3, maxiter=15,
         t = add_knots(t, x[i], x[i + 1], N=nfill)
 
     for j in range(maxditer):
-        print("Iteration {0}".format(j))
         s0 = None
         for i in range(maxiter):
             # Fit the spline.
@@ -98,34 +96,14 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-3, maxiter=15,
             # Re compute weights.
             w = ivar * Q / (chi2 + Q)
 
-        # s = time.time()
-        # # Find discontinuities.
-        # kfunc = lambda x0: ((x0 / dt - 1) ** 2 * (x0 >= 0) * (x0 < dt)
-        #                   - (x0 / dt + 1) ** 2 * (x0 > -dt) * (x0 < 0))
-        # soft_r = np.sqrt(Q / (Q + chi2)) * chi
-        # scalar = np.zeros(len(x) - 1)
-        # for i in range(len(x) - 1):
-        #     tmid = 0.5 * (x[i] + x[i + 1])
-        #     k = kfunc(x - tmid)
-        #     scalar[i] = (np.dot(k, soft_r) / np.dot(k, k)) ** 2
-
-        # # Find the worst peaks in the scalar distribution.
-        # if len(scalar[scalar > 1.]) == 0:
-        #     return p, t
-
-        # # Add the extra knots.
-        # i = np.argmax(scalar)
-        # print("Python", i, time.time() - s)
-
-        s = time.time()
-        i = _bart.discontinuities(x, chi, dt, Q)
-        print("Fortran", i, time.time() - s)
+        # Find any discontinuities.
+        i = _bart.discontinuities(x, chi, 0.5 * dt, Q, 1.0)
         if i < 0:
-            return p, t
+            return p
 
         t = add_knots(t, x[i], x[i + 1], N=np.max([nfill, 4]))
 
-    return p, t
+    return p
 
 
 def add_knots(t, t1, t2, N=3):

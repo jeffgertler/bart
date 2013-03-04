@@ -34,17 +34,19 @@ if __name__ == "__main__":
         pass
 
     api = kepler.API()
-    fns = api.data("10593626").fetch_all("detrend_test/data")
+    fns = api.data("6869184").fetch_all("detrend_test/data")
+    # fns = api.data("10593626").fetch_all("detrend_test/data")
     # fns = api.data("10874614").fetch_all("detrend_test/data")
 
     pl.figure(figsize=(8, 8))
-    for i, fn in enumerate(fns):
+    for i, fn in enumerate(fns[3:4]):
         print(i)
         pl.clf()
         ds = KeplerDataset(fn, detrend=False, kepler_detrend=False)
 
         x, y, yerr = ds.time, ds.flux, ds.ferr
-        p, t = kepler.spline_detrend(x, y, yerr=yerr, dt=3., nfill=4)
+        p = kepler.spline_detrend(x, y, yerr=yerr, dt=3., nfill=4)
+        t = p.get_knots()
 
         pl.subplot(211)
         pl.plot(x, y, "+k")

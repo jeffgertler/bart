@@ -57,7 +57,7 @@ class KeplerDataset(Dataset):
         self.ivar *= self.median * self.median
 
         if detrend:
-            p, t = kepler.spline_detrend(self.time, self.flux, self.ferr)
+            p = kepler.spline_detrend(self.time, self.flux, self.ferr)
             factor = p(self.time)
             self.flux /= factor
             self.ferr /= factor
