@@ -24,7 +24,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Bart"
-copyright = u"2012, Dan Foreman-Mackey"
+copyright = u"2013, Dan Foreman-Mackey"
 # version = bart.__version__
 # release = bart.__version__
 

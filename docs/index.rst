@@ -1,5 +1,5 @@
-Bart
-====
+Rapid Exoplanet Transit Modeling in Python
+==========================================
 
 **Bart** is a set of tools for working with observations of `exoplanets
 <http://en.wikipedia.org/wiki/Extrasolar_planet>`_. There are two main
@@ -25,6 +25,15 @@ User Guide
    :maxdepth: 2
 
    user/quickstart
+   user/kepler
+
+API Reference
+-------------
+
+.. toctree::
+   :maxdepth: 2
+
+   api
 
 
 Authors & Contributions
@@ -40,8 +49,7 @@ For the hackers in the house, development happens on `Github
 License
 -------
 
-*Copyright 2012 Dan Foreman-Mackey, David W. Hogg, Patrick Cooper, and
-contributors.*
+*Copyright 2013 Dan Foreman-Mackey & contributors.*
 
 **Bart** is free software made available under the *MIT License*. For details
 see `the LICENSE file <https://raw.github.com/dfm/bart/master/LICENSE.rst>`_.
