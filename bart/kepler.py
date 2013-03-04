@@ -19,28 +19,81 @@ EXPOSURE_TIMES = [54.2, 1626.0]
 TIME_ZERO = 2454833.0
 
 
-def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-1, maxiter=15):
+def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-1, maxiter=15,
+                   full_output=False):
+    """
+    Use iteratively re-weighted least squares to fit a spline to the base
+    trend in a time series. This is especially useful (and specifically
+    tuned) for de-trending Kepler light curves.
+
+    :param x:
+        The sampled times.
+
+    :param y:
+        The fluxes corresponding to the times in ``x``.
+
+    :param yerr: (optional)
+        The 1-sigma error bars on ``y``.
+
+    :param Q: (optional)
+        The parameter controlling the severity of the re-weighting.
+
+    :param dt: (optional)
+        The initial spacing between time control points.
+
+    :param tol: (optional)
+        The convergence criterion.
+
+    :param maxiter: (optional)
+        The maximum number of re-weighting iterations to run.
+
+    :param full_output: (optional)
+        Return the spline object and the knot positions. Otherwise, just
+        return the de-trended signal.
+
+    """
     if yerr is None:
         yerr = np.ones_like(y)
 
     inds = np.argsort(x)
     x, y, yerr = x[inds], y[inds], yerr[inds]
-    w = 1. / yerr / yerr
-    t = np.arange(x[0], x[-1], dt)[1:]
+    ivar = 1. / yerr / yerr
+    w = np.array(ivar)
 
-    inds = np.ones_like(x, dtype=bool)
+    # Build the list of knot locations.
+    N = (x[-1] - x[0]) / dt + 2
+    t = np.linspace(x[0], x[-1], N)[1:-1]
+
+    # Refine knot locations around break points.
+    inds = x[1:] - x[:-1] > 10 ** (-1.25)
+    for i in np.arange(len(x))[inds]:
+        t = add_knots(t, x[i], x[i + 1])
+
     s0 = None
     for i in range(maxiter):
-        ti = (t > x[inds].min()) * (t < x[inds].max())
-        p = LSQUnivariateSpline(x[inds], y[inds], t[ti], w=w[inds], k=3)
-        delta = (y - p(x)) ** 2 / yerr ** 2
-        sigma = np.median(delta[inds])
+        # Fit the spline.
+        p = LSQUnivariateSpline(x, y, t, w=w, k=3)
+
+        # Compute chi_i ^2.
+        delta = (y - p(x)) ** 2 * ivar
+
+        # Check for convergence.
+        sigma = np.median(delta)
         if s0 is not None and np.abs(s0 - sigma) < tol:
             break
         s0 = sigma
-        inds = delta < Q * sigma
+
+        # Re compute weights.
+        w = ivar * Q / (delta + Q)
+
+    if full_output:
+        return p, t
 
     return y / p(x)
+
+
+def add_knots(t, t1, t2, N=3):
+    return np.sort(np.append(t[(t < t1) + (t > t2)], np.linspace(t1, t2, N)))
 
 
 def window_detrend(x, y, yerr=None, dt=2):

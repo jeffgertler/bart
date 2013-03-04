@@ -14,3 +14,4 @@ MANIFEST
 dist
 COMMIT
 *.egg-info
+detrend_test

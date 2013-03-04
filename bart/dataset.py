@@ -31,7 +31,7 @@ class Dataset(Model):
 
 class KeplerDataset(Dataset):
 
-    def __init__(self, fn, jitter=0.0):
+    def __init__(self, fn, jitter=0.0, detrend=True):
         f = pyfits.open(fn)
         lc = np.array(f[1].data)
         self.cadence = 0 if f[0].header["OBSMODE"] == "short cadence" else 1
@@ -47,6 +47,9 @@ class KeplerDataset(Dataset):
 
         super(KeplerDataset, self).__init__(time, flux, ferr, texp,
                                             jitter=jitter)
+
+        if detrend:
+            self.flux = kepler.spline_detrend(self.time, self.flux, self.ferr)
 
         # Remove the arbitrary median.
         self.median = np.median(self.flux)
