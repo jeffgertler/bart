@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import re
 import os
@@ -20,9 +21,10 @@ interfaces_exist = [os.path.exists(p) for p in [u"bart/bart.pyf",
 
 if u"interface" in sys.argv or not all(interfaces_exist):
     # Generate the Fortran signature/interface.
-    cmd = u"cd src;"
-    cmd += u"f2py lightcurve.f90 orbit.f90 ld.f90 -m _bart -h ../bart/bart.pyf"
-    cmd += u" --overwrite-signature"
+    cmd = "cd src;"
+    cmd += "f2py lightcurve.f90 orbit.f90 ld.f90 discontinuities.f90"
+    cmd += " -m _bart -h ../bart/bart.pyf"
+    cmd += " --overwrite-signature"
     os.system(cmd)
 
     # And the same for the periodogram interface.
@@ -36,7 +38,8 @@ if u"interface" in sys.argv or not all(interfaces_exist):
 
 # Define the Fortran extension.
 bart = Extension("bart._bart", ["bart/bart.pyf", "src/lightcurve.f90",
-                                "src/ld.f90", "src/orbit.f90"])
+                                "src/ld.f90", "src/orbit.f90",
+                                "src/discontinuities.f90"])
 
 # Define the periodogram extension.
 period = Extension("bart.period._period", ["bart/period/period.pyf",

@@ -41,10 +41,10 @@ if __name__ == "__main__":
     for i, fn in enumerate(fns):
         print(i)
         pl.clf()
-        ds = KeplerDataset(fn, detrend=False, kepler_detrend=True)
+        ds = KeplerDataset(fn, detrend=False, kepler_detrend=False)
 
         x, y, yerr = ds.time, ds.flux, ds.ferr
-        p, t = kepler.spline_detrend(x, y, yerr=yerr, dt=3.)
+        p, t = kepler.spline_detrend(x, y, yerr=yerr, dt=3., nfill=4)
 
         pl.subplot(211)
         pl.plot(x, y, "+k")

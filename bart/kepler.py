@@ -7,20 +7,22 @@ from __future__ import (division, print_function, absolute_import,
 __all__ = ["fiducial_ldp", "API", "EXPOSURE_TIMES", "TIME_ZERO"]
 
 import os
+import time
 import json
 import requests
 import numpy as np
 from scipy.interpolate import LSQUnivariateSpline
 
 from .ldp import QuadraticLimbDarkening
+from . import _bart
 
 
 EXPOSURE_TIMES = [54.2, 1626.0]
 TIME_ZERO = 2454833.0
 
 
-def spline_detrend(x, y, yerr=None, Q=9, dt=3., tol=1.25e-3, maxiter=15,
-                   nfill=2):
+def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-3, maxiter=15,
+                   maxditer=4, nfill=2):
     """
     Use iteratively re-weighted least squares to fit a spline to the base
     trend in a time series. This is especially useful (and specifically
@@ -47,6 +49,9 @@ def spline_detrend(x, y, yerr=None, Q=9, dt=3., tol=1.25e-3, maxiter=15,
     :param maxiter: (optional)
         The maximum number of re-weighting iterations to run.
 
+    :param maxditer: (optional)
+        The maximum number of discontinuity search iterations to run.
+
     :param nfill: (optional)
         The number of knots to use to fill in the gaps.
 
@@ -68,22 +73,57 @@ def spline_detrend(x, y, yerr=None, Q=9, dt=3., tol=1.25e-3, maxiter=15,
     for i in np.arange(len(x))[inds]:
         t = add_knots(t, x[i], x[i + 1], N=nfill)
 
-    s0 = None
-    for i in range(maxiter):
-        # Fit the spline.
-        p = LSQUnivariateSpline(x, y, t, w=w, k=3)
+    for j in range(maxditer):
+        print("Iteration {0}".format(j))
+        s0 = None
+        for i in range(maxiter):
+            # Fit the spline.
+            extra_t = np.append(t, [x[0], x[-1]])
+            x0 = np.append(x, extra_t)
+            inds = np.argsort(x0)
+            y0 = np.append(y, np.ones_like(extra_t))[inds]
+            w0 = np.append(w, np.ones_like(extra_t))[inds]
+            p = LSQUnivariateSpline(x0[inds], y0, t, k=3, w=w0)
 
-        # Compute chi_i ^2.
-        delta = (y - p(x)) ** 2 * ivar
+            # Compute chi_i ^2.
+            chi = (y - p(x)) / yerr
+            chi2 = chi * chi
 
-        # Check for convergence.
-        sigma = np.median(delta)
-        if s0 is not None and np.abs(s0 - sigma) < tol:
-            break
-        s0 = sigma
+            # Check for convergence.
+            sigma = np.median(chi2)
+            if s0 is not None and np.abs(s0 - sigma) < tol:
+                break
+            s0 = sigma
 
-        # Re compute weights.
-        w = ivar * Q / (delta + Q)
+            # Re compute weights.
+            w = ivar * Q / (chi2 + Q)
+
+        # s = time.time()
+        # # Find discontinuities.
+        # kfunc = lambda x0: ((x0 / dt - 1) ** 2 * (x0 >= 0) * (x0 < dt)
+        #                   - (x0 / dt + 1) ** 2 * (x0 > -dt) * (x0 < 0))
+        # soft_r = np.sqrt(Q / (Q + chi2)) * chi
+        # scalar = np.zeros(len(x) - 1)
+        # for i in range(len(x) - 1):
+        #     tmid = 0.5 * (x[i] + x[i + 1])
+        #     k = kfunc(x - tmid)
+        #     scalar[i] = (np.dot(k, soft_r) / np.dot(k, k)) ** 2
+
+        # # Find the worst peaks in the scalar distribution.
+        # if len(scalar[scalar > 1.]) == 0:
+        #     return p, t
+
+        # # Add the extra knots.
+        # i = np.argmax(scalar)
+        # print("Python", i, time.time() - s)
+
+        s = time.time()
+        i = _bart.discontinuities(x, chi, dt, Q)
+        print("Fortran", i, time.time() - s)
+        if i < 0:
+            return p, t
+
+        t = add_knots(t, x[i], x[i + 1], N=np.max([nfill, 4]))
 
     return p, t
 
