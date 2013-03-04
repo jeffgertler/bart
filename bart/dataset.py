@@ -31,7 +31,7 @@ class Dataset(Model):
 
 class KeplerDataset(Dataset):
 
-    def __init__(self, fn, jitter=0.0, detrend=True):
+    def __init__(self, fn, jitter=0.0, detrend=True, kepler_detrend=False):
         f = pyfits.open(fn)
         lc = np.array(f[1].data)
         self.cadence = 0 if f[0].header["OBSMODE"] == "short cadence" else 1
@@ -42,20 +42,26 @@ class KeplerDataset(Dataset):
         texp = kepler.EXPOSURE_TIMES[self.cadence]
 
         time = lc["TIME"]  # + t0
-        flux, ferr = lc["SAP_FLUX"], lc["SAP_FLUX_ERR"]
-        # flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
+        if kepler_detrend:
+            flux, ferr = lc["PDCSAP_FLUX"], lc["PDCSAP_FLUX_ERR"]
+        else:
+            flux, ferr = lc["SAP_FLUX"], lc["SAP_FLUX_ERR"]
 
         super(KeplerDataset, self).__init__(time, flux, ferr, texp,
                                             jitter=jitter)
-
-        if detrend:
-            self.flux = kepler.spline_detrend(self.time, self.flux, self.ferr)
 
         # Remove the arbitrary median.
         self.median = np.median(self.flux)
         self.flux /= self.median
         self.ferr /= self.median
         self.ivar *= self.median * self.median
+
+        if detrend:
+            p, t = kepler.spline_detrend(self.time, self.flux, self.ferr)
+            factor = p(self.time)
+            self.flux /= factor
+            self.ferr /= factor
+            self.ivar *= factor * factor
 
 
 class RVDataset(Model):

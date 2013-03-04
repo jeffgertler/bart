@@ -8,7 +8,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as pl
 
-import bart
 from bart.dataset import KeplerDataset
 from bart import kepler
 
@@ -34,18 +33,18 @@ if __name__ == "__main__":
     except os.error:
         pass
 
-    api = bart.kepler.API()
+    api = kepler.API()
     fns = api.data("10593626").fetch_all("detrend_test/data")
-    # fns = api.data("10874614").fetch_all("kepler6data")
+    # fns = api.data("10874614").fetch_all("detrend_test/data")
 
     pl.figure(figsize=(8, 8))
     for i, fn in enumerate(fns):
         print(i)
         pl.clf()
-        ds = KeplerDataset(fn, detrend=True)
+        ds = KeplerDataset(fn, detrend=False, kepler_detrend=True)
 
         x, y, yerr = ds.time, ds.flux, ds.ferr
-        p, t = kepler.spline_detrend(x, y, yerr=yerr, full_output=True, dt=2)
+        p, t = kepler.spline_detrend(x, y, yerr=yerr, dt=3.)
 
         pl.subplot(211)
         pl.plot(x, y, "+k")

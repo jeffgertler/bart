@@ -19,8 +19,8 @@ EXPOSURE_TIMES = [54.2, 1626.0]
 TIME_ZERO = 2454833.0
 
 
-def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-1, maxiter=15,
-                   full_output=False):
+def spline_detrend(x, y, yerr=None, Q=9, dt=3., tol=1.25e-3, maxiter=15,
+                   nfill=2):
     """
     Use iteratively re-weighted least squares to fit a spline to the base
     trend in a time series. This is especially useful (and specifically
@@ -47,9 +47,8 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-1, maxiter=15,
     :param maxiter: (optional)
         The maximum number of re-weighting iterations to run.
 
-    :param full_output: (optional)
-        Return the spline object and the knot positions. Otherwise, just
-        return the de-trended signal.
+    :param nfill: (optional)
+        The number of knots to use to fill in the gaps.
 
     """
     if yerr is None:
@@ -67,7 +66,7 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-1, maxiter=15,
     # Refine knot locations around break points.
     inds = x[1:] - x[:-1] > 10 ** (-1.25)
     for i in np.arange(len(x))[inds]:
-        t = add_knots(t, x[i], x[i + 1])
+        t = add_knots(t, x[i], x[i + 1], N=nfill)
 
     s0 = None
     for i in range(maxiter):
@@ -86,10 +85,7 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-1, maxiter=15,
         # Re compute weights.
         w = ivar * Q / (delta + Q)
 
-    if full_output:
-        return p, t
-
-    return y / p(x)
+    return p, t
 
 
 def add_knots(t, t1, t2, N=3):
