@@ -1,6 +1,14 @@
 Rapid Exoplanet Transit Modeling in Python
 ==========================================
 
+.. raw:: html
+
+    <link rel="stylesheet" href="_static/transit.css" type="text/css">
+    <div id="plot"></div>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="_static/bart.js"></script>
+    <script src="_static/transit.js"></script>
+
 **Bart** is a set of tools for working with observations of `exoplanets
 <http://en.wikipedia.org/wiki/Extrasolar_planet>`_. There are two main
 components: a standalone **Fortran library** for quickly generating extremely

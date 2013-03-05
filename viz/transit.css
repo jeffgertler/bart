@@ -1,44 +1,36 @@
-body {
-    font-family: "Helvetica Neue", Helvetica, sans-serif;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 1.2;
+#plot {
+    margin: 10px 0;
 }
 
-h3 {
-    font-size: 16px;
-    text-align: center;
+#plot svg {
+    background: #111;
 }
 
-.container {
-  width: 700px;
-  margin: 0 auto;
-}
-
-#three-dee canvas {
-    cursor: move;
-    background-color: #000;
-}
-
-.axis line, .axis path {
-    stroke: #333;
+#plot .track {
+    stroke-width: 1.25px;
+    stroke: #eee;
     fill: none;
 }
 
-.axis.label {
+#plot .star {
+    stroke: none;
+    fill: url(#gradient);
+    filter: url(#drop);
+}
+
+#plot .transit-point {
+    fill: #eee;
+}
+
+#plot .side-point {
+    fill: #111;
+    stroke-width: 0.5px;
+    stroke: #888;
+}
+
+#plot text {
+    fill: #eee;
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
     font-size: 10px;
     text-transform: uppercase;
-}
-
-circle.current {
-    fill: #f00;
-    stroke: #333;
-    stroke-width: 1.5px;
-}
-
-#limb-darkening circle {
-  cursor: move;
-  fill: #f00;
-  stroke: #333;
-  stroke-width: 1.5px;
 }

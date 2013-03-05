@@ -44,10 +44,10 @@
       var areas = ldp.bins.map(function (bin, j) {
         return bart.occulted_area(bin, p, b0);
       });
-      return 1 - areas.reduce(function (result, a, j) {
-        if (j === 0) return a * ldp.intensity[j];
-        return result + ldp.intensity[j] * (a - areas[j - 1]);
-      });
+      return areas.reduce(function (result, a, j) {
+        if (j === 0) return 1 - a * ldp.intensity[j];
+        return result - ldp.intensity[j] * (a - areas[j - 1]);
+      }, 1.0);
     });
   };
 
@@ -62,10 +62,20 @@
     });
   };
 
-  bart.lightcurve = function (ts, period, a, t0, incl, p, ldp) {
-    var pos = bart.orbit(ts, period, a, t0, Math.PI * incl / 180.),
-        b = pos.map(function (p) { return Math.sqrt(p[1]*p[1]+p[2]*p[2]); });
-    return bart.ldlc(p, b, ldp);
+  bart.Lightcurve = function (ts, period, a, t0, incl, p, ldp) {
+    this.period = period;
+    this.a = a;
+    this.t0 = t0;
+    this.incl = incl;
+    this.p = p;
+    this.ldp = ldp;
+    this.pos = bart.orbit(ts, period, a, t0, Math.PI * incl / 180.);
+    this.b = this.pos.map(function (p0) {
+      if (p0[0] > 0) return Math.sqrt(p0[1]*p0[1]+p0[2]*p0[2]);
+      return 1 + p;
+    });
+    this.time = ts;
+    this.flux = bart.ldlc(p, this.b, ldp);
   };
 
   bart.fiducial_ldp = function (g1, g2) {
