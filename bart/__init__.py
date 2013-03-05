@@ -10,7 +10,7 @@ from .bart import Star, Planet, PlanetarySystem
 from .dataset import KeplerDataset
 from . import parameters, kepler
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 __author__ = "Dan Foreman-Mackey (danfm@nyu.edu)"
 __copyright__ = "Copyright 2013 Dan Foreman-Mackey"
 __contributors__ = [
