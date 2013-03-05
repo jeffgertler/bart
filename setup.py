@@ -53,6 +53,7 @@ version = vre.findall(m)[0]
 
 setup(
     name="bart",
+    url="http://dan.iel.fm/bart",
     version=version,
     author="Dan Foreman-Mackey",
     author_email="danfm@nyu.edu",
