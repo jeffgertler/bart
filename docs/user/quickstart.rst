@@ -11,11 +11,11 @@ This page provides basic instructions for getting started with **Bart**.
 Installation
 ------------
 
-The easiest way to install **Bart** is with the standard Python build system
+The easiest way to install Bart is with the standard Python build system
 `pip <http://www.pip-installer.org/>`_ but you can also install from source.
 First, you'll need to make sure that you have `numpy <http://www.numpy.org>`_
 and a Fortran compiler installed on your system. We recommend using a `virtual
-environment <http://www.virtualenv.org/>`_.
+environment <../faq>`_.
 
 
 Using pip
@@ -65,7 +65,7 @@ Then, from within the source directory, run
 
     python setup.py install
 
-to build and install **Bart**.
+to build and install Bart.
 
 
 Testing the installation
@@ -77,5 +77,5 @@ Nothing to see here yet.
 A Simple Example
 ----------------
 
-The following sections demonstrate how you can use **Bart** to generate some
+The following sections demonstrate how you can use Bart to generate some
 mock exoplanet observations and then fit them using MCMC.

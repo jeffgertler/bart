@@ -26,6 +26,7 @@ User Guide
 
    user/quickstart
    user/kepler
+   user/faq
 
 API Reference
 -------------
