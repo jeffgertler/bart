@@ -128,24 +128,115 @@ def _add_knots(t, t1, t2, N=3):
     return np.sort(np.append(t[(t < t1) + (t > t2)], np.linspace(t1, t2, N)))
 
 
-def fiducial_ldp(teff=5778, logg=4.44, feh=0.0, bins=None, alpha=1.0):
+class LDCoeffAdaptor(object):
+    """
+    Wrapper around various theoretical models for the coefficients of limb
+    darkening profiles for Kepler stars.
+
+    :param model: (optional)
+        The name of the model that you would like to use. The currently
+        supported models are ``sing09`` and ``claret11`` and the default
+        is ``sing09`` because it is packaged with the standard Bart install.
+        When you use ``claret11`` for the first time, it will download the
+        data file and save it to ``~/.bart/ldcoeffs/claret11.txt``.
+
+    """
+
+    allowed_models = ["sing09", "claret11"]
+    claret_url = "http://broiler.astrometry.net/~dfm265/ldcoeffs/claret.txt"
+
+    def __init__(self, model="sing09"):
+        if model not in self.allowed_models:
+            raise TypeError(("Unrecognized model '{0}'. The allowed values "
+                             "are {1}.").format(model, self.allowed_models))
+
+        if model == "sing09":
+            fn = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "ldcoeffs", "sing09.txt")
+            data = np.loadtxt(fn, skiprows=10, usecols=range(6))
+            self.T = data[:, 0]
+            self.logg = data[:, 1]
+            self.feh = data[:, 2]
+            self.mu1 = data[:, 4]
+            self.mu2 = data[:, 5]
+
+        else:
+            fn = os.path.expanduser(os.path.join("~", ".bart", "ldcoeffs",
+                                                 "claret11.txt"))
+            if not os.path.exists(fn):
+                print("Downloading the data file for the 'claret11` model")
+                r = requests.get(self.claret_url)
+                if r.status_code != requests.codes.ok:
+                    r.raise_for_status()
+                try:
+                    os.makedirs(os.path.dirname(fn))
+                except os.error:
+                    pass
+                open(fn, "w").write(r.content)
+                print("  .. Finished.")
+
+            data = np.loadtxt(fn, skiprows=59, delimiter="|",
+                              usecols=range(7))
+            self.T = data[:, 2]
+            self.logg = data[:, 1]
+            self.feh = data[:, 3]
+            self.mu1 = data[:, 5]
+            self.mu2 = data[:, 6]
+
+    def get_coeffs(self, teff, logg=None, feh=None):
+        """
+        Get the coefficients of the quadratic limb darkening profile given by
+        theory.
+
+        :param teff:
+            The effective temperature in degrees K.
+
+        :param logg: (optional)
+            The log10 surface gravity in cm/s/s.
+
+        :param feh: (optional)
+            The metallicity [Fe/H].
+
+        """
+        T0 = self.T[np.argmin(np.abs(self.T - teff))]
+        inds = self.T == T0
+        if logg is not None:
+            lg0 = self.logg[np.argmin(np.abs(self.logg - logg))]
+            inds *= self.logg == lg0
+        if feh is not None:
+            feh0 = self.feh[np.argmin(np.abs(self.feh - feh))]
+            inds *= self.feh == feh0
+        return np.mean(self.mu1[inds]), np.mean(self.mu2[inds])
+
+
+def fiducial_ldp(teff=5778, logg=None, feh=None, model="sing09",
+                 bins=None, alpha=1.0):
     """
     Get the standard Kepler limb-darkening profile.
 
-    :param bins:
-        Either the number of radial bins or a list of bin edges.
+    :param teff: (optional)
+        The effective temperature in degrees K.
+
+    :param logg: (optional)
+        The log10 surface gravity in cm/s/s.
+
+    :param feh: (optional)
+        The metallicity [Fe/H].
+
+    :model: (optional)
+        The theoretical model to use. See :class:`LDCoeffAdaptor`.
+
+    :param bins: (optional)
+        Either the number of radial bins or a list of bin edges. If ``bins``
+        is omitted, the functional form of the profile is returned.
+
+    :param alpha: (optional)
+        The power to scale the radial bin positions by.
 
     """
-    # Read in the limb darkening coefficient table.
-    fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ld.txt")
-    data = np.loadtxt(fn, skiprows=10)
-
-    # Find the closest point in the table.
-    T0 = data[np.argmin(np.abs(data[:, 0] - teff)), 0]
-    logg0 = data[np.argmin(np.abs(data[:, 1] - logg)), 1]
-    feh0 = data[np.argmin(np.abs(data[:, 2] - feh)), 2]
-    ind = (data[:, 0] == T0) * (data[:, 1] == logg0) * (data[:, 2] == feh0)
-    mu1, mu2 = data[ind, 4:6][0]
+    # Find the LD coefficients from the theoretical models.
+    a = LDCoeffAdaptor(model=model)
+    mu1, mu2 = a.get_coeffs(teff, logg=logg, feh=feh)
 
     # Generate a quadratic limb darkening profile.
     ldp = QuadraticLimbDarkening(mu1, mu2)

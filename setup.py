@@ -57,7 +57,7 @@ setup(
     description="Rapid Exoplanet Transit Modeling in Python",
     long_description=open("README.rst").read(),
     packages=["bart", "bart.parameters"],
-    package_data={"": ["README.rst"], "bart": ["ldcoeffs/sing.txt"]},
+    package_data={"": ["README.rst"], "bart": ["ldcoeffs/sing09.txt"]},
     package_dir={"bart": "bart"},
     include_package_data=True,
     ext_modules=[bart],
