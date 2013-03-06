@@ -38,6 +38,16 @@ m = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       "bart", "__init__.py")).read()
 version = vre.findall(m)[0]
 
+# Get the installation requirements.
+install_requires = []
+for l in open("requirements.txt"):
+    if "#" in l:
+        l = l[:l.index("#")]
+    l = l.strip()
+    if len(l) == 0:
+        continue
+    install_requires.append(l)
+
 setup(
     name="bart",
     url="http://dan.iel.fm/bart",
@@ -47,11 +57,11 @@ setup(
     description="Rapid Exoplanet Transit Modeling in Python",
     long_description=open("README.rst").read(),
     packages=["bart", "bart.parameters"],
-    package_data={"": ["README.rst"]},
+    package_data={"": ["README.rst"], "bart": ["ldcoeffs/sing.txt"]},
     package_dir={"bart": "bart"},
     include_package_data=True,
     ext_modules=[bart],
-    install_requires=[l.strip() for l in open("requirements.txt")],
+    install_requires=install_requires,
     classifiers=[
         # "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
