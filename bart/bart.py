@@ -9,7 +9,6 @@ import os
 import cPickle as pickle
 
 import numpy as np
-import scipy.optimize as op
 import emcee
 
 try:
@@ -469,12 +468,6 @@ class PlanetarySystem(Model):
 
         # Add systemic velocity and convert to m/s.
         return self.rv0 + 8050.0 * result
-
-    def optimize(self):
-        objective = lambda p: -self(p)
-        result = op.minimize(objective, self.vector)
-        self.vector = result.x
-        return result.x
 
     def fit(self, iterations, start=None, filename="mcmc.h5", **kwargs):
         """

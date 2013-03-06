@@ -1,16 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Various tools and constants for working with Kepler data.
+
+"""
 
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["fiducial_ldp", "API", "EXPOSURE_TIMES", "TIME_ZERO"]
+__all__ = ["spline_detrend", "fiducial_ldp", "API", "EXPOSURE_TIMES",
+           "TIME_ZERO"]
 
 import os
 import json
 import requests
 import numpy as np
-from scipy.interpolate import LSQUnivariateSpline
+
+try:
+    from scipy.interpolate import LSQUnivariateSpline
+    LSQUnivariateSpline = LSQUnivariateSpline
+except ImportError:
+    LSQUnivariateSpline = None
 
 from .ldp import QuadraticLimbDarkening
 from . import _bart
@@ -55,6 +65,9 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-3, maxiter=15,
         The number of knots to use to fill in the gaps.
 
     """
+    if LSQUnivariateSpline is None:
+        raise ImportError("scipy is required for spline de-trending.")
+
     if yerr is None:
         yerr = np.ones_like(y)
 
@@ -70,7 +83,7 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-3, maxiter=15,
     # Refine knot locations around break points.
     inds = x[1:] - x[:-1] > 10 ** (-1.25)
     for i in np.arange(len(x))[inds]:
-        t = add_knots(t, x[i], x[i + 1], N=nfill)
+        t = _add_knots(t, x[i], x[i + 1], N=nfill)
 
     for j in range(maxditer):
         s0 = None
@@ -101,19 +114,18 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-3, maxiter=15,
         if i < 0:
             return p
 
-        t = add_knots(t, x[i], x[i + 1], N=np.max([nfill, 4]))
+        t = _add_knots(t, x[i], x[i + 1], N=np.max([nfill, 4]))
 
     return p
 
 
-def add_knots(t, t1, t2, N=3):
+def _add_knots(t, t1, t2, N=3):
+    """
+    A hack for adding ``N`` samples in a given region and removing any other
+    samples in that region.
+
+    """
     return np.sort(np.append(t[(t < t1) + (t > t2)], np.linspace(t1, t2, N)))
-
-
-def window_detrend(x, y, yerr=None, dt=2):
-    for i in range(len(x)):
-        y[i] /= np.median(y[np.abs(x - x[i]) < dt])
-    return y
 
 
 def fiducial_ldp(teff=5778, logg=4.44, feh=0.0, bins=None, alpha=1.0):
