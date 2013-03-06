@@ -193,9 +193,22 @@
                 .attr("y", h - 8)
                 .text("Observed brightness as a function of time");
 
+  // Animation shim from:
+  //    http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+  window.requestAnimFrame = (function(){
+    return  window.requestAnimationFrame       ||
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame    ||
+            window.oRequestAnimationFrame      ||
+            window.msRequestAnimationFrame     ||
+            function(callback){
+              window.setTimeout(callback, 1000 / 60);
+            };
+  })();
+
   // Animate.
   function animate () {
-    requestAnimationFrame(animate);
+    requestAnimFrame(animate);
     current_frame = (current_frame + 2) % ntime;
     el_top.selectAll("circle.transit-point").data([top_data[current_frame]])
       .attr("cx", function(d) { return d[0]; })
