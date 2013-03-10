@@ -122,3 +122,12 @@ and then plot the model light curve:
 This should result in a plot that looks something like this:
 
 .. image:: ../_static/model_building.png
+
+
+Generating Synthetic Data
+-------------------------
+
+Now, we'll generate some fake data that mimics long and short cadence light
+curves observed by Kepler. Short cadence data are exposed for 54.2 seconds
+every 58.9 seconds. The long cadence exposures are 1626 seconds every 1766
+seconds.
