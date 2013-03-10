@@ -25,6 +25,7 @@ User Guide
    :maxdepth: 2
 
    user/quickstart
+   user/model_building
    user/kepler
    user/faq
    js
