@@ -1,6 +1,6 @@
 .. _faq:
-
 .. module:: bart
+.. highlight:: bash
 
 FAQ
 ===

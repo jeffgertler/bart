@@ -1,6 +1,5 @@
 .. _quickstart:
-
-.. module:: bart
+.. highlight:: bash
 
 Getting Started
 ===============

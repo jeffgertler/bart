@@ -175,12 +175,21 @@
       xscale = d3.scale.linear().domain(xlim).range([0, transit_w]),
       yscale = d3.scale.linear().domain(ylim).range([h, h-transit_h]);
 
+  var rng = d3.random.normal();
   var transit_data = lightcurve.time.map(function (v, i) {
-    return [xscale(v), yscale(lightcurve.flux[i])];
+    return [xscale(v), yscale(lightcurve.flux[i]),
+            yscale(lightcurve.flux[i] + 0.0005 * rng())];
   });
 
   el_transit.append("path").attr("d", line(transit_data))
                       .attr("class", "track");
+  el_transit.selectAll("circle").data(transit_data)
+                .enter()
+              .append("circle")
+                .attr("cx", function(d) { return d[0] + 2 * rng(); })
+                .attr("cy", function(d) { return d[2]; })
+                .attr("r", 2)
+                .attr("class", "transit-data");
   el_transit.selectAll("circle").data([transit_data[current_frame]])
                 .enter()
               .append("circle")

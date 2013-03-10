@@ -1,6 +1,6 @@
 .. _kepler:
-
 .. module:: bart
+.. highlight:: python
 
 Working With Kepler Data
 ========================
