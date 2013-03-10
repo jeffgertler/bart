@@ -37,8 +37,8 @@ evolution and stellar atmospheres. To get this model using Bart, you run:
 
 ::
 
-    from bart.kepler import fiducial_ldp
-    ldp = fiducial_ldp(teff=5647, logg=4.236, feh=0.34, bins=50)
+    from bart import kepler
+    ldp = kepler.fiducial_ldp(teff=5647, logg=4.236, feh=0.34, bins=50)
 
 This returns a :class:`LimbDarkening` object that follows the quadratic form
 from `Sing (2009) <http://arxiv.org/abs/0912.2274>`_. You can also use the
@@ -93,6 +93,32 @@ with the measured period:
 This should print something like ``3.23343650114`` which is close enough for
 our purposes. It is sometimes useful, however, to initialize the planet first
 and then set the star mass using the :func:`get_mstar` method on the
-:class:`Planet` object.
+:class:`Planet` object to ensure that the data will have the right period.
 
-The orbital inclination of Kepler-6b is :math:`86.8^\circ`.
+
+Putting it All Together
+-----------------------
+
+The :class:`Star` and :class:`Planet` are brought together by adding them to a
+:class:`PlanetarySystem`. You can also specify the inclination of the orbital
+plane when creating the system. For Kepler-6b, the inclination was found to be
+:math:`86.8^\circ`. Therefore, you can build the system as follows:
+
+::
+
+    kepler6 = bart.PlanetarySystem(star, iobs=86.8)
+    kepler6.add_planet(planet)
+
+and then plot the model light curve:
+
+::
+
+    import numpy as np
+    import matplotlib.pyplot as pl
+
+    t = np.linspace(-0.2, 0.2, 5000)
+    pl.plot(t, kepler6.lightcurve(t))
+
+This should result in a plot that looks something like this:
+
+.. image:: ../_static/model_building.png
