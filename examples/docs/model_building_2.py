@@ -31,7 +31,7 @@ if __name__ == "__main__":
     kepler6.add_dataset(lc)
     # kepler6.add_dataset(sc)
 
-    # Offset the initial guess a bit.
+    # Perturb the initial guess a bit.
     kepler6.vector = kepler6.vector * (1
                                        + 1e-3 * np.random.randn(len(kepler6)))
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     print(mean_a)
     results.corner_plot([
         Column(r"$a/R_\star + {0:.3f}$".format(mean_a),
-               lambda s: (s.planets[0].a / s.star.radius - mean_a)),
+               lambda s: 1e3 * (s.planets[0].a / s.star.radius - mean_a)),
         Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
         Column(r"$t_0$", lambda s: s.planets[0].t0),
         Column(r"$i$", lambda s: s.iobs),
