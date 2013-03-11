@@ -206,8 +206,8 @@ class PlanetarySystem(Model):
 
     """
 
-    def __init__(self, star, basepath=".", iobs=90.0, rv0=0.0, pbad=1e-4,
-                 vbad=1e-2):
+    def __init__(self, star, basepath=".", iobs=90.0, rv0=0.0, pbad=0.0,
+                 vbad=0.0):
         super(PlanetarySystem, self).__init__()
 
         self.basepath = basepath
@@ -365,7 +365,7 @@ class PlanetarySystem(Model):
             if np.isinf(lnl) or np.isnan(lnl):
                 return -np.inf
 
-        except FloatingPointError:
+        except (FloatingPointError, AssertionError):
             return -np.inf
 
         return lnl + lnp
@@ -393,6 +393,8 @@ class PlanetarySystem(Model):
         """
         lnlike = 0.0
 
+        N = np.sum([len(ds) for ds in self.datasets])
+
         for ds in self.datasets:
             # Add in the jitter.
             ivar = ds.ivar
@@ -403,18 +405,20 @@ class PlanetarySystem(Model):
                 # Compute the "foreground" model probability.
                 model = self.lightcurve(ds.time, texp=ds.texp)
                 delta = ds.flux - ds.zp * model
-                e1 = np.log(1 - self.pbad) + 0.5 * np.log(ivar) \
-                     - 0.5 * delta * delta * ivar
+                # e1 = np.log(1 - self.pbad) + 0.5 * np.log(ivar) \
+                #      - 0.5 * delta * delta * ivar
 
-                # Compute the background model probability.
-                ivar_bg = np.zeros_like(ivar)
-                ivar_bg[inds] = 1. / (1. / ds.ivar[inds]
-                                      + self.vbad * self.vbad)
-                delta_bg = ds.flux - ds.zp
-                e2 = np.log(self.pbad) + 0.5 * np.log(ivar_bg) \
-                     - 0.5 * delta_bg * delta_bg * ivar_bg
+                # # Compute the background model probability.
+                # ivar_bg = np.zeros_like(ivar)
+                # ivar_bg[inds] = 1. / (1. / ds.ivar[inds]
+                #                       + self.vbad * self.vbad)
+                # delta_bg = ds.flux - ds.zp
+                # e2 = np.log(self.pbad) + 0.5 * np.log(ivar_bg) \
+                #      - 0.5 * delta_bg * delta_bg * ivar_bg
 
-                lnlike += np.sum(np.logaddexp(e1, e2))
+                # lnlike += np.sum(np.logaddexp(e1, e2))
+                lnlike += np.sum(0.5 * np.log(ivar) / N
+                                 - 0.5 * delta * delta * ivar / N)
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
@@ -469,7 +473,7 @@ class PlanetarySystem(Model):
         # Add systemic velocity and convert to m/s.
         return self.rv0 + 8050.0 * result
 
-    def fit(self, iterations, start=None, filename="mcmc.h5", **kwargs):
+    def run_mcmc(self, iterations, start=None, filename="mcmc.h5", **kwargs):
         """
         Fit the data using MCMC to get constraints on the parameters.
 

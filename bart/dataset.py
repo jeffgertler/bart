@@ -28,6 +28,9 @@ class Dataset(Model):
         self.time, self.flux, self.ferr = time[inds], flux[inds], ferr[inds]
         self.ivar = 1.0 / self.ferr / self.ferr
 
+    def __len__(self):
+        return len(self.time)
+
 
 class KeplerDataset(Dataset):
 
