@@ -18,6 +18,10 @@ by the *Kepler* satellite. To start we'll lay out the steps that are required
 to generate a synthetic light curve and then—in the next section—we'll explain
 how you would go about fitting for the parameters given this data.
 
+*You can find the full source code for this example in the* `Bart source code
+repository
+<https://github.com/dfm/bart/blob/master/examples/docs/>`_.
+
 
 The Star
 --------
@@ -132,13 +136,35 @@ curves observed by Kepler. Short cadence data are integrated for 54.2 seconds.
 Including readout, the entire exposure lasts 58.9 seconds. The long cadence
 data have 1626 second integrations in 1766 second exposures. To generate some
 synthetic long cadence data for our Kepler-6 model, we can generate some
-samples from the model:
+samples from the model at the correct cadence:
 
 ::
 
-    time = np.arange(0, 90., 1766 * 60. * 60. * 24.)
-    model_flux = kepler6.lightcurve(time, texp=1626)
+    lc_time = np.arange(0, 90., 1766 / (60. * 60. * 24.))
+    lc_flux = kepler6.lightcurve(lc_time, texp=1626)
 
-This will result in a figure like this:
+and then add some representative observational uncertainties:
+
+::
+
+    lc_err = 1.5e-3 * np.random.rand(len(lc_flux))
+    lc_flux = lc_flux + lc_err * np.random.randn(len(lc_flux))
+
+The same procedure for the short cadence data looks like:
+
+::
+
+    sc_time = np.arange(0, 90., 58.9 / (60. * 60. * 24.))
+    sc_flux = kepler6.lightcurve(sc_time, texp=54.2)
+    sc_err = 3e-3 * np.random.rand(len(sc_flux))
+    sc_flux = sc_flux + sc_err * np.random.randn(len(sc_flux))
+
+A plot of these synthetic datasets should look something like:
 
 .. image:: ../_static/model_building_data.png
+
+
+Fitting Light Curve Data
+------------------------
+
+
