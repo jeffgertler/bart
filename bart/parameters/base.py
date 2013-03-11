@@ -4,7 +4,7 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["Parameter", "LogParameter", "MultipleParameter"]
+__all__ = ["Parameter", "LogParameter", "MultipleParameter", "CosParameter"]
 
 import numpy as np
 from .priors import Prior
@@ -39,8 +39,8 @@ class Parameter(object):
         return self.name
 
     def __repr__(self):
-        return "{1}('{0.name}', attr='{0.attr}', prior={0.prior})" \
-                                    .format(self, self.__class__.__name__)
+        return "{1}('{0.name}', attr='{0.attr}', prior={0.prior})".format(
+            self, self.__class__.__name__)
 
     def __len__(self):
         return 1
@@ -142,8 +142,8 @@ class MultipleParameter(Parameter):
         return "[" + ", ".join(self.names) + "]"
 
     def __repr__(self):
-        return "{1}({0.names}, priors={0.priors})" \
-                                    .format(self, self.__class__.__name__)
+        return "{1}({0.names}, priors={0.priors})".format(
+            self, self.__class__.__name__)
 
     def __len__(self):
         return len(self.names)
@@ -174,3 +174,23 @@ class MultipleParameter(Parameter):
 
         """
         raise NotImplementedError()
+
+
+class CosParameter(Parameter):
+
+    def getter(self, obj):
+        return np.cos(np.radians(getattr(obj, self.attr)))
+
+    def setter(self, obj, val):
+        setattr(obj, self.attr, float(np.degrees(np.arccos(val))))
+
+    def lnprior(self, obj):
+        if 0 <= getattr(obj, self.attr) < 90.0:
+            return 0.0
+        return -np.inf
+
+    def sample(self, obj, std=1e-5, size=1):
+        i = getattr(obj, self.attr) * (1 + std * np.random.randn(size))
+        while np.any(i > 90):
+            i[i > 90] = 180 - i[i > 90]
+        return np.cos(np.radians(i))
