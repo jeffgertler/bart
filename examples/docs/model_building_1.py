@@ -29,6 +29,8 @@ def generate_synthetic_data():
     kepler6 = bart.PlanetarySystem(star, iobs=86.8)
     kepler6.add_planet(planet)
 
+    print(np.cos(np.radians(kepler6.iobs)))
+
     # Long cadence.
     lc_time = np.arange(0, 90., 1766 / (60. * 60. * 24.))
     lc_flux = kepler6.lightcurve(lc_time, texp=1626.)

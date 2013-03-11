@@ -32,10 +32,12 @@ if __name__ == "__main__":
     # kepler6.add_dataset(sc)
 
     # Perturb the initial guess a bit.
-    kepler6.vector = kepler6.vector * (1
-                                       + 1e-3 * np.random.randn(len(kepler6)))
+    kepler6.planets[0].a *= 1 + 1e-3 * np.random.randn()
+    kepler6.planets[0].r *= 1 + 1e-2 * np.random.randn()
+    kepler6.planets[0].t0 = 1e-3 * np.random.randn()
+    kepler6.iobs += np.random.rand() - 0.5
 
-    # kepler6.run_mcmc(1000, thin=10)
+    kepler6.run_mcmc(1000, thin=10)
     results = kepler6.results(thin=1, burnin=10)
     mean_a = results.semimajors[0] / results.rstar
     print(mean_a)

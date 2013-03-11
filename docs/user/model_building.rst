@@ -167,4 +167,63 @@ A plot of these synthetic datasets should look something like:
 Fitting Light Curve Data
 ------------------------
 
+Now we'll fit the synthetic data that we generated above using MCMC to show
+that the code *actually works* and to demonstrate how you might go about
+fitting a real light curve. The first step is to create a
+:class:`Dataset` object containing the mock data and add it to the
+:class:`PlanetarySystem`:
 
+::
+
+    lc = bart.Dataset(lc_time, lc_flux, lc_err, 1626)
+    kepler6.add_dataset(lc)
+
+For this demo, we'll just fit the long cadence dataset but you could
+simultaneously fit the short cadence data by adding it in a similar way:
+
+::
+
+    sc = bart.Dataset(sc_time, sc_flux, sc_err, 54.2)
+    kepler6.add_dataset(sc)
+
+Then, you can choose which parameters you want to fit for. For now, let's just
+fit for :math:`\ln\,a`, :math:`\ln\,R_p`, :math:`t_0` (the time of a reference
+transit), and :math:`\cos\,i`. The first three parameters are properties of the
+:class:`Planet` and the inclination (in this case) is a property of the
+:class:`PlanetarySystem`. Adding these as fit parameters is simple:
+
+::
+
+    import bart.parameters as pars
+    planet.parameters.append(pars.LogParameter(r"$\ln\,a$", "a"))
+    planet.parameters.append(pars.LogParameter(r"$\ln\,r$", "r"))
+    planet.parameters.append(pars.Parameter(r"$t_0$", "t0"))
+    kepler6.parameters.append(pars.CosParameter(r"$\cos\,i$", "iobs"))
+
+Now, the system has a new property called ``vector`` which is a NumPy array
+with the current values of the fit parameters. It should currently be
+something like:
+
+::
+
+    print(kepler6.vector)
+    # [0.0558215, 2.28305053, -1.98981007, 0.]
+
+It's important to note that the order of ``vector`` *is not* the order that
+the parameters were added. Instead, it is is in the order:
+:class:`PlanetarySystem`, :class:`Star`, :class:`Planet`, and
+:class:`Dataset`. As a result, it's generally a bad idea to manually set the
+value of ``vector``.
+
+A general discussion of how you might go about initializing the parameters of
+the fit is beyond the scope of this document so we'll simply perturb the true
+values by a small amount and then run from there:
+
+::
+
+    planet.a *= 1 + 1e-3 * np.random.randn()
+    planet.r *= 1 + 1e-2 * np.random.randn()
+    planet.t0 = 1e-3 * np.random.randn()
+    kepler6.iobs += np.random.rand() - 0.5
+
+.. image:: ../_static/model_building_corner.png

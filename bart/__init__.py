@@ -7,7 +7,7 @@ __all__ = ["Star", "Planet", "PlanetarySystem", "LimbDarkening",
            "QuadraticLimbDarkening"]
 
 from .bart import Star, Planet, PlanetarySystem
-from .dataset import KeplerDataset
+from .dataset import Dataset, KeplerDataset
 from . import parameters, kepler
 
 __version__ = "0.0.3"
