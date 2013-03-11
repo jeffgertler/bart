@@ -139,3 +139,6 @@ samples from the model:
     time = np.arange(0, 90., 1766 * 60. * 60. * 24.)
     model_flux = kepler6.lightcurve(time, texp=1626)
 
+This will result in a figure like this:
+
+.. image:: ../_static/model_building_data.png
