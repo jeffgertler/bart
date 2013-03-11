@@ -128,6 +128,14 @@ Generating Synthetic Data
 -------------------------
 
 Now, we'll generate some fake data that mimics long and short cadence light
-curves observed by Kepler. Short cadence data are exposed for 54.2 seconds
-every 58.9 seconds. The long cadence exposures are 1626 seconds every 1766
-seconds.
+curves observed by Kepler. Short cadence data are integrated for 54.2 seconds.
+Including readout, the entire exposure lasts 58.9 seconds. The long cadence
+data have 1626 second integrations in 1766 second exposures. To generate some
+synthetic long cadence data for our Kepler-6 model, we can generate some
+samples from the model:
+
+::
+
+    time = np.arange(0, 90., 1766 * 60. * 60. * 24.)
+    model_flux = kepler6.lightcurve(time, texp=1626)
+
