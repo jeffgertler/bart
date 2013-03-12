@@ -39,8 +39,8 @@ if __name__ == "__main__":
 
     kepler6.run_mcmc(2000, thin=10)
     results = kepler6.results(thin=1, burnin=10)
+
     mean_a = results.semimajors[0] / results.rstar
-    print(mean_a)
     results.corner_plot([
         Column(r"$(a/R_\star + {0:.3f})\times10^{{3}}$".format(mean_a),
                lambda s: 1e3 * (s.planets[0].a / s.star.radius - mean_a)),
