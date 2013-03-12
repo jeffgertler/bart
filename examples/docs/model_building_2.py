@@ -38,7 +38,7 @@ if __name__ == "__main__":
     kepler6.iobs += np.random.rand() - 0.5
 
     kepler6.run_mcmc(2000, thin=10)
-    results = kepler6.results(thin=1, burnin=30)
+    results = kepler6.results(burnin=30)
 
     mean_a = results.semimajors[0] / results.rstar
     results.corner_plot([
