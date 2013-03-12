@@ -226,4 +226,11 @@ values by a small amount and then run from there:
     planet.t0 = 1e-3 * np.random.randn()
     kepler6.iobs += np.random.rand() - 0.5
 
+We can check that the values have changed by looking at ``vector`` again:
+
+::
+
+    print(kepler6.vector)
+    # [5.15405391e-02, 2.28279011e+00, -1.97382667e+00, 6.68348895e-04]
+
 .. image:: ../_static/model_building_corner.png
