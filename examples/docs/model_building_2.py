@@ -8,7 +8,7 @@ from __future__ import (division, print_function, absolute_import,
 import numpy as np
 
 import bart.parameters as pars
-from bart.results import Column
+from bart.results import ResultsProcess, Column
 
 from model_building_1 import generate_synthetic_data
 
@@ -35,8 +35,12 @@ if __name__ == "__main__":
     kepler6.planets[0].t0 = 1e-3 * np.random.randn()
     kepler6.iobs += np.random.rand() - 0.5
 
+    # Run MCMC.
     kepler6.run_mcmc(2000, thin=10)
-    results = kepler6.results(burnin=30)
+
+    # Plot the results.
+    results = ResultsProcess(burnin=30)
+    # results = kepler6.results(burnin=30)
 
     mean_a = results.semimajors[0] / results.rstar
     results.corner_plot([
