@@ -5,7 +5,6 @@ Bart.js — Exoplanet Transits in Your Browser
 
     <link rel="stylesheet" href="../_static/transit.css" type="text/css">
 
-    <embed src="../_static/splash.svg" type="image/svg+xml" />
     <div id="plot"></div>
 
     <script src="http://d3js.org/d3.v3.min.js"></script>
