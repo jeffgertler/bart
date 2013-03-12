@@ -96,8 +96,8 @@ with the measured period:
 
 This should print something like ``3.23343650114`` which is close enough for
 our purposes. It is sometimes useful, however, to initialize the planet first
-and then set the star mass using the :func:`get_mstar` method on the
-:class:`Planet` object to ensure that the data will have the right period.
+and then set the star mass using the :func:`Planet.get_mstar` method to
+ensure that the data will have the right period.
 
 
 Putting it All Together
@@ -113,7 +113,8 @@ plane when creating the system. For Kepler-6b, the inclination was found to be
     kepler6 = bart.PlanetarySystem(star, iobs=86.8)
     kepler6.add_planet(planet)
 
-and then plot the model light curve:
+and then plot the model light curve generated using the
+:func:`PlanetarySystem.lightcurve` method:
 
 ::
 
@@ -232,5 +233,20 @@ We can check that the values have changed by looking at ``vector`` again:
 
     print(kepler6.vector)
     # [5.15405391e-02, 2.28279011e+00, -1.97382667e+00, 6.68348895e-04]
+
+Then, we can run Markov chain Monte Carlo to draw samples from the posterior
+probability density of the parameters given the synthetic data using `emcee
+<http://dan.iel.fm/emcee/>`_. Using Bart, this is simple as executing the
+:func:`PlanetarySystem.run_mcmc` method:
+
+::
+
+    kepler6.run_mcmc(2000, thin=10)
+
+Here, we're running for 2000 steps but only storing every 10th sample.
+This should only take a few minutes to run and the results will be saved in a
+file called ``mcmc.h5`` in the current working directory. You can specify a
+different directory by giving it as the value of the ``basepath`` keyword
+argument to the :func:`PlanetarySystem.run_mcmc` method.
 
 .. image:: ../_static/model_building_corner.png
