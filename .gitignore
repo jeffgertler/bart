@@ -16,3 +16,4 @@ COMMIT
 *.egg-info
 detrend_test
 *.svg
+bin

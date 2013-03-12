@@ -17,6 +17,12 @@ API Reference
 .. autoclass:: Dataset
    :inherited-members:
 
+Results
+-------
+
+.. autoclass:: bart.results.ResultsProcess
+   :inherited-members:
+
 Kepler API & Data
 -----------------
 

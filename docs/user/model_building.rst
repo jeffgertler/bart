@@ -234,10 +234,10 @@ We can check that the values have changed by looking at ``vector`` again:
     print(kepler6.vector)
     # [5.15405391e-02, 2.28279011e+00, -1.97382667e+00, 6.68348895e-04]
 
-Then, we can run Markov chain Monte Carlo to draw samples from the posterior
-probability density of the parameters given the synthetic data using `emcee
-<http://dan.iel.fm/emcee/>`_. Using Bart, this is simple as executing the
-:func:`PlanetarySystem.run_mcmc` method:
+Then, we can run Markov chain Monte Carlo (MCMC) to draw samples from the
+posterior probability density of the parameters given the synthetic data
+using `emcee <http://dan.iel.fm/emcee/>`_. Using Bart, this is simple as
+executing the :func:`PlanetarySystem.run_mcmc` method:
 
 ::
 
@@ -248,5 +248,49 @@ This should only take a few minutes to run and the results will be saved in a
 file called ``mcmc.h5`` in the current working directory. You can specify a
 different directory by giving it as the value of the ``basepath`` keyword
 argument to the :func:`PlanetarySystem.run_mcmc` method.
+
+
+Displaying the Results
+----------------------
+
+.. module:: bart.results
+
+Bart comes with some tools to display the results of an MCMC chain like the
+one that we just generated. These tools are accessed through and interface
+called a :class:`ResultsProcess`. There are two ways to get the
+:class:`ResultsProcess` associated with a run. The first is completely
+general—all you need is the ``mcmc.h5`` file. To load the results:
+
+::
+
+    from bart.results import ResultsProcess
+    results = ResultsProcess(filename="/path/to/mcmc.h5", burnin=30)
+
+It is sometimes more convenient—if, for example, you have just run you MCMC in
+the same script—to use another method:
+
+::
+
+    results = kepler6.results
+
+Either way, the results will be the same. To plot projections of the posterior
+probability function, Bart relies on `triangle.py
+<https://github.com/dfm/triangle.py>`_. For this example, we would probably
+want to do something like:
+
+::
+
+    from bart.results import Column
+
+    mean_a = results.semimajors[0] / results.rstar
+    results.corner_plot([
+        Column(r"$(a/R_\star - {0:.3f})\times10^{{3}}$".format(mean_a),
+               lambda s: 1e3 * (s.planets[0].a / s.star.radius - mean_a)),
+        Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
+        Column(r"$t_0$", lambda s: s.planets[0].t0),
+        Column(r"$i$", lambda s: s.iobs),
+    ])
+
+which would result in a figure like the follow being saved as ``corner.png``:
 
 .. image:: ../_static/model_building_corner.png
