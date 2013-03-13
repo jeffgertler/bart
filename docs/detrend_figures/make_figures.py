@@ -47,28 +47,37 @@ ax[-1].set_xlabel("Time [KBJD]")
 
 fig.savefig("detrend.png")
 
-# Plot the fitting figures.
-fig2 = pl.figure(figsize=[8, 6])
-ax2 = [fig2.add_subplot(2, 1, i + 1) for i in range(2)]
+ps = [spline_detrend(ds.time, ds.flux, yerr=ds.ferr, fill_times=False,
+                     maxditer=1),
+      spline_detrend(ds.time, ds.flux, yerr=ds.ferr, maxditer=1),
+      spline_detrend(ds.time, ds.flux, yerr=ds.ferr)]
 
-# Do the most basic de-trending.
-p2 = spline_detrend(ds.time, ds.flux, yerr=ds.ferr, maxditer=1)
-factor2 = p2(ds.time)
+for i, p in enumerate(ps):
+    # Plot the fitting figures.
+    fig2 = pl.figure(figsize=[8, 6])
+    ax2 = [fig2.add_subplot(2, 1, j + 1) for j in range(2)]
 
-# Plot the basic fit.
-t = np.linspace(xlim[0], xlim[1], 10 * len(ds.time))
-ax2[0].plot(ds.time, ds.flux, ".k", alpha=0.3)
-ylim = ax2[0].get_ylim()
-ax2[0].plot(t, p2(t), "r", alpha=0.8)
-ax2[0].plot(p2.get_knots(), p2(p2.get_knots()), ".r", alpha=1)
-ax2[0].set_ylim(ylim)
+    # Do the most basic de-trending.
+    factor2 = p(ds.time)
 
-# Plot the basic de-trend.
-ax2[1].plot(ds.time, ds.flux / factor2, ".k", alpha=0.3)
+    # Plot the basic fit.
+    t = np.linspace(xlim[0], xlim[1], 10 * len(ds.time))
+    ax2[0].plot(ds.time, ds.flux, ".k", alpha=0.3)
+    ylim = ax2[0].get_ylim()
+    ax2[0].plot(t, p(t), "r", alpha=0.8)
+    ax2[0].plot(p.get_knots(), p(p.get_knots()), ".r", alpha=1)
+    ax2[0].set_ylim(ylim)
 
-# Format the axes.
-[a.set_xlim(xlim) for a in ax2]
-[a.set_xticklabels([]) for a in ax2[:-1]]
-ax2[-1].set_xlabel("Time [KBJD]")
+    # Plot the basic de-trend.
+    ax2[1].plot(ds.time, ds.flux / factor2, ".k", alpha=0.3)
 
-fig2.savefig("detrend_2.png")
+    # Format the axes.
+    [a.set_xlim(xlim) for a in ax2]
+    [a.set_xticklabels([]) for a in ax2[:-1]]
+    ax2[-1].set_xlabel("Time [KBJD]")
+
+    [a.annotate(s, [1, 1], xycoords="axes fraction", ha="right", va="top",
+                xytext=[-5, -5], textcoords="offset points")
+            for (a, s) in zip(ax2, ["raw", "naive spline detrending"])]
+
+    fig2.savefig("detrend_{0}.png".format(i + 2))

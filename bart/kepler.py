@@ -31,7 +31,7 @@ TIME_ZERO = 2454833.0
 
 
 def spline_detrend(x, y, yerr=None, Q=4, dt=4., tol=1.25e-3, maxiter=15,
-                   maxditer=4, nfill=4):
+                   fill_times=True, maxditer=4, nfill=4):
     """
     Use iteratively re-weighted least squares to fit a spline to the base
     trend in a time series. This is especially useful (and specifically
@@ -81,9 +81,10 @@ def spline_detrend(x, y, yerr=None, Q=4, dt=4., tol=1.25e-3, maxiter=15,
     t = np.linspace(x[0], x[-1], N)[1:-1]
 
     # Refine knot locations around break points.
-    inds = x[1:] - x[:-1] > 10 ** (-1.25)
-    for i in np.arange(len(x))[inds]:
-        t = _add_knots(t, x[i], x[i + 1], N=nfill)
+    if fill_times:
+        inds = x[1:] - x[:-1] > 10 ** (-1.25)
+        for i in np.arange(len(x))[inds]:
+            t = _add_knots(t, x[i], x[i + 1], N=nfill)
 
     for j in range(maxditer):
         s0 = None

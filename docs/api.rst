@@ -28,3 +28,8 @@ Kepler API & Data
 
 .. autoclass:: bart.kepler.API
    :inherited-members:
+
+.. autoclass:: bart.dataset.KeplerDataset
+   :inherited-members:
+
+.. autofunction:: bart.kepler.spline_detrend
