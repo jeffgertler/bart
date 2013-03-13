@@ -30,8 +30,8 @@ EXPOSURE_TIMES = [54.2, 1626.0]
 TIME_ZERO = 2454833.0
 
 
-def spline_detrend(x, y, yerr=None, Q=4, dt=3., tol=1.25e-3, maxiter=15,
-                   maxditer=4, nfill=2):
+def spline_detrend(x, y, yerr=None, Q=4, dt=4., tol=1.25e-3, maxiter=15,
+                   maxditer=4, nfill=4):
     """
     Use iteratively re-weighted least squares to fit a spline to the base
     trend in a time series. This is especially useful (and specifically

@@ -27,6 +27,7 @@ User Guide
    user/quickstart
    user/model_building
    user/kepler
+   user/detrending
    user/faq
    js
 
