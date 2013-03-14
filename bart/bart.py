@@ -112,8 +112,8 @@ class Star(Model):
 
     def get_semimajor(self, T):
         """
-        Get the mass of the host star implied by the semi-major axis of this
-        planet and an input period.
+        Get the semi-major axis for a massless planet orbiting this star with
+        the period ``T``.
 
         """
         return (_G * T * T * self.mass / (4 * np.pi * np.pi)) ** (1. / 3)
