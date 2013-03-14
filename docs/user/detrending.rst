@@ -120,5 +120,25 @@ but this choice was definitely far from systematic.
 After finding all of the times where there is a discontinuity, we add a knot
 at either end of the break and two evenly spaced in between.
 
+.. image:: ../_static/detrend_3.png
 
+The panels show the same information as the previous example and if you
+compare them closely, you'll see that the problems caused by the breaks at
+182 days and 230 days have been eliminated. There are, however, still a few
+other problematic points. In particular, lets zoom in on the residuals away
+from the fit at around 245 days.
+
+.. image:: ../_static/detrend_5.png
+
+This figure shows the :math:`\chi` function—the difference between the data
+and the model normalized by the error bar. The shape of this discontinuity can
+be very roughly described by the function:
+
+.. math::
+
+    f
+
+Yurp.
+
+.. image:: ../_static/detrend_4.png
 
