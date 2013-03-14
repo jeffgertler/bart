@@ -134,13 +134,14 @@ class Planet(Model):
         The mass of the planet in Solar masses.
 
     :param t0: (optional)
-        The time of a reference pericenter passage.
+        The time of a reference transit in days (the zero-point doesn't
+        matter as long as you're consistent).
 
     :param e: (optional)
         The eccentricity of the orbit.
 
     :param pomega: (optional)
-        The rotation of the orbital ellipse in the reference plane.
+        The angle (in radians) of the orbital ellipse in the reference plane.
 
     :param ix: (optional)
         The inclination of the orbit around the perpendicular axis to the
