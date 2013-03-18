@@ -18,31 +18,47 @@
 
         implicit none
 
+        double precision :: twopi=2*3.141592653589793238462643d0
         double precision, intent(in) :: wt, e
         double precision, intent(out) :: psi
         integer, intent(out) :: info
-        double precision :: psi0, spsi0, f, fp, fpp, tol=1.48e-8, eps
-        integer :: it, maxit=100
+        double precision :: psi0,wt0,spsi0,f,fp,fpp,tol=1.48e-10,eps
+        integer :: it, maxit=500
+
+        ! Check for un-physical eccentricities.
+        if (e .lt. 0 .or. e .gt. 1) then
+          psi0 = 0.0
+          info = 2
+          return
+        endif
 
         info = 0
+        wt0 = dmod(wt, twopi)
 
         eps = 2 * epsilon(0.d0)
-        if (abs(e - 1.d0) .lt. eps .and. abs(wt) .lt. eps) then
+        if (abs(e - 1.d0) .lt. eps .and. abs(wt0) .lt. eps) then
           psi0 = 0.d0
           return
         endif
 
-        psi0 = wt
+        psi0 = wt0
         do it=1,maxit
 
           ! Compute the function and derivatives.
           spsi0 = sin(psi0)
-          f = psi0 - e * spsi0 - wt
+          f = psi0 - e * spsi0 - wt0
           fp = 1.d0 - e * cos(psi0)
           fpp = e * spsi0
 
           ! Take a second order step.
           psi = psi0 - 2.d0 * f * fp / (2.d0 * fp * fp - f * fpp)
+
+          ! Deal with looping boundaries properly.
+          if (psi .gt. twopi) then
+            psi = 0.5 * (psi0 + twopi)
+          elseif (psi .lt. 0.0) then
+            psi = 0.5 * psi0
+          endif
 
           if (abs(psi - psi0) .le. tol) then
             return
@@ -52,7 +68,6 @@
 
         enddo
 
-        write(*,*) "Warning: root finding didn't converge.", wt, e
         info = 1
 
       end subroutine

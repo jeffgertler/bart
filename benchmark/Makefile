@@ -2,19 +2,9 @@ F90 = gfortran
 FFLAGS = -O0
 
 MANDEL_SRC = ../lib/transit/occultquad.f
-OUR_SRC = ../src/ld.f90
 
-default: scalings.pdf
-
-run: benchmark.f90 $(MANDEL_SRC) $(OUR_SRC)
-	$(F90) $(FFLAGS) -o run benchmark.f90 $(MANDEL_SRC) $(OUR_SRC)
-
-bench.dat: run
-	@echo "Running the benchmark... this might take a while."
-	./run > bench.dat
-
-scalings.pdf: bench.dat plot_benchmark.py
-	python plot_benchmark.py bench.dat
+gen_test_data: gen_test_data.f90
+	${F90} ${FFLAGS} gen_test_data.f90 ${MANDEL_SRC} -o gen_test_data
 
 clean:
-	rm -f run bench.dat scalings.pdf
+	rm -rf gen_test_data

@@ -31,3 +31,9 @@ if r == 0:
     __commit__ = p.stdout.read().strip()
 elif os.path.exists(commit_file):
     __commit__ = open(commit_file).read().strip()
+
+
+# Run the tests.
+def tests():
+    from .testing import solver
+    solver.test_solver()

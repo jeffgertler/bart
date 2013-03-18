@@ -26,7 +26,6 @@ except ImportError:
 from bart import _bart
 from bart.km import km1d
 from bart.ldp import LimbDarkening
-from bart.results import ResultsProcess
 
 
 _G = 2945.4625385377644
@@ -263,6 +262,7 @@ class PlanetarySystem(Model):
             p.spec = v[ls + nspec + i * lp:ls + nspec + (i + 1) * lp]
 
     def results(self, *args, **kwargs):
+        from bart.results import ResultsProcess
         kwargs["basepath"] = kwargs.pop("basepath", self.basepath)
         return ResultsProcess(*args, **kwargs)
 
