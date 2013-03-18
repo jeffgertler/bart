@@ -17,7 +17,7 @@
 
         call occultquad(b, u1, u2, p, muo1, mu0, nb)
 
-        write(*,*) "# ", u1, u2
+        write(*,*) "# ", u1, u2, p
         do i=1,nb
           write(*,*) b(i), muo1(i)
         enddo
