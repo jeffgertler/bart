@@ -22,9 +22,9 @@ here.
 How to Use Bart to Apply De-trending
 ------------------------------------
 
-By default the :class:`bart.dataset.KeplerDataset` applies spline de-trending algorithm to
-the light curve when it reads the data. This behavior can be specified using
-the ``detrend`` keyword argument in the constructor.
+By default the :class:`bart.dataset.KeplerDataset` applies spline de-trending
+algorithm to the light curve when it reads the data. This behavior can be
+specified using the ``detrend`` keyword argument in the constructor.
 
 If you would like the apply the de-trending algorithm to a different dataset
 or if you would like to have a greater level of control, you can use the

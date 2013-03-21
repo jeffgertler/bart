@@ -87,7 +87,7 @@ for i, p in enumerate(ps):
 fig3 = pl.figure(figsize=[8, 6])
 ax3 = fig3.add_subplot(111)
 chi = (ds.flux - ps[1](ds.time)) / ds.ferr
-ax3.plot(ds.time, np.sqrt(4. / (4. + chi * chi)) * chi, ".k", alpha=0.3)
+ax3.plot(ds.time, chi, ".k", alpha=0.3)
 ax3.set_xlim(236, 255)
 ax3.set_xlabel("Time [KBJD]")
 fig3.savefig("detrend_5.png")
