@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
+Tests that make sure that the limb darkening computations are running as
+expected.
 
 """
 
