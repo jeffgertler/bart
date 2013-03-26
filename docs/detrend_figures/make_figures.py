@@ -43,7 +43,7 @@ ax[-1].set_xlabel("Time [KBJD]")
 # Add annotations.
 [a.annotate(s, [1, 1], xycoords="axes fraction", ha="right", va="top",
             xytext=[-5, -5], textcoords="offset points")
-        for (a, s) in zip(ax, ["raw", "PDC corrected", "spline detrended"])]
+    for (a, s) in zip(ax, ["raw", "PDC corrected", "spline detrended"])]
 
 fig.savefig("detrend.png")
 
@@ -78,16 +78,39 @@ for i, p in enumerate(ps):
 
     [a.annotate(s, [1, 1], xycoords="axes fraction", ha="right", va="top",
                 xytext=[-5, -5], textcoords="offset points")
-            for (a, s) in zip(ax2, ["raw",
-                                    "spline detrending v{0}".format(i + 1)])]
+        for (a, s) in zip(ax2, ["raw",
+                                "spline detrending v{0}".format(i + 1)])]
 
     fig2.savefig("detrend_{0}.png".format(i + 2))
 
 # Plot the zoomed figures.
 fig3 = pl.figure(figsize=[8, 6])
-ax3 = fig3.add_subplot(111)
-chi = (ds.flux - ps[1](ds.time)) / ds.ferr
-ax3.plot(ds.time, chi, ".k", alpha=0.3)
-ax3.set_xlim(236, 255)
-ax3.set_xlabel("Time [KBJD]")
+ax3a = fig3.add_subplot(211)
+ax3b = fig3.add_subplot(212)
+
+Q = 4.
+dt = 2
+inds = (ds.time < 255) * (236 < ds.time)
+t = ds.time[inds]
+chi = (ds.flux[inds] - ps[1](ds.time[inds])) / ds.ferr[inds]
+softr = np.sqrt(Q / (Q + chi * chi)) * chi
+
+tmid = 0.5 * (t[1:] + t[:-1])
+k = (t[:, None] - tmid[None, :]) / dt
+k = (k - 1) ** 2 * (0 <= k) * (k <= 1) - (k + 1) ** 2 * (-1 <= k) * (k < 0)
+val = np.sum(k * softr[:, None], axis=0) / np.sum(k * k, axis=0)
+
+ax3a.plot(t, chi, ".k", alpha=0.3)
+ax3a.set_xlim(236, 255)
+ax3a.set_xticklabels([])
+ax3a.set_ylabel(r"$\chi (t)$")
+ax3a.yaxis.set_label_coords(-0.07, 0.5)
+
+ax3b.plot(tmid, val * val, ".k", alpha=0.3)
+ax3b.axhline(Q, color="k")
+ax3b.set_xlim(236, 255)
+ax3b.set_xlabel("Time [KBJD]")
+ax3b.set_ylabel(r"$S^2$")
+ax3b.yaxis.set_label_coords(-0.07, 0.5)
+
 fig3.savefig("detrend_5.png")
