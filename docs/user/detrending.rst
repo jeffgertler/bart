@@ -126,19 +126,66 @@ The panels show the same information as the previous example and if you
 compare them closely, you'll see that the problems caused by the breaks at
 182 days and 230 days have been eliminated. There are, however, still a few
 other problematic points. In particular, lets zoom in on the residuals away
-from the fit at around 245 days.
+from the fit at around 245 days. In the following figure, the top panel shows
+the value of :math:`\chi_n = [y_n - \hat{y}(x_n)] / \sigma_n` at each
+data point.
+The discontinuity in the data is very visible in the :math:`\chi_n` plot and
+it seems reasonable to approximately fit the shape of the :math:`\chi_n`
+function near the discontinuity with the function:
+
+.. math::
+   k(t;\,t_0) = \left \{ \begin{array}{ll}
+      [(t - t_0)/\delta - 1]^2 & 0 \le t-t_0 \le \delta \\
+      -[(t - t_0)/\delta + 1]^2 & -\delta \le t-t_0 < 0 \\
+      0 & \mathrm{otherwise}\\
+   \end{array} \right .
+
+for :math:`t_0 \approx 245\,\mathrm{days}` and
+:math:`\delta \approx 2\,\mathrm{days}`. For comparison, the middle panel in
+the following figure shows :math:`k(t;\,t_0)` plotted for :math:`t_0 = 246.2`
+(which just happens to be the best value).
+
+Then, we can define the scalar
+
+.. math::
+   S(t_0) = \frac{\vec{k}^\mathrm{T} \cdot \vec{r}}
+                 {\vec{k}^\mathrm{T} \cdot \vec{k}}
+
+where
+
+.. math::
+   \vec{k} = \left ( \begin{array}{ccc}
+       k(t_1;\,t_0) & \cdots & k(t_N;\,t_0)
+   \end{array} \right)^\mathrm{T}
+
+and
+
+.. math::
+   \vec{r} = \left ( \begin{array}{ccc}
+        \sqrt{\frac{Q}{Q + \chi_1^2}}\,\chi_1 & \cdots &
+        \sqrt{\frac{Q}{Q + \chi_N^2}}\,\chi_N
+   \end{array} \right)^\mathrm{T}\quad.
+
+As with the IRLS discussion, :math:`\vec{r}` is the robustly re-weighted
+error vector. With this definition, :math:`S^2` robustly increases for errors
+in the data that have roughly the shape given by the kernel function
+:math:`k(t;\,t_0)`. The bottom panel in the following figure shows the value
+of :math:`S^2` computed at the midpoint between each pair of neighboring
+data points.
 
 .. image:: ../_static/detrend_5.png
 
-This figure shows the :math:`\chi` function—the difference between the data
-and the model normalized by the error bar. The shape of this discontinuity can
-be very roughly described by the function:
-
-.. math::
-
-    f
-
-Yurp.
+Problems with the data that are not accounted for within the
+re-weighted error bars will have values :math:`S^2 > Q`. Therefore, we can
+automatically detect discontinuities like this one by iteratively finding the
+time of the point with largest :math:`S^2 > Q`. At this breakpoint, we add a
+knot to the spline at the position of the two neighboring data points and two
+others evenly spaced in between. Then, we repeat the IRLS fit until there are
+no other discontinuities with :math:`S^2 > Q`. The result in this example is
+shown in the bottom panel of the following figure:
 
 .. image:: ../_static/detrend_4.png
 
+In Bart, this procedure is implemented in Fortran with Python bindings —
+:func:`bart.kepler.spline_detrend` — and it is efficient enough to be run on
+any large Kepler light curve.

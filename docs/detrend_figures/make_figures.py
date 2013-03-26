@@ -84,9 +84,10 @@ for i, p in enumerate(ps):
     fig2.savefig("detrend_{0}.png".format(i + 2))
 
 # Plot the zoomed figures.
-fig3 = pl.figure(figsize=[8, 6])
-ax3a = fig3.add_subplot(211)
-ax3b = fig3.add_subplot(212)
+fig3 = pl.figure(figsize=[8, 9])
+ax3a = fig3.add_subplot(311)
+ax3c = fig3.add_subplot(312)
+ax3b = fig3.add_subplot(313)
 
 Q = 4.
 dt = 2
@@ -112,5 +113,14 @@ ax3b.set_xlim(236, 255)
 ax3b.set_xlabel("Time [KBJD]")
 ax3b.set_ylabel(r"$S^2$")
 ax3b.yaxis.set_label_coords(-0.07, 0.5)
+
+# Plot the kernel.
+ind = np.argmax(val * val)
+ax3c.plot(tmid, k[ind], "k")
+ax3c.set_xlim(236, 255)
+ax3c.set_ylim(-2.5, 2.5)
+ax3c.set_xticklabels([])
+ax3c.set_ylabel(r"$k (t;\,{0:.1f})$".format(tmid[ind]))
+ax3c.yaxis.set_label_coords(-0.07, 0.5)
 
 fig3.savefig("detrend_5.png")
