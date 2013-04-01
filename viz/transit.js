@@ -183,14 +183,14 @@
 
   el_transit.append("path").attr("d", line(transit_data))
                       .attr("class", "track");
-  el_transit.selectAll("circle").data(transit_data)
+  el_transit.selectAll("circle.transit-data").data(transit_data)
                 .enter()
               .append("circle")
                 .attr("cx", function(d) { return d[0] + 2 * rng(); })
                 .attr("cy", function(d) { return d[2]; })
                 .attr("r", 2)
                 .attr("class", "transit-data");
-  el_transit.selectAll("circle").data([transit_data[current_frame]])
+  el_transit.selectAll("circle.transit-point").data([transit_data[current_frame]])
                 .enter()
               .append("circle")
                 .attr("cx", function(d) { return d[0]; })
@@ -233,7 +233,7 @@
         .attr("cy", function(d) { return d[1]; });
     }
 
-    el_transit.selectAll("circle").data([transit_data[current_frame]])
+    el_transit.selectAll("circle.transit-point").data([transit_data[current_frame]])
       .attr("cx", function(d) { return d[0]; })
       .attr("cy", function(d) { return d[1]; });
   }
