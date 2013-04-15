@@ -200,6 +200,9 @@ if __name__ == "__main__":
 
     # Run the fit.
     etas = np.array([float(eta) for eta in args["-e"]])
+    print("TEST")
+    print(etas)
+    print("END")
     for eta in etas:
         main(in_fns, eta, results_only=args["--results_only"],
              nsteps=int(args["-n"]), nburn=int(args["-b"]),

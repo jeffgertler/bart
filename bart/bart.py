@@ -36,6 +36,10 @@ class Model(object):
 
     def __init__(self):
         self.parameters = []
+        
+        # Diagnostic code
+        self.liketrace = np.array([])
+
 
     @property
     def vector(self):
@@ -90,7 +94,7 @@ class Star(Model):
 
     def __init__(self, mass=1.0, radius=1.0, flux=1.0, ldp=None):
         super(Star, self).__init__()
-
+        
         self.mass = mass
         self.radius = radius
         self.flux = flux
@@ -342,13 +346,17 @@ class PlanetarySystem(Model):
                 return -np.inf
 
             # Compute the likelihood.
+            self.poissonlike()
             lnl = self.lnlike()
             if np.isinf(lnl) or np.isnan(lnl):
                 return -np.inf
 
         except FloatingPointError:
             return -np.inf
-
+        
+        # Diagnostic code
+        np.append(self.liketrace, [lnl+lnp])
+        
         return lnl + lnp
 
     def lnprior(self):
@@ -365,6 +373,19 @@ class PlanetarySystem(Model):
         if np.isinf(np.any(lnp)):
             return -np.inf
         return np.sum(lnp)
+
+    def poissonlike(self, dt=.01):
+        """
+        Compute the probabiity of the lightcurve based on photon data
+
+        """
+        photonrates = self.lightcurve(self.times)
+        bintimes = np.arange(self.times[0], self.times[-1], dt)
+        binrates = self.lightcurve(bintimes)
+        prob = np.sum(np.log(photonrates)) - dt * np.sum(binrates)
+        #print(prob)
+        return prob
+        
 
     def lnlike(self):
         """
@@ -400,7 +421,7 @@ class PlanetarySystem(Model):
                                                     for p in self.planets]
         return zip(*r)
 
-    def lightcurve(self, t, texp=6, K=3):
+    def lightcurve(self, t, texp=0, K=1):
         """
         Get the light curve of the model at the current model.
 
@@ -442,6 +463,23 @@ class PlanetarySystem(Model):
         result = op.minimize(objective, self.vector)
         self.vector = result.x
         return result.x
+
+    def photons(self, t, tbin):
+        print("Generating photons")
+        lc = self.lightcurve(t)
+        times = np.empty(0)
+        for i in range(len(t)):
+            times = np.append(times, t[i]+tbin*np.random.uniform(size = np.random.poisson(lam = tbin*lc[i])))
+        self.t = t
+        self.times = times
+        print("Photons finished")
+        pl.clf()
+        pl.plot(t, lc)
+        pl.hist(times, bins = t.max()-t.min())
+        pl.savefig("/home/jmg789/bart/document/figures/lightcurve.png")
+        print("Finished lightcurve.png")
+        return self.times
+
 
     def fit(self, iterations, start=None, filename="mcmc.h5", **kwargs):
         """

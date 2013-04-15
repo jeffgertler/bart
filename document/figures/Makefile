@@ -5,6 +5,10 @@ all: geom.pdf kepler6
 geom.pdf: geom.py utils.py
 	python geom.py
 
+lightcurve:
+	python lightcurve.py -e 0.05 -n 200
+
+
 test:
 	python test.py -e 0.05 -n 70 kepler6/data/kplr010874614-2011271113734_slc.fits
 
