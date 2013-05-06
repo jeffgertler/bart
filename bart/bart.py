@@ -421,7 +421,20 @@ class PlanetarySystem(Model):
                                                     for p in self.planets]
         return zip(*r)
 
-    def lightcurve(self, t, texp=0, K=1):
+    def null_bgfunc(t):
+        """
+        | Generates a zeroed background 
+        | FIXME: MAGIC NUMBER .001
+        """
+        return np.zeros_like(t)+.001
+    
+    def null_sfunc(t):
+        """
+        | Generates a perfect sensitivity (all ones)
+        """
+        return np.ones_like(t)
+
+    def lightcurve(self, t, texp=0, K=1, bgfunc=null_bgfunc, sfunc=null_sfunc):
         """
         Get the light curve of the model at the current model.
 
@@ -443,7 +456,7 @@ class PlanetarySystem(Model):
                                 mass, r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
-        return lc
+        return lc * sfunc(t) + bgfunc(t)
 
     def radial_velocity(self, t):
         s = self.star
@@ -464,11 +477,18 @@ class PlanetarySystem(Model):
         self.vector = result.x
         return result.x
 
-    def photons(self, t, tbin):
+    def get_photons(self, t):
+        """
+        generate a Poisson photon list from a light curve
+        - fails when `self.lightcurve()` hits zero
+        - requires user to input a sensible (ie, fine) time grid `t`
+        - time grid t must be monotonically increasing
+        """
         print("Generating photons")
         lc = self.lightcurve(t)
         times = np.empty(0)
-        for i in range(len(t)):
+        for i in range(len(t)-1):
+            tbin = t[i+1] - t[i]
             times = np.append(times, t[i]+tbin*np.random.uniform(size = np.random.poisson(lam = tbin*lc[i])))
         self.t = t
         self.times = times

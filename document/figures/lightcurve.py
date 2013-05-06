@@ -58,33 +58,40 @@ def main(fns, eta, results_only=False, nsteps=50, nburn=50, fitrv=True):
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
+    ldp = kepler.fiducial_ldp(teff=5647, logg=4.236, feh=0.34, bins=50)
+    star = bart.Star(mass=.602, radius=.9, ldp=ldp, flux = 100.)
+    planet = bart.Planet(a=162, r=11, mass=.0009551)
+    system = bart.PlanetarySystem(star, iobs=86.8)
+    system.add_planet(planet)
+    tbin = .001
+    t = np.arange(-200, 200, tbin)
+    pl.clf()
+    pl.plot(t, system.lightcurve(t))
+    pl.savefig("lightcurve_bug_test_r<1")
 
-    rstar = 1.391  # +0.017 -0.034 R_sun
+    tbin = .001
+
     Teff = 5647.
     logg = 4.24
     feh = 0.34
-
-    P = 3.234723  # ± 0.000017 days
-    r = 0.09829  # +0.00014 -0.00050 R_*
-    i = 86.8  # ± 0.3 degrees
-    mass = 0.669 * 9.5492e-4  # Solar masses.
-
-
     ldp = kepler.fiducial_ldp(teff=5647, logg=4.236, feh=0.34, bins=50)
-    star = bart.Star(mass=.602, radius=.01234, ldp=ldp, flux = 100.)
-    #star = bart.Star(mass=.00005, radius=1.391, ldp=ldp, flux = 100.)
 
-    a = 7.05  # +0.11 -0.06 R_*
-    Rp = .7 * star.radius
-    planet = bart.Planet(a=100, r=.01234, t0=0, mass=0.0009551)
-
-    kepler6 = bart.PlanetarySystem(star, iobs=86.8)
-    kepler6.add_planet(planet)
-
-    tbin = .01
-    t = np.arange(-100, 100, tbin)
-    times = kepler6.photons(t, tbin = tbin)
+    mass = .602
+    radius =.01234
+    #star = bart.Star(mass=.602, radius=.1006, ldp=ldp, flux = 100.)
+    star = bart.Star(mass=.602, radius=1, ldp=ldp, flux = 100.)
     
+    a = 10000*star.radius  # +0.11 -0.06 R_*
+    Rp = star.radius*2
+    mass = .0009551
+    planet = bart.Planet(a=162, r=11, mass=.0009551)
+
+    system = bart.PlanetarySystem(star, iobs=86.8)
+    system.add_planet(planet)
+
+    tbin = .001
+    t = np.arange(-200, 200, tbin)
+    times = system.get_photons(t)
     
     planet.parameters.append(LogParameter(r"$r$", "r"))
     '''
@@ -93,17 +100,17 @@ def main(fns, eta, results_only=False, nsteps=50, nburn=50, fitrv=True):
     kepler6.parameters.append(CosParameter(r"$i$", "iobs"))
     '''
     
-    print(kepler6.vector)
+    print(system.vector)
     if not results_only:
-        kepler6.fit(nsteps, thin=10, burnin=[], nwalkers=64) 
+        system.fit(nsteps, thin=10, burnin=[], nwalkers=64) 
     
-    results = kepler6.results(thin=10, burnin=nburn)
+    results = system.results(thin=10, burnin=nburn)
     
-    print(len(kepler6.liketrace))
-    print(np.max(kepler6.liketrace))
-    print(np.min(kepler6.liketrace))
+    print(len(system.liketrace))
+    print(np.max(system.liketrace))
+    print(np.min(system.liketrace))
     pl.clf()
-    pl.plot(range(len(kepler6.liketrace)), kepler6.liketrace)
+    pl.plot(range(len(system.liketrace)), system.liketrace)
     pl.savefig("likelihood_trace")
 
 
