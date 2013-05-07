@@ -102,7 +102,7 @@ def main(fns, eta, results_only=False, nsteps=50, nburn=50, fitrv=True):
     
     print(system.vector)
     if not results_only:
-        system.fit(nsteps, thin=10, burnin=[], nwalkers=64) 
+        system.run_mcmc(nsteps, thin=10, burnin=[], nwalkers=64) 
     
     results = system.results(thin=10, burnin=nburn)
     
