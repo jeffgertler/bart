@@ -1,0 +1,77 @@
+\usepackage{amssymb,amsmath}
+
+\newcommand{\project}[1]{{\sffamily #1}}
+\newcommand{\Python}{\project{Python}}
+\newcommand{\numpy}{\project{numpy}}
+\newcommand{\bart}{\project{Bart}}
+\newcommand{\emcee}{\project{emcee}}
+\newcommand{\kepler}{\project{Kepler}}
+\newcommand{\license}{MIT License}
+
+\newcommand{\paper}{\emph{Article}}
+
+\newcommand{\foreign}[1]{\emph{#1}}
+\newcommand{\etal}{\foreign{et\,al.}}
+\newcommand{\etc}{\foreign{etc.}}
+
+\newcommand{\Fig}[1]{Figure~\ref{fig:#1}}
+\newcommand{\fig}[1]{\Fig{#1}}
+\newcommand{\figlabel}[1]{\label{fig:#1}}
+\newcommand{\Tab}[1]{Table~\ref{tab:#1}}
+\newcommand{\tab}[1]{\Tab{#1}}
+\newcommand{\tablabel}[1]{\label{tab:#1}}
+\newcommand{\Eq}[1]{Equation~(\ref{eq:#1})}
+\newcommand{\eq}[1]{\Eq{#1}}
+\newcommand{\eqlabel}[1]{\label{eq:#1}}
+\newcommand{\Sect}[1]{Section~\ref{sect:#1}}
+\newcommand{\sect}[1]{\Sect{#1}}
+\newcommand{\App}[1]{Appendix~\ref{sect:#1}}
+\newcommand{\app}[1]{\App{#1}}
+\newcommand{\sectlabel}[1]{\label{sect:#1}}
+\newcommand{\Algo}[1]{Algorithm~\ref{algo:#1}}
+\newcommand{\algo}[1]{\Algo{#1}}
+\newcommand{\algolabel}[1]{\label{algo:#1}}
+
+% math symbols
+\newcommand{\dd}{\ensuremath{\,\mathrm{d}}}
+\newcommand{\bvec}[1]{\ensuremath{\boldsymbol{#1}}}
+\newcommand{\unit}[1]{\ensuremath{\mathrm{#1}}}
+\newcommand{\normal}[1]{\ensuremath{\mathcal{N}(#1)}}
+\newcommand{\pr}[1]{\ensuremath{p (#1)}}
+\newcommand{\setof}[1]{\ensuremath{\{ #1 \}}}
+
+% symbols.
+\newcommand{\model}{\ensuremath{\bvec{\theta}}}
+\newcommand{\tobs}{\ensuremath{t_n}}
+\newcommand{\fmodel}{\ensuremath{f_{\model} (\tobs)}}
+\newcommand{\fobs}{\ensuremath{f_{\mathrm{obs};\,n}}}
+\newcommand{\ferr}{\ensuremath{\sigma_n^2}}
+\newcommand{\fullerr}{\ensuremath{s_n^2}}
+
+\newcommand{\rstar}{\ensuremath{R_\star}}
+\newcommand{\rplanet}{\ensuremath{r}}
+\newcommand{\impactpar}{\ensuremath{b}}
+\newcommand{\occbase}[2]{\ensuremath{\lambda_{#1}(#2,\,\rplanet,\,\impactpar)}}
+\newcommand{\occ}[1]{\occbase{#1}{\rstar}}
+\newcommand{\occultation}{\occ{}}
+\newcommand{\occuniform}{\occ{\mathrm{uniform}}}
+\newcommand{\occuniformer}[1]{\occbase{\mathrm{uniform}}{#1}}
+\newcommand{\rsurface}{\ensuremath{x}}
+\newcommand{\ldp}{\ensuremath{I(\rsurface)}}
+\newcommand{\occarea}{\ensuremath{A_\mathrm{occ}}}
+\newcommand{\geomw}{\ensuremath{w_k (\rplanet,\,\impactpar)}}
+
+% Planet parameters
+\newcommand{\nplanets}{\ensuremath{J}}
+\newcommand{\tzero}{\ensuremath{{t_0}}}
+\newcommand{\smaxis}{\ensuremath{a}}
+\newcommand{\ecc}{\ensuremath{e}}
+\newcommand{\pomega}{\ensuremath{\varpi}}
+\newcommand{\incl}{\ensuremath{\bvec{\delta i}}}
+\newcommand{\mplanet}{\ensuremath{{M_\mathrm{p}}}}
+
+% Other parameters.
+\newcommand{\jitter}{\ensuremath{\delta^2}}
+\newcommand{\mstar}{\ensuremath{M_\star}}
+\newcommand{\fstar}{\ensuremath{f_\star}}
+\newcommand{\iobs}{\ensuremath{i}}

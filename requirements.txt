@@ -1,8 +1,10 @@
 # The standards.
 numpy>=1.6.2
-scipy>=0.11.0
-matplotlib>=1.2.0
 pyfits>=3.1.1
+
+# Optional modules.
+# matplotlib>=1.2.0  # Optional
+# scipy>=0.11.0  # Optional
 
 # For saving MCMC chains.
 h5py>=2.1.0
@@ -10,7 +12,7 @@ h5py>=2.1.0
 # My other modules.
 acor>=1.0.2
 emcee>=1.1.2
-triangle_plot>=0.0.3
+triangle_plot>=0.0.4
 
 # For interacting with the Kepler API.
 requests>=1.1.0

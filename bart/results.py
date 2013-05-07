@@ -13,9 +13,12 @@ from multiprocessing import Process
 import h5py
 import numpy as np
 import matplotlib.pyplot as pl
+from matplotlib.ticker import MaxNLocator
 import pystache
 
 import triangle
+
+from . import kepler
 
 
 class ResultsProcess(object):
@@ -96,7 +99,8 @@ class ResultsProcess(object):
         # Grab the labels.
         labels = [p.name for p in parameters]
 
-        fig = triangle.corner(plotchain, labels=labels, bins=20)
+        fig = triangle.corner(plotchain, labels=labels, bins=20,
+                              quantiles=[0.16, 0.5, 0.84])
         self.savefig(outfn, fig=fig)
 
     def corner_plot(self, parameters, outfn="corner"):
@@ -105,48 +109,118 @@ class ResultsProcess(object):
 
     def _lc_plot(self, args):
         outdir, planet_ind = args
-        time = np.concatenate([d.time for d in self.datasets
-                                      if d.__type__ == "lc"])
-        flux = np.concatenate([d.flux for d in self.datasets
-                                      if d.__type__ == "lc"])
-        texp = np.min([d.texp for d in self.datasets
-                              if d.__type__ == "lc"])
 
         # Get the median parameters of the fit.
         fstar, rstar, mstar = self.fstar, self.rstar, self.mstar
         P, t0, a, r = (self.periods[planet_ind], self.epochs[planet_ind],
                        self.semimajors[planet_ind], self.radii[planet_ind])
 
-        # Compute the transit duration.
+        # Estimate the transit duration.
         duration = P * (r + rstar) / np.pi / a
-        t = np.linspace(-duration, duration, 5000)
 
-        # Compute the light curve for each sample.
-        lc = np.empty((self.subsamples, len(t)))
+        # Set up the plots.
+        folded_lc_fig = pl.figure(figsize=(4, 6))
+        folded_ax = [folded_lc_fig.add_axes([0.2, 0.1 + 0.4 * (1 - i), 0.79,
+                                             0.4])
+                            for i in range(2)]
+
+        full_fig = pl.figure(figsize=(8, 8))
+        full_ax = [full_fig.add_axes([0.2, 0.1 + 0.28 * (2 - i), 0.79, 0.28])
+                            for i in range(3)]
+
+        rv_ax = pl.figure(figsize=(4, 4)).add_axes([0.2, 0.1, 0.79, 0.85])
+
+        # Load and plot the data.
+        trange = [np.inf, -np.inf]
+        for d in self.datasets:
+            trange = [min(trange[0], np.min(d.time)),
+                      max(trange[1], np.max(d.time))]
+            t = 24 * (d.time % P)
+            t_f = (d.time - t0) % P
+            t_f[t_f > duration] -= P
+            inds = (t_f < duration) * (t_f > -duration)
+            if d.__type__ == "lc":
+                folded_ax[d.cadence].plot(24 * t_f[inds], d.flux[inds], ".",
+                                          color="#888888", rasterized=True,
+                                          alpha=0.5)
+                full_ax[d.cadence].plot(d.time, d.flux, ".", color="#888888",
+                                        rasterized=True, alpha=0.5)
+            else:
+                rv_ax.errorbar(t, d.rv, yerr=d.rverr, fmt=".",
+                               color="#888888")
+                full_ax[2].errorbar(d.time, d.rv, yerr=d.rverr, fmt=".",
+                                    color="#888888")
+
+        t_full = np.arange(trange[0], trange[1], 0.1)
+        t_folded = np.linspace(-duration, duration, 10000)
+        t_short = np.linspace(0, P, 5000)
 
         # Loop over the samples.
         inds = np.random.randint(len(self.flatchain), size=self.subsamples)
         for i, v in enumerate(self.flatchain[inds, :]):
             self.system.vector = v
+
+            # Plot the folded RV curve.
+            rv_ax.plot(t_short * 24, self.system.radial_velocity(t_short), "k",
+                       alpha=0.5, zorder=-1)
+
+            # Plot the full curves.
+            if i == 0:
+                full_ax[0].plot(t_full, self.system.lightcurve(t_full,
+                                                texp=kepler.EXPOSURE_TIMES[0]),
+                                "k", alpha=0.3)
+                full_ax[1].plot(t_full, self.system.lightcurve(t_full,
+                                                texp=kepler.EXPOSURE_TIMES[1]),
+                                "k", alpha=0.3)
+                full_ax[2].plot(t_full, self.system.radial_velocity(t_full),
+                                "k", alpha=0.3)
+
+            # Center the transit and plot the folded models.
             self.system.planets[planet_ind].t0 = 0.0
-            lc[i] = self.system.lightcurve(t, texp=texp)
+            folded_ax[0].plot(t_folded * 24, self.system.lightcurve(t_folded,
+                                             texp=kepler.EXPOSURE_TIMES[0]),
+                              "k", alpha=0.5)
+            folded_ax[1].plot(t_folded * 24, self.system.lightcurve(t_folded,
+                                             texp=kepler.EXPOSURE_TIMES[1]),
+                              "k", alpha=0.5)
 
-        # Plot the data and samples.
-        fig = pl.figure()
-        ax = fig.add_subplot(111)
-        time = time % P - t0
-        inds = (time < duration) * (time > -duration)
-        ax.plot(time[inds] * 24.0, flux[inds] / fstar, ".",
-                alpha=1.0, color="#888888", rasterized=True)
-        ax.plot(t * 24.0, lc.T / fstar, color="k", alpha=0.5)
+        # Set axes ranges.
+        [ax.set_xlim(*trange) for ax in full_ax]
+        [ax.set_xlim(-24 * duration, 24 * duration) for ax in folded_ax]
 
-        # Annotate the axes.
-        ax.set_xlim(-duration * 24.0, duration * 24.0)
-        ax.set_xlabel(u"Time [Hours Since Transit]")
-        ax.set_ylabel(r"Flux")
+        # Hogg's insanity.
+        q1 = np.median(np.concatenate([d.ferr for d in self.datasets
+                                       if hasattr(d, "ferr")]))
+        q2 = (r / rstar) ** 2
+        Q = np.sqrt((8 * q1) ** 2 + (2 * q2) ** 2)
+        [ax.set_ylim(1 - Q, 1 + 0.5 * Q) for ax in folded_ax]
+        [ax.set_ylim(1 - Q, 1 + 0.5 * Q) for ax in full_ax[:-1]]
 
-        self.savefig(os.path.join(outdir, "{0}.png".format(planet_ind)),
-                     fig=fig)
+        # Ticks.
+        [ax.yaxis.set_major_locator(MaxNLocator(4))
+                    for ax in folded_ax + full_ax]
+        [ax.set_xticklabels([]) for ax in [folded_ax[0]] + full_ax[:-1]]
+
+        folded_ax[-1].xaxis.set_major_locator(MaxNLocator(4))
+        full_ax[-1].xaxis.set_major_locator(MaxNLocator(4))
+
+        # Annotations.
+        folded_ax[-1].set_xlabel("Time [Hours Since Transit]")
+        full_ax[-1].set_xlabel("KBJD")
+        [ax.annotate(s, [1, 1], xycoords="axes fraction",
+                     xytext=[-5, -5], textcoords="offset points",
+                     ha="right", va="top")
+                for s, ax in zip(["short cadence", "long cadence",
+                                  "short cadence", "long cadence",
+                                  "radial velocity"],
+                                 folded_ax + full_ax)]
+
+        for d, f in [("folded", folded_lc_fig),
+                     ("full", full_fig),
+                     ("rv", rv_ax.figure)]:
+            self.savefig(os.path.join(outdir,
+                                      "{0}-{1}.png".format(d, planet_ind)),
+                         fig=f)
 
     def _lc_plots(self, outdir):
         # Try to make the directory.
@@ -159,7 +233,7 @@ class ResultsProcess(object):
         map(self._lc_plot,
             [(outdir, i) for i in range(self.system.nplanets)])
 
-    def lc_plot(self, outdir="lightcurves"):
+    def lc_plot(self, outdir="fits"):
         p = Process(target=self._lc_plots, args=(outdir,))
         p.start()
 
@@ -262,7 +336,6 @@ class ResultsProcess(object):
     def _time_plot(self, outdir):
         fig = pl.figure()
         names = np.concatenate([p.names for p in self.parlist])
-        print(names)
         for i in range(self._chain.shape[2]):
             fig.clf()
             ax = fig.add_subplot(111)

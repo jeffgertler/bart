@@ -1,44 +1,112 @@
-body {
-    font-family: "Helvetica Neue", Helvetica, sans-serif;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 1.2;
+#plot {
+    margin: 10px 0;
 }
 
-h3 {
-    font-size: 16px;
-    text-align: center;
+#plot svg {
+    background: #111;
 }
 
-.container {
-  width: 700px;
-  margin: 0 auto;
-}
-
-#three-dee canvas {
-    cursor: move;
-    background-color: #000;
-}
-
-.axis line, .axis path {
-    stroke: #333;
+#plot .track {
+    stroke-width: 1.25px;
+    stroke: #eee;
     fill: none;
 }
 
-.axis.label {
+#plot .star {
+    stroke: none;
+    fill: url(#gradient);
+    filter: url(#drop);
+}
+
+#plot .transit-point {
+    fill: #e22;
+}
+
+#plot .transit-data {
+    fill: #eee;
+    opacity: 0.8;
+}
+
+#plot .side-point {
+    fill: #111;
+    stroke-width: 0.5px;
+    stroke: #888;
+}
+
+#plot text {
+    fill: #eee;
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
     font-size: 10px;
     text-transform: uppercase;
 }
 
-circle.current {
-    fill: #f00;
-    stroke: #333;
-    stroke-width: 1.5px;
+#plot-note {
+    margin-top: -410px;
+    padding: 0;
+    height: 400px;
 }
 
-#limb-darkening circle {
-  cursor: move;
-  fill: #f00;
-  stroke: #333;
-  stroke-width: 1.5px;
+#plot-note a {
+    position: relative;
+    top: 190px;
+    left: 610px;
+    padding: 10px 15px;
+    background: #888;
+    color: #eee;
+    text-decoration: none;
+    font-size: 0.8em;
+    border-radius: 4px;
+}
+
+#plot-note a:after {
+    content: "";
+    display: block;
+    position: absolute;
+    left: -9px;
+    top: 50%;
+    margin-top: -13px;
+    width: 0;
+    height: 0;
+    border-top: 14px solid transparent;
+    border-bottom: 14px solid transparent;
+    border-right: 11px solid #888;
+    border-left: 0 solid transparent;
+}
+
+@media all and (max-width: 820px) {
+
+    #plot-note {
+        margin: 0;
+        padding: 10px 0 0;
+        height: auto;
+        text-align: center;
+    }
+
+    #plot-note a {
+        position: relative;
+        top: 0px;
+        left: 0px;
+        padding: 10px 15px;
+        background: #888;
+        color: #eee;
+        text-decoration: none;
+        font-size: 0.8em;
+        border-radius: 4px;
+    }
+
+    #plot-note a:after {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 4px;
+        left: 50%;
+        margin-left: -13px;
+        width: 0;
+        height: 0;
+        border-left: 14px solid transparent;
+        border-right: 14px solid transparent;
+        border-bottom: 11px solid #888;
+        border-top: 0 solid transparent;
+    }
+
 }

@@ -24,7 +24,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Bart"
-copyright = u"2012, Dan Foreman-Mackey"
+copyright = u"2013, Dan Foreman-Mackey"
 # version = bart.__version__
 # release = bart.__version__
 
@@ -190,6 +190,3 @@ texinfo_documents = [
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
 
-
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}

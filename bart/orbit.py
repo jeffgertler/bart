@@ -9,16 +9,17 @@ G = 2945.4625385377644
 
 mstar = 1.0
 mplanet = 1e-3
-e, a, i = 0.6, 14.0, 0
+e, a, i = 1.0, 14.0, 0
 t0 = 0.15
 pomega = 0.1 * np.pi
 
 T = 2 * np.pi * np.sqrt(a * a * a / G / mstar)
 t = np.linspace(0, T, 10000)
 
-pos, rv, info = _bart.solve_orbit(t, mstar, mplanet, e, a, t0, pomega, i, 0.0)
+pos, rv, info = _bart.solve_orbit(t, mstar, mplanet, e, a, t0, pomega, i, 0.0,
+                                  True)
 pphi, rvphi, infophi = _bart.solve_orbit(t0, mstar, mplanet, e, a, t0,
-                                         pomega, i, 0.0)
+                                         pomega, i, 0.0, True)
 
 ee = np.arccos((e + np.cos(pomega)) / (1 + e * np.cos(pomega)))
 

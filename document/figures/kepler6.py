@@ -4,7 +4,7 @@
 Demo of how you would use Bart to fit a Kepler light curve.
 
 Usage: kepler6.py [FILE...] [-e ETA]... [--results_only] [-n STEPS] [-b BURN]
-                  [--rv]
+                  [--rv] [-s INIT]
 
 Options:
     -h --help       show this
@@ -14,6 +14,7 @@ Options:
     -n STEPS        the number of steps to take [default: 2000]
     -b BURN         the number of burn in steps to take [default: 50]
     --rv            fit radial velocity?
+    -s INIT         initialize from a previous run
 
 """
 
@@ -31,8 +32,9 @@ from bart.results import ResultsProcess, Column
 from bart.parameters.priors import GaussianPrior
 from bart.parameters.base import Parameter, LogParameter
 from bart.parameters.star import RelativeLimbDarkeningParameters
-from bart.parameters.planet import EccentricityParameter
+from bart.parameters.planet import EccentricityParameter, CosParameter
 
+import h5py
 import numpy as np
 import matplotlib.pyplot as pl
 from matplotlib.ticker import MaxNLocator
@@ -42,19 +44,8 @@ from matplotlib.ticker import MaxNLocator
 np.random.seed(100)
 
 
-class CosParameter(Parameter):
-
-    def getter(self, obj):
-        return np.cos(np.radians(obj.iobs))
-
-    def setter(self, obj, val):
-        obj.iobs = np.degrees(np.arccos(val))
-
-    def sample(self, obj, std=1e-5, size=1):
-        return np.cos(np.radians(obj.iobs * (1 + std * np.random.randn(size))))
-
-
-def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
+def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True,
+         start=None):
     # Initial physical parameters from:
     #  http://kepler.nasa.gov/Mission/discoveries/kepler6b/
     #  http://arxiv.org/abs/1001.0333
@@ -104,14 +95,18 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
                                                    eta=eta))
 
     # Read in the data.
+    datasets = []
     for fn in fns:
-        system.add_dataset(KeplerDataset(fn))
-        print(system.datasets[-1].time)
+        datasets.append(KeplerDataset(fn))
+    mu_t = np.median(np.concatenate([d.time for d in datasets]))
+    mu_t -= mu_t % P
+    for d in datasets:
+        d.time -= mu_t
+        system.add_dataset(d)
 
     # Add the RV data.
     rv = np.loadtxt("k6-rv.txt")
-    ds = RVDataset(rv[:, 0], rv[:, 2], rv[:, 3], jitter=5.0)
-    print(ds.time)
+    ds = RVDataset(rv[:, 0] - mu_t, rv[:, 2], rv[:, 3], jitter=0.5)
     if fitrv:
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)
@@ -129,19 +124,23 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     pl.savefig("initial_rv.png")
 
     if not results_only:
-        system.fit(nsteps, thin=10, burnin=[], nwalkers=64)
+        if start is None:
+            bsch = []
+        else:
+            bsch = [10, ]
+        system.fit(nsteps, thin=10, burnin=bsch, nwalkers=64, start=start)
 
     # Plot the results.
     print("Plotting results")
     results = system.results(thin=10, burnin=nburn)
-    results.latex([
-            Column(r"$P\,[\mathrm{days}]$",
-                   lambda s: s.planets[0].get_period(s.star.mass)),
-            Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
-            Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
-            Column(r"$t_0\,[\mathrm{days}]$", lambda s: s.planets[0].t0),
-            Column(r"$i\,[\mathrm{deg}]$", lambda s: s.iobs),
-        ])
+    # results.latex([
+    #         Column(r"$P\,[\mathrm{days}]$",
+    #                lambda s: s.planets[0].get_period(s.star.mass)),
+    #         Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
+    #         Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
+    #         Column(r"$t_0\,[\mathrm{days}]$", lambda s: s.planets[0].t0),
+    #         Column(r"$i\,[\mathrm{deg}]$", lambda s: s.iobs),
+    #     ])
 
     # RV plot.
     ax = results._rv_plots("rv")[0]
@@ -151,17 +150,17 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
 
     # Other results plots.
     results.lc_plot()
-    results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
-    results.time_plot()
+    # results.ldp_plot(fiducial=kepler.fiducial_ldp(Teff, logg, feh))
+    # results.time_plot()
 
-    results.corner_plot([
-            Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
-            Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
-            Column(r"$t_0$", lambda s: s.planets[0].t0),
-            Column(r"$i$", lambda s: s.iobs),
-            Column(r"$e$", lambda s: s.planets[0].e),
-            Column(r"$\varpi$", lambda s: s.planets[0].pomega),
-        ])
+    # results.corner_plot([
+    #         Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
+    #         Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
+    #         Column(r"$t_0$", lambda s: s.planets[0].t0),
+    #         Column(r"$i$", lambda s: s.iobs),
+    #         Column(r"$e$", lambda s: s.planets[0].e),
+    #         Column(r"$\varpi$", lambda s: s.planets[0].pomega),
+    #     ])
 
 
 def download_data(bp):
@@ -198,6 +197,14 @@ if __name__ == "__main__":
     else:
         in_fns = fns
 
+    # Initialization.
+    init_fn = args["-s"]
+    if init_fn is not None:
+        with h5py.File(init_fn) as f:
+            start = f["mcmc"]["chain"][:, -1, :]
+    else:
+        start = None
+
     # Run the fit.
     etas = np.array([float(eta) for eta in args["-e"]])
     print("TEST")
@@ -206,7 +213,7 @@ if __name__ == "__main__":
     for eta in etas:
         main(in_fns, eta, results_only=args["--results_only"],
              nsteps=int(args["-n"]), nburn=int(args["-b"]),
-             fitrv=args["--rv"])
+             fitrv=args["--rv"], start=start)
 
     # Plot the combined histogram.
     # hist_ax = pl.figure(figsize=(4, 4)).add_axes([0.1, 0.2, 0.8, 0.75])

@@ -8,7 +8,6 @@
 
 \usepackage{url}
 \usepackage{algorithmic,algorithm}
-\usepackage{amssymb,amsmath}
 
 \usepackage{listings}
 \definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
@@ -25,82 +24,7 @@
         stringstyle=\color[rgb]{0.627,0.126,0.941},
     }
 
-\newcommand{\project}[1]{{\sffamily #1}}
-\newcommand{\Python}{\project{Python}}
-\newcommand{\numpy}{\project{numpy}}
-\newcommand{\bart}{\project{Bart}}
-\newcommand{\emcee}{\project{emcee}}
-\newcommand{\kepler}{\project{Kepler}}
-\newcommand{\license}{MIT License}
-
-\newcommand{\paper}{\emph{Article}}
-
-\newcommand{\foreign}[1]{\emph{#1}}
-\newcommand{\etal}{\foreign{et\,al.}}
-\newcommand{\etc}{\foreign{etc.}}
-
-\newcommand{\Fig}[1]{Figure~\ref{fig:#1}}
-\newcommand{\fig}[1]{\Fig{#1}}
-\newcommand{\figlabel}[1]{\label{fig:#1}}
-\newcommand{\Tab}[1]{Table~\ref{tab:#1}}
-\newcommand{\tab}[1]{\Tab{#1}}
-\newcommand{\tablabel}[1]{\label{tab:#1}}
-\newcommand{\Eq}[1]{Equation~(\ref{eq:#1})}
-\newcommand{\eq}[1]{\Eq{#1}}
-\newcommand{\eqlabel}[1]{\label{eq:#1}}
-\newcommand{\Sect}[1]{Section~\ref{sect:#1}}
-\newcommand{\sect}[1]{\Sect{#1}}
-\newcommand{\App}[1]{Appendix~\ref{sect:#1}}
-\newcommand{\app}[1]{\App{#1}}
-\newcommand{\sectlabel}[1]{\label{sect:#1}}
-\newcommand{\Algo}[1]{Algorithm~\ref{algo:#1}}
-\newcommand{\algo}[1]{\Algo{#1}}
-\newcommand{\algolabel}[1]{\label{algo:#1}}
-
-% math symbols
-\newcommand{\dd}{\ensuremath{\,\mathrm{d}}}
-\newcommand{\bvec}[1]{\ensuremath{\boldsymbol{#1}}}
-\newcommand{\unit}[1]{\ensuremath{\mathrm{#1}}}
-\newcommand{\normal}[1]{\ensuremath{\mathcal{N}(#1)}}
-\newcommand{\pr}[1]{\ensuremath{p (#1)}}
-\newcommand{\setof}[1]{\ensuremath{\{ #1 \}}}
-
-% symbols.
-\newcommand{\model}{\ensuremath{\bvec{\theta}}}
-\newcommand{\tobs}{\ensuremath{t_n}}
-\newcommand{\fmodel}{\ensuremath{f_{\model} (\tobs)}}
-\newcommand{\fobs}{\ensuremath{f_{\mathrm{obs};\,n}}}
-\newcommand{\ferr}{\ensuremath{\sigma_n^2}}
-\newcommand{\fullerr}{\ensuremath{s_n^2}}
-
-% limb darkening.
-\newcommand{\rstar}{\ensuremath{R_\star}}
-\newcommand{\rplanet}{\ensuremath{r}}
-\newcommand{\impactpar}{\ensuremath{b}}
-\newcommand{\occbase}[2]{\ensuremath{\lambda_{#1}(#2,\,\rplanet,\,\impactpar)}}
-\newcommand{\occ}[1]{\occbase{#1}{\rstar}}
-\newcommand{\occultation}{\occ{}}
-\newcommand{\occuniform}{\occ{\mathrm{uniform}}}
-\newcommand{\occuniformer}[1]{\occbase{\mathrm{uniform}}{#1}}
-\newcommand{\rsurface}{\ensuremath{x}}
-\newcommand{\ldp}{\ensuremath{I(\rsurface)}}
-\newcommand{\occarea}{\ensuremath{A_\mathrm{occ}}}
-\newcommand{\geomw}{\ensuremath{w_k (\rplanet,\,\impactpar)}}
-
-% Planet parameters
-\newcommand{\nplanets}{\ensuremath{J}}
-\newcommand{\tzero}{\ensuremath{{t_0}}}
-\newcommand{\smaxis}{\ensuremath{a}}
-\newcommand{\ecc}{\ensuremath{e}}
-\newcommand{\pomega}{\ensuremath{\varpi}}
-\newcommand{\incl}{\ensuremath{\bvec{\delta i}}}
-
-% Other parameters.
-\newcommand{\jitter}{\ensuremath{\delta^2}}
-\newcommand{\mstar}{\ensuremath{M_\star}}
-\newcommand{\fstar}{\ensuremath{f_\star}}
-\newcommand{\iobs}{\ensuremath{i}}
-
+\input{vars}
 
 \begin{document}
 
@@ -122,6 +46,7 @@
                         K\"onigstuhl 17, D-69117 Heidelberg, Germany}
 
 \begin{abstract}
+
 With enormous numbers of transiting exoplanets being discovered by
 \project{Kepler}, it is finally becoming possible to hierarchically infer the
 parameters of the entire population of exoplanets.
@@ -130,19 +55,25 @@ probabilistic transit modeling---sampling the posterior PDF for the
 parameters of an arbitrary multi-planet exoplanet system given stellar
 light-curve data and parameterized priors.
 We present a computationally efficient and extremely flexible system
-called \project{Bart} for performing these inferences.
-\project{Bart} uses a non-parametric limb-darkening law
+called \bart\ for performing these inferences.
+\bart\ uses a non-parametric limb-darkening law
 for each star; it is much more flexible than the classic analytic
 results in current use, at minimal computational cost.
-We apply \project{Bart} to all NNN planets observed in the
-\project{Kepler} photometric time series for the system Kepler-XXXXX
-and the IR light curve of BLAH observed by \project{Spitzer}.
-The code is designed so that radial velocity and astrometric observations can
-be easily incorporated as further constraints for a joint analysis when
-available.
+We demonstrate the power of a general exoplanet data analysis tool like
+\bart\ by simultaneously modeling all the \kepler\ observations---both
+long and short cadence---and radial velocity measurements of the Kepler-6
+system.
+We show that the precision of inferences about the physical parameters of
+a planet depend sensitively on the strength of prior beliefs about the limb
+darkening profile derived from stellar evolutionary models.
+We also reproduce the results of \citet{dawson} by showing that it is
+possible to infer the eccentricity of an orbit based solely on a
+high-precision light curve.
 
-\project{Bart} is implemented in Python and it is available under the
-\license\ online at \url{http://dan.iel.fm/bart}.
+At its core, \project{Bart} is a standalone Fortran library with convenient
+and well-tested Python bindings.
+It is available under the \license\ online at \url{http://dan.iel.fm/bart}.
+
 \end{abstract}
 
 \keywords{%
@@ -284,10 +215,11 @@ In \bart, we parameterize the orbit of a planet with the parameters:
     {\item the mid-transit time \tzero\ of a reference transit,}
     {\item the semi-major axis \smaxis,}
     {\item the eccentricity \ecc,}
-    {\item the longitude of perihelion \pomega, and}
+    {\item the longitude of perihelion \pomega,}
     {\item the inclination \incl\ of the orbital angular momentum unit
            vector with respect to the mean orbital momentum vector of the
-           system.}
+           system, and}
+    {\item the mass of the planet \mplanet.}
 \end{itemize}
 Supplementing these $6\,\nplanets$ parameters with the mass of the star
 \mstar\ and the inclination \iobs\ of the mean orbital angular momentum vector
@@ -434,16 +366,99 @@ as the set
 \begin{eqnarray}
     \model & = & \left (
         \setof{\tzero_j,\,\smaxis_j,\,\rplanet_j,\,\ecc_j,\,\pomega_j,\,
-        \incl_j},\,\iobs,\,\mstar,\,\rstar,\,\fstar,\,\jitter,\,
+        \incl_j, \mplanet_j},\,\iobs,\,\mstar,\,\rstar,\,\fstar,\,\jitter,\,
         \setof{\rsurface_k,\,I_k}
     \right ) \quad.
 \end{eqnarray}
+
+The quantity that we are interested in constraining is the posterior
+probability function---the probability of the model parameters given all the
+data---which, by Bayes' theorem, is given by
+\begin{eqnarray}
+    \pr{\model\,|\setof{\fobs},\,\setof{\tobs},\,\setof{\ferr}}
+    & \propto & \pr{\model} \, \pr{\setof{\fobs}\,|\,\setof{\tobs},
+                                   \,\setof{\ferr},\,\model}
+\end{eqnarray}
+where $\pr{\model}$ quantifies our prior probability for a given set of
+parameters.
+For the stellar parameters, we generally choose Gaussian priors
+that approximate the constraints determined by stellar models and spectral
+observations.
+We assume uniform priors in \tzero, $\ln\smaxis$, $\ln\rplanet$,
+\incl, $\ecc\,\sin\pomega$, $\ecc\,\cos\pomega$, $\ln\mplanet$, $\cos \iobs$,
+and $\ln\jitter$.
+For the limb darkening parameters, we assume uniform priors in
+\begin{eqnarray}
+    \ln\left ( I_k - I_{k+1} \right ) \quad.
+\end{eqnarray}
+This forces the profile to be monotonically decreasing but it produces huge
+correlations between parameters. FIXME?
+
+To determine the form of the posterior PDF, we use a Markov chain Monte Carlo
+\citep[MCMC; see, for example,][]{nr-book,bishop-book,mackay-book,gelman-book}
+simulation to draw samples
+\begin{eqnarray}
+    \model_k \sim \pr{\model\,|\setof{\fobs},\,\setof{\tobs},\,\setof{\ferr}}
+    \quad.
+\end{eqnarray}
+In particular, we use the \emcee\ sampler as described by \citet{emcee}
+based on \citet{goodman}.
+The interested reader is directed to the original papers for detailed
+information about the sampling procedure but we will outline the basic
+information here.
+\emcee\ works by simultaneously evolving an ensemble of coupled ``walkers''
+in the vector space spanned by the model parameters.
+Each walker starts at an initial position in the space and then a new position
+is proposed for each walker based on the current position of all of the other
+walkers.
+This proposal is then accepted with a probability that is similar to the
+standard Metropolis--Hastings acceptance probability.
+If there are $K$ walkers in the ensemble and we advance the chain $N$ steps,
+we will have produced $N \times K$ un-biased samples from the PDF.
+The number of \emph{independent} samples will depend on the integrated
+autocorrelation time of the series.
+
+As with all MCMC algorithms, the user must choose an initial set of
+parameters where the chain should start.
+In practice, the performance of the sampler depends sensitively on this
+choice and we will discuss qualitatively in section SOMESECTION and in more
+detail in a forthcoming paper.
+For the purposes of this \paper---since we will only be considering previously
+discovered planets---we will simply initialize the parameters at the location
+of the published values.
 
 
 \section{Kepler-6b}
 
 Kepler-6b is one of the first planets confirmed by the \kepler\ team
 \citep{kepler6b}.
+It is a hot Jupiter orbiting a high metallicity star nearby star.
+The transit has high signal-to-noise making it an excellent test candidate.
+There are 37 calibrated light curves available from the \kepler\ data
+archive\footnote{%
+\url{http://keplergo.arc.nasa.gov/DataAnalysisRetrieval.shtml} DFM CHECK URL}
+taken between 2009 and 2012.
+Of these, 13 are long cadence observations and the rest are short cadence.
+\citet{kepler6b} also published radial velocity measurements taken using HIRES
+on Keck.
+
+For simplicity, we use the ``PDC'' corrected flux values for the light curve.
+This introduces correlations between data points that we will neglect for now
+but see section SOMESECTION for a discussion of this effect.
+
+The light curves provided by the \kepler\ reduction and de-trending pipeline
+use arbitrary and inconsistent units so the datasets cannot be naively
+combined.
+Instead, we normalize the light curves by dividing out the median flux.
+This is only an approximate solution to this problem and it would be more
+rigorous to simply infer the zero point of each dataset independently but we
+find that it is a very good approximation.
+
+For numerical stability, we also subtract the median time\footnote{It is worth
+noting that the times provided in the \kepler\ light curve files are given in
+Barycentric Julian Day (BJD) minus 2454833.0 and it is important that we
+correct for this when doing a joint analysis of both the radial velocity and
+the light curve observations.} from all of the observations.
 
 
 \section{Discussion}
@@ -453,7 +468,7 @@ What is so good about what we have done?
 What are the limitations of what we have done?
 
 We didn't do anything beyond limb darkening:  No sunspots or convection.
-How could we (in principle) make those changes within the \bart\ framework?
+Is there any way we could (in principle) make those changes within the \bart\ framework?
 
 Related to the above, are there elliptical generalizations of any of the above?
 
@@ -461,6 +476,30 @@ We didn't do anything about reflection or emission from the companion.
 How could we (in principle) make that change within the framework?
 Along these lines, \bart\ could be used to model eclipsing binaries,
 in which both members of the binary have non-trivial limb darkening.
+
+In this demonstration of \bart, we have used data reduced and
+de-trended by the \kepler\ pipelines.
+This de-trending is a black box from our perspective; it must
+introduce correlations in the residuals away from any simple
+constant-star model, and it must introduce other (possibly very small)
+problems.
+Even in the absence of pipeline issues, intrinsic stochastic or
+quasi-periodic stellar variability will also in general introduce
+statistical correlations in the residuals over finite time intervals.
+The generative model in this project permits a stellar luminosity
+``jitter'' but effectively assumes that both the observational noise
+and the jitter is uncorrelated from observation to observation.
+This assumption almost certainly leads to an unrealistically narrow
+posterior PDF; a more general noise model ought to increase the
+uncertainties on the inferred parameters.
+For certain kinds of (low level) stellar variability or pipeline
+de-trending, the residuals ought to be describable by some kind of
+Gaussian Process (DFM CITE RASMUSSEN) with non-trivial covariance
+structure (Hou et al, forthcoming).
+There are well developed probabilistic inference methods for Gaussian
+Processes, it ought to be possible to extend \bart\ top perform
+responsible and rapid transit modeling in the presence of (at least
+weak) stochastic or quasi-periodic variability.
 
 Please use our code.  It is available at XXX.
 
@@ -474,15 +513,40 @@ This project was partially supported by the NSF (grant AST-0908357), and NASA
 \newcommand{\arxiv}[1]{\href{http://arxiv.org/abs/#1}{arXiv:#1}}
 \begin{thebibliography}{}\raggedright
 
-\bibitem[Dunham et al.(2010)]{kepler6b}
+\bibitem[Bishop(2003)]{bishop-book}
+Bishop, C.~M., \emph{Pattern Recognition and Machine Learning}, Springer, 2009
+
+\bibitem[Dawson \& Johnson(2012)]{dawson}
+Dawson, R.~I., \& Johnson, J.~A.\ 2012, \apj, 756, 122
+
+\bibitem[Dunham \etal(2010)]{kepler6b}
 Dunham, E.~W., Borucki, W.~J., Koch, D.~G., et al.\ 2010, \apjl, 713, L136
 
-\bibitem[Goldstein et al.(2002)]{goldstein}
+\bibitem[Foreman-Mackey \etal(2012)]{emcee}
+Foreman-Mackey, D., Hogg, D.~W., Lang, D., \& Goodman, J.\ 2013, \pasp\ in
+press
+
+\bibitem[Gelman \etal(2003)]{gelman-book}
+Gelman, A., Carlin, J.~B., Stern, H.~S., Rubin, D.~B., \& Dunson, D.~B.,
+\emph{Bayesian Data Analysis}, Chapman \& Hall, 2003
+
+\bibitem[Goldstein \etal(2002)]{goldstein}
 Goldstein, H., Poole, C., \& Safko, J.\ 2002, \emph{Classical mechanics}
     (3rd ed.), Addison-Wesley
 
+\bibitem[Goodman~\&\ Weare(2010)]{gw}
+Goodman,~J. \& Weare,\ J.\ 2010, Comm.\ App.\ Math.\ Comp.\ Sci., 5, 65
+
+\bibitem[MacKay(2003))]{mackay-book}
+MacKay, D., \emph{Information Theory, Inference, and Learning Algorithms},
+Cambridge University Press, 2003
+
 \bibitem[Mandel \& Agol(2002)]{mandel}
 Mandel, K., \& Agol, E.\ 2002, \apjl, 580, L171 \arxiv{astro-ph/0210099}
+
+\bibitem[Press \etal(2007)]{nr-book}
+Press, W.~H., Teukolsky, S.~A., Vetterling, W.~T., \& Flannery, B.~P.,
+\emph{Numerical Recipes}, Cambridge University Press, 2007
 
 \end{thebibliography}
 
@@ -537,6 +601,13 @@ I & The intensity of the bins \\
         the center of the star and the center of the planet on the sky. The
         gray annuli show the bins for the model of the limb darkening of the
         star. \figlabel{geom}}
+\end{figure}
+
+\begin{figure}[htbp]
+    \begin{center}
+        \includegraphics[width=0.6\textwidth]{figures/pgm.pdf}
+    \end{center}
+    \caption{The probabilistic graphical model for \bart.\figlabel{pgm}}
 \end{figure}
 
 \begin{figure}[htbp]

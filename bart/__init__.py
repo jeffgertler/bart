@@ -7,9 +7,10 @@ __all__ = ["Star", "Planet", "PlanetarySystem", "LimbDarkening",
            "QuadraticLimbDarkening"]
 
 from .bart import Star, Planet, PlanetarySystem
-from .ldp import LimbDarkening, QuadraticLimbDarkening
+from .dataset import Dataset, KeplerDataset
+from . import parameters, kepler
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 __author__ = "Dan Foreman-Mackey (danfm@nyu.edu)"
 __copyright__ = "Copyright 2013 Dan Foreman-Mackey"
 __contributors__ = [
@@ -30,3 +31,9 @@ if r == 0:
     __commit__ = p.stdout.read().strip()
 elif os.path.exists(commit_file):
     __commit__ = open(commit_file).read().strip()
+
+
+# Run the tests.
+def tests():
+    from .testing import solver
+    solver.test_solver()

@@ -13,3 +13,7 @@ venv
 MANIFEST
 dist
 COMMIT
+*.egg-info
+detrend_test
+*.svg
+bin

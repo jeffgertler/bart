@@ -9,7 +9,6 @@ import os
 import cPickle as pickle
 
 import numpy as np
-import scipy.optimize as op
 import emcee
 
 try:
@@ -24,9 +23,9 @@ try:
 except ImportError:
     h5py = None
 
-from bart import _bart, mog
+from bart import _bart
+from bart.km import km1d
 from bart.ldp import LimbDarkening
-from bart.results import ResultsProcess
 
 
 _G = 2945.4625385377644
@@ -116,8 +115,8 @@ class Star(Model):
 
     def get_semimajor(self, T):
         """
-        Get the mass of the host star implied by the semi-major axis of this
-        planet and an input period.
+        Get the semi-major axis for a massless planet orbiting this star with
+        the period ``T``.
 
         """
         return (_G * T * T * self.mass / (4 * np.pi * np.pi)) ** (1. / 3)
@@ -138,13 +137,14 @@ class Planet(Model):
         The mass of the planet in Solar masses.
 
     :param t0: (optional)
-        The time of a reference pericenter passage.
+        The time of a reference transit in days (the zero-point doesn't
+        matter as long as you're consistent).
 
     :param e: (optional)
         The eccentricity of the orbit.
 
     :param pomega: (optional)
-        The rotation of the orbital ellipse in the reference plane.
+        The angle (in radians) of the orbital ellipse in the reference plane.
 
     :param ix: (optional)
         The inclination of the orbit around the perpendicular axis to the
@@ -171,13 +171,14 @@ class Planet(Model):
 
     @property
     def spec(self):
-        return np.array([float(self.r), float(self.a), float(self.t0),
-                         float(self.e), float(self.pomega),
+        return np.array([float(self.r), float(self.a), float(self.mass),
+                         float(self.t0), float(self.e), float(self.pomega),
                          float(self.ix), float(self.iy)])
 
     @spec.setter  # NOQA
     def spec(self, v):
-        self.r, self.a, self.t0, self.e, self.pomega, self.ix, self.iy = v
+        (self.r, self.a, self.mass, self.t0, self.e, self.pomega, self.ix,
+         self.iy) = v
 
     def get_mstar(self, P):
         """
@@ -209,7 +210,8 @@ class PlanetarySystem(Model):
 
     """
 
-    def __init__(self, star, basepath=".", iobs=90.0, rv0=0.0):
+    def __init__(self, star, basepath=".", iobs=90.0, rv0=0.0, pbad=0.0,
+                 vbad=0.0):
         super(PlanetarySystem, self).__init__()
 
         self.basepath = basepath
@@ -221,6 +223,9 @@ class PlanetarySystem(Model):
         # Data.
         self.datasets = []
 
+        # Priors.
+        self.priors = []
+
         # The properties of the system as a whole.
         self.star = star
         self.iobs = iobs
@@ -229,24 +234,39 @@ class PlanetarySystem(Model):
         # The planets.
         self.planets = []
 
+        # The background model.
+        self.pbad = pbad
+        self.vbad = vbad
+
     def add_dataset(self, ds):
         self.datasets.append(ds)
 
+    def add_prior(self, p):
+        self.priors.append(p)
+
     @property
     def spec(self):
-        return np.concatenate([[float(self.iobs)], self.star.spec,
+        return np.concatenate([[float(self.iobs), float(self.rv0),
+                                float(self.pbad), float(self.vbad)],
+                                self.star.spec,
                               np.concatenate([p.spec for p in self.planets])])
 
     @spec.setter  # NOQA
     def spec(self, v):
+        nspec = 4
         self.iobs = v[0]
+        self.rv0 = v[1]
+        self.pbad = v[2]
+        self.vbad = v[3]
+
         ls = len(self.star.spec)
-        self.star.spec = v[1:ls + 1]
+        self.star.spec = v[nspec:ls + nspec]
         lp = len(self.planets[0].spec)
         for i, p in enumerate(self.planets):
-            p.spec = v[ls + 1 + i * lp:ls + 1 + (i + 1) * lp]
+            p.spec = v[ls + nspec + i * lp:ls + nspec + (i + 1) * lp]
 
     def results(self, *args, **kwargs):
+        from bart.results import ResultsProcess
         kwargs["basepath"] = kwargs.pop("basepath", self.basepath)
         return ResultsProcess(*args, **kwargs)
 
@@ -351,7 +371,7 @@ class PlanetarySystem(Model):
             if np.isinf(lnl) or np.isnan(lnl):
                 return -np.inf
 
-        except FloatingPointError:
+        except (FloatingPointError, AssertionError):
             return -np.inf
         
         # Diagnostic code
@@ -364,7 +384,8 @@ class PlanetarySystem(Model):
         Compute the log-prior of the current model.
 
         """
-        lnp = [p.lnprior(self) for p in self.parameters]
+        lnp = [p(self) for p in self.priors]
+        lnp += [p.lnprior(self) for p in self.parameters]
         lnp += [p.lnprior(self.star) for p in self.star.parameters]
         for planet in self.planets:
             lnp += [p.lnprior(planet) for p in planet.parameters]
@@ -389,32 +410,48 @@ class PlanetarySystem(Model):
 
     def lnlike(self):
         """
-        Compute the log-likelihood of the current model.
+        Compute the ln-likelihood of the current model.
 
         """
-        return -0.5 * self.chi2()
+        lnlike = 0.0
 
-    def chi2(self):
-        c2 = 0.0
+        N = np.sum([len(ds) for ds in self.datasets])
+
         for ds in self.datasets:
-            if ds.__type__ == "lc":
-                model = self.lightcurve(ds.time, texp=ds.texp)
-                delta = ds.flux - ds.zp * model
-
-            elif ds.__type__ == "rv":
-                model = self.radial_velocity(ds.time)
-                delta = ds.rv - model
-
-            else:
-                raise TypeError()
-
             # Add in the jitter.
             ivar = ds.ivar
             inds = ivar > 0
             ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
-            c2 += np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
 
-        return c2
+            if ds.__type__ == "lc":
+                # Compute the "foreground" model probability.
+                model = self.lightcurve(ds.time, texp=ds.texp)
+                delta = ds.flux - ds.zp * model
+                # e1 = np.log(1 - self.pbad) + 0.5 * np.log(ivar) \
+                #      - 0.5 * delta * delta * ivar
+
+                # # Compute the background model probability.
+                # ivar_bg = np.zeros_like(ivar)
+                # ivar_bg[inds] = 1. / (1. / ds.ivar[inds]
+                #                       + self.vbad * self.vbad)
+                # delta_bg = ds.flux - ds.zp
+                # e2 = np.log(self.pbad) + 0.5 * np.log(ivar_bg) \
+                #      - 0.5 * delta_bg * delta_bg * ivar_bg
+
+                # lnlike += np.sum(np.logaddexp(e1, e2))
+                lnlike += np.sum(0.5 * np.log(ivar) / N
+                                 - 0.5 * delta * delta * ivar / N)
+
+            elif ds.__type__ == "rv":
+                model = self.radial_velocity(ds.time)
+                delta = ds.rv - model
+                c2 = np.sum(delta * delta * ivar) - np.sum(np.log(ivar))
+                lnlike -= 0.5 * c2
+
+            else:
+                raise TypeError()
+
+        return lnlike
 
     def _get_pars(self):
         r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
@@ -442,7 +479,7 @@ class PlanetarySystem(Model):
             The times where the light curve should be evaluated.
 
         :param texp:
-            The exposure time in minutes.
+            The exposure time in seconds.
 
         :param K:
             The number of bins to use when integrating over exposure time.
@@ -451,7 +488,7 @@ class PlanetarySystem(Model):
         mass, r, a, t0, e, pomega, ix, iy = self._get_pars()
         s = self.star
         ldp = s.ldp
-        lc, info = _bart.lightcurve(t, texp / 1440., K, s.flux, s.mass,
+        lc, info = _bart.lightcurve(t, texp / 68400., K, s.flux, s.mass,
                                 s.radius, self.iobs,
                                 mass, r, a, t0, e, pomega, ix, iy,
                                 ldp.bins, ldp.intensity)
@@ -501,7 +538,7 @@ class PlanetarySystem(Model):
         return self.times
 
 
-    def fit(self, iterations, start=None, filename="mcmc.h5", **kwargs):
+    def run_mcmc(self, iterations, start=None, filename="mcmc.h5", **kwargs):
         """
         Fit the data using MCMC to get constraints on the parameters.
 
@@ -569,30 +606,30 @@ class PlanetarySystem(Model):
         # Do some HACKISH initialization. Start with a small ball and then
         # iterate (shrinking the size of the ball each time) until the range
         # of log-probabilities is "acceptable".
-        print("Initializing walkers.")
-        ball = 1e-5
-        p0 = self.sample(nwalkers, std=ball)
-        lp = s._get_lnprob(p0)[0]
-        dlp = np.var(lp)
-        while dlp > 2:
-            ball *= 0.5
+        if start is None:
+            print("Initializing walkers.")
+            ball = 1e-5
             p0 = self.sample(nwalkers, std=ball)
             lp = s._get_lnprob(p0)[0]
             dlp = np.var(lp)
+            while dlp > 2:
+                ball *= 0.5
+                p0 = self.sample(nwalkers, std=ball)
+                lp = s._get_lnprob(p0)[0]
+                dlp = np.var(lp)
+        else:
+            p0 = np.array(start)
 
         # Run the burn-in iterations. After each burn-in run, cluster the
         # walkers and discard the worst ones.
         for i, nburn in enumerate(burnin):
             print(u"Burn-in pass {0}...".format(i + 1))
-            p0, lprob, state = s.run_mcmc(p0, nburn, storechain=False)
+            p0, lprob, state = s.run_mcmc(p0, nburn)
 
-            # Cluster the positions of the walkers at their final position
-            # in log-probability using K-means.
-            mix = mog.MixtureModel(K, np.atleast_2d(lprob).T)
-            mix.run_kmeans()
-
-            # Extract the cluster memberships.
-            rs, rmxs = mix.kmeans_rs, np.argsort(mix.means.flatten())
+            lp = s.lnprobability
+            mu, rs = km1d(lp.reshape(lp.size), k=K)
+            rs = rs.reshape(lp.shape)[:, -1]
+            rmxs = np.argsort(mu)
 
             # Determine the "best" cluster that actually has walkers in it.
             for rmx in rmxs[::-1]:
@@ -632,6 +669,8 @@ class PlanetarySystem(Model):
         pars = self.parameters + self.star.parameters
         for p in self.planets:
             pars += p.parameters
+        for d in self.datasets:
+            pars += d.parameters
         par_list = np.array([str(pickle.dumps(p, 0)) for p in pars])
 
         # Pickle the initial conditions of ``self`` so that we can start again
