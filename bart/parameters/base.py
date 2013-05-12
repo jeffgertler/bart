@@ -186,7 +186,7 @@ class CosParameter(Parameter):
 
     def lnprior(self, obj):
         if 0 <= getattr(obj, self.attr) < 90.0:
-            return 0.0
+            return self.prior(self.getter(obj))
         return -np.inf
 
     def sample(self, obj, std=1e-5, size=1):

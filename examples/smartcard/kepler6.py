@@ -81,7 +81,7 @@ def fit_single(pnm):
 
     # Run MCMC.
     system.run_mcmc(500, thin=10, nwalkers=16)
-    results = system.results(burnin=50)
+    results = system.results(burnin=0)
     results.lc_plot()
     results.time_plot()
     results.corner_plot([
