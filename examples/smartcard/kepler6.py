@@ -55,6 +55,8 @@ def fit_single(pnm):
 
     # Load the datasets.
     for d in koi.data:
+        # if "slc" in d.filename:
+        #     continue
         print(d.filename)
         d.fetch()
         dataset = kplr.Dataset(d.filename, untrend=True)
