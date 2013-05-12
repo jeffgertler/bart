@@ -21,6 +21,7 @@ from bart.results import Column
 from bart.dataset import LCDataset
 from bart.ldp import QuadraticLimbDarkening
 from bart.parameters.base import Parameter, LogParameter, CosParameter
+from bart.parameters.priors import UniformPrior
 
 
 def fit_single(pnm):
@@ -54,13 +55,12 @@ def fit_single(pnm):
 
     # Load the datasets.
     for d in koi.data:
-        if "slc" in d.filename:
-            continue
+        print(d.filename)
         d.fetch()
         dataset = kplr.Dataset(d.filename, untrend=True)
         ds = LCDataset(dataset.time, dataset.flux, dataset.ferr,
                        dataset.texp)
-        ds.cadence = 1
+        ds.cadence = 1 if "llc" in d.filename else 0
         system.add_dataset(ds)
         pl.plot(dataset.time % period, dataset.flux, ".k", alpha=0.1)
 
@@ -71,14 +71,17 @@ def fit_single(pnm):
     pl.savefig("initial.png")
 
     # Decide which parameters should be fit for.
-    planet.parameters.append(Parameter(r"$r$", "r"))
-    planet.parameters.append(LogParameter(r"$a$", "a"))
-    planet.parameters.append(Parameter(r"$t_0$", "t0"))
-    system.parameters.append(CosParameter(r"$i$", "iobs"))
+    planet.parameters.append(Parameter(r"$r$", "r", prior=UniformPrior(0, 1)))
+    planet.parameters.append(LogParameter(r"$a$", "a",
+                                          prior=UniformPrior(1, 20)))
+    planet.parameters.append(Parameter(r"$t_0$", "t0",
+                                       prior=UniformPrior(0, 10)))
+    system.parameters.append(CosParameter(r"$i$", "iobs",
+                                          prior=UniformPrior(80, 90)))
 
     # Run MCMC.
-    system.run_mcmc(1000, thin=10, nwalkers=16)
-    results = system.results(thin=1, burnin=50)
+    system.run_mcmc(500, thin=10, nwalkers=16)
+    results = system.results(burnin=50)
     results.lc_plot()
     results.time_plot()
     results.corner_plot([

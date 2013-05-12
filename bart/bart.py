@@ -394,7 +394,7 @@ class PlanetarySystem(Model):
         """
         lnlike = 0.0
 
-        N = np.sum([len(ds) for ds in self.datasets])
+        N = np.sum([len(ds.time) for ds in self.datasets])
 
         for ds in self.datasets:
             # Add in the jitter.
@@ -434,7 +434,7 @@ class PlanetarySystem(Model):
 
     def _get_pars(self):
         r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
-                                                    for p in self.planets]
+             for p in self.planets]
         return zip(*r)
 
     def lightcurve(self, t, texp=54.2, K=3):
@@ -455,9 +455,9 @@ class PlanetarySystem(Model):
         s = self.star
         ldp = s.ldp
         lc, info = _bart.lightcurve(t, texp / 68400., K, s.flux, s.mass,
-                                s.radius, self.iobs,
-                                mass, r, a, t0, e, pomega, ix, iy,
-                                ldp.bins, ldp.intensity)
+                                    s.radius, self.iobs,
+                                    mass, r, a, t0, e, pomega, ix, iy,
+                                    ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
         return lc
 
