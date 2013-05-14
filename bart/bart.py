@@ -403,9 +403,17 @@ class PlanetarySystem(Model):
             ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
 
             if ds.__type__ == "lc":
+                mask = np.zeros_like(ds.time, dtype=bool)
+                for planet in self.planets:
+                    period = planet.get_period(self.star.mass)
+                    duration = period * (self.star.radius
+                                         + planet.r) / planet.a / np.pi
+                    t = (ds.time - planet.t0) % period
+                    mask += t < 2 * duration
+
                 # Compute the "foreground" model probability.
-                model = self.lightcurve(ds.time, texp=ds.texp)
-                delta = ds.flux - ds.zp * model
+                model = self.lightcurve(ds.time[mask], texp=ds.texp)
+                delta = ds.flux[mask] - ds.zp * model
                 # e1 = np.log(1 - self.pbad) + 0.5 * np.log(ivar) \
                 #      - 0.5 * delta * delta * ivar
 
@@ -418,8 +426,9 @@ class PlanetarySystem(Model):
                 #      - 0.5 * delta_bg * delta_bg * ivar_bg
 
                 # lnlike += np.sum(np.logaddexp(e1, e2))
-                lnlike += np.sum(0.5 * np.log(ivar) / N
-                                 - 0.5 * delta * delta * ivar / N)
+                iv = ivar[mask]
+                lnlike += np.sum(0.5 * np.log(iv) / N
+                                 - 0.5 * delta * delta * iv / N)
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
@@ -437,7 +446,7 @@ class PlanetarySystem(Model):
              for p in self.planets]
         return zip(*r)
 
-    def lightcurve(self, t, texp=54.2, K=3):
+    def lightcurve(self, t, texp=54.2, K=5):
         """
         Get the light curve of the model at the current model.
 

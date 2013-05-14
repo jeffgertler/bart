@@ -54,9 +54,11 @@ def fit_single(pnm):
     system.add_planet(planet)
 
     # Load the datasets.
+    ax1 = pl.figure().add_subplot(111)
+    ax2 = pl.figure().add_subplot(111)
     for d in koi.data:
-        # if "slc" in d.filename:
-        #     continue
+        if "slc" in d.filename:
+            continue
         print(d.filename)
         d.fetch()
         dataset = kplr.Dataset(d.filename, untrend=True)
@@ -64,13 +66,21 @@ def fit_single(pnm):
                        dataset.texp)
         ds.cadence = 1 if "llc" in d.filename else 0
         system.add_dataset(ds)
-        pl.plot(dataset.time % period, dataset.flux, ".k", alpha=0.1)
+        ax1.plot(dataset.time, dataset.flux, ".k", ms=0.5)
+        ax2.plot(dataset.time % period, dataset.flux, ".k", alpha=0.1)
+
+    # Save the plot of the unfolded data.
+    ax1.set_ylim(0.988, 1.0015)
+    ax1.set_xlim(100, 1400)
+    ax1.set_xlabel("time [KBJD]")
+    ax1.figure.savefig("unfolded.pdf")
 
     # Plot the initial light curve.
     t = np.linspace(0, period, 500)
     lc = system.lightcurve(t)
-    pl.plot(t, lc, "r")
-    pl.savefig("initial.png")
+    ax2.plot(t, lc, "r")
+    ax2.set_xlim(0, period)
+    ax2.figure.savefig("initial.png")
 
     # Decide which parameters should be fit for.
     planet.parameters.append(Parameter(r"$r$", "r", prior=UniformPrior(0, 1)))
@@ -79,11 +89,11 @@ def fit_single(pnm):
     planet.parameters.append(Parameter(r"$t_0$", "t0",
                                        prior=UniformPrior(0, 10)))
     system.parameters.append(CosParameter(r"$i$", "iobs",
-                                          prior=UniformPrior(80, 90)))
+                                          prior=UniformPrior(85, 90)))
 
     # Run MCMC.
-    system.run_mcmc(500, thin=10, nwalkers=16)
-    results = system.results(burnin=0)
+    system.run_mcmc(2000, thin=10, nwalkers=16)
+    results = system.results(burnin=50)
     results.lc_plot()
     results.time_plot()
     results.corner_plot([
