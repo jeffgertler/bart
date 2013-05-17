@@ -357,7 +357,7 @@ class PlanetarySystem(Model):
             self.vector = p
 
             # Compute the prior.
-            lnp = self.lnprior()
+            lnp = 0.0   # self.lnprior()
             if np.isinf(lnp) or np.isnan(lnp):
                 return -np.inf
 
@@ -427,8 +427,7 @@ class PlanetarySystem(Model):
 
                 # lnlike += np.sum(np.logaddexp(e1, e2))
                 iv = ivar[mask]
-                lnlike += np.sum(0.5 * np.log(iv) / N
-                                 - 0.5 * delta * delta * iv / N)
+                lnlike += 0.5 * np.sum(np.log(iv) - delta * delta * iv)
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
