@@ -26,7 +26,6 @@ except ImportError:
 from bart import _bart
 from bart.km import km1d
 from bart.ldp import LimbDarkening
-from bart.results import ResultsProcess
 
 
 _G = 2945.4625385377644
@@ -112,8 +111,8 @@ class Star(Model):
 
     def get_semimajor(self, T):
         """
-        Get the mass of the host star implied by the semi-major axis of this
-        planet and an input period.
+        Get the semi-major axis for a massless planet orbiting this star with
+        the period ``T``.
 
         """
         return (_G * T * T * self.mass / (4 * np.pi * np.pi)) ** (1. / 3)
@@ -134,13 +133,14 @@ class Planet(Model):
         The mass of the planet in Solar masses.
 
     :param t0: (optional)
-        The time of a reference pericenter passage.
+        The time of a reference transit in days (the zero-point doesn't
+        matter as long as you're consistent).
 
     :param e: (optional)
         The eccentricity of the orbit.
 
     :param pomega: (optional)
-        The rotation of the orbital ellipse in the reference plane.
+        The angle (in radians) of the orbital ellipse in the reference plane.
 
     :param ix: (optional)
         The inclination of the orbit around the perpendicular axis to the
@@ -262,6 +262,7 @@ class PlanetarySystem(Model):
             p.spec = v[ls + nspec + i * lp:ls + nspec + (i + 1) * lp]
 
     def results(self, *args, **kwargs):
+        from bart.results import ResultsProcess
         kwargs["basepath"] = kwargs.pop("basepath", self.basepath)
         return ResultsProcess(*args, **kwargs)
 
@@ -356,7 +357,7 @@ class PlanetarySystem(Model):
             self.vector = p
 
             # Compute the prior.
-            lnp = self.lnprior()
+            lnp = 0.0   # self.lnprior()
             if np.isinf(lnp) or np.isnan(lnp):
                 return -np.inf
 
@@ -393,7 +394,7 @@ class PlanetarySystem(Model):
         """
         lnlike = 0.0
 
-        N = np.sum([len(ds) for ds in self.datasets])
+        N = np.sum([len(ds.time) for ds in self.datasets])
 
         for ds in self.datasets:
             # Add in the jitter.
@@ -402,9 +403,17 @@ class PlanetarySystem(Model):
             ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
 
             if ds.__type__ == "lc":
+                mask = np.zeros_like(ds.time, dtype=bool)
+                for planet in self.planets:
+                    period = planet.get_period(self.star.mass)
+                    duration = period * (self.star.radius
+                                         + planet.r) / planet.a / np.pi
+                    t = (ds.time - planet.t0) % period
+                    mask += t < 2 * duration
+
                 # Compute the "foreground" model probability.
-                model = self.lightcurve(ds.time, texp=ds.texp)
-                delta = ds.flux - ds.zp * model
+                model = self.lightcurve(ds.time[mask], texp=ds.texp)
+                delta = ds.flux[mask] - ds.zp * model
                 # e1 = np.log(1 - self.pbad) + 0.5 * np.log(ivar) \
                 #      - 0.5 * delta * delta * ivar
 
@@ -417,8 +426,8 @@ class PlanetarySystem(Model):
                 #      - 0.5 * delta_bg * delta_bg * ivar_bg
 
                 # lnlike += np.sum(np.logaddexp(e1, e2))
-                lnlike += np.sum(0.5 * np.log(ivar) / N
-                                 - 0.5 * delta * delta * ivar / N)
+                iv = ivar[mask]
+                lnlike += 0.5 * np.sum(np.log(iv) - delta * delta * iv)
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
@@ -433,10 +442,10 @@ class PlanetarySystem(Model):
 
     def _get_pars(self):
         r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
-                                                    for p in self.planets]
+             for p in self.planets]
         return zip(*r)
 
-    def lightcurve(self, t, texp=54.2, K=3):
+    def lightcurve(self, t, texp=54.2, K=5):
         """
         Get the light curve of the model at the current model.
 
@@ -454,9 +463,9 @@ class PlanetarySystem(Model):
         s = self.star
         ldp = s.ldp
         lc, info = _bart.lightcurve(t, texp / 68400., K, s.flux, s.mass,
-                                s.radius, self.iobs,
-                                mass, r, a, t0, e, pomega, ix, iy,
-                                ldp.bins, ldp.intensity)
+                                    s.radius, self.iobs,
+                                    mass, r, a, t0, e, pomega, ix, iy,
+                                    ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
         return lc
 

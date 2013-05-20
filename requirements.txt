@@ -22,3 +22,7 @@ pystache>=0.5.3
 
 # For command line parsing.
 docopt>=0.6.1
+
+# Kepler stuff.
+-e git+https://github.com/dfm/kplr.git#egg=kplr-dev
+-e git+https://github.com/dfm/untrendy.git#egg=untrendy-dev

@@ -138,3 +138,12 @@ Bart also includes an interface for reading these light curve files:
 
     from kepler.dataset import KeplerDataset
     ds = KeplerDataset(filenames[0])
+    t, f, df = ds.time, ds.flux, ds.ferr
+
+The default, the flux values in :class:`bart.KeplerDataset` are de-trended
+using the spline de-trending algorithm `described in the next section
+<../detrending>`_. To disable this, you should instead use:
+
+::
+
+    ds = KeplerDataset(filenames[0], detrend=False)

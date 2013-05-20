@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import bart
-from bart.dataset import Dataset
-from bart.kepler import fiducial_ldp
+from bart.dataset import Dataset, RVDataset
+from bart.kepler import fiducial_ldp, TIME_ZERO
 
 np.random.seed(123)
 
@@ -23,13 +23,11 @@ def generate_synthetic_data():
     # The Planet.
     a = 7.05 * star.radius
     Rp = 0.09829 * star.radius
-    planet = bart.Planet(a=a, r=Rp)
+    planet = bart.Planet(a=a, r=Rp, mass=6.388e-4)
 
     # The system.
-    kepler6 = bart.PlanetarySystem(star, iobs=86.8)
+    kepler6 = bart.PlanetarySystem(star, iobs=86.8, rv0=-49.14)
     kepler6.add_planet(planet)
-
-    print(np.cos(np.radians(kepler6.iobs)))
 
     # Long cadence.
     lc_time = np.arange(0, 90., 1766 / (60. * 60. * 24.))
@@ -43,14 +41,21 @@ def generate_synthetic_data():
     sc_err = 3e-3 * np.random.rand(len(sc_flux))
     sc_flux = sc_flux + sc_err * np.random.randn(len(sc_flux))
 
+    # Radial velocity.
+    rv_time = 100 * np.sort(np.random.rand(15)) + TIME_ZERO
+    rv = kepler6.radial_velocity(rv_time)
+    rv_err = 5 + 2 * np.random.randn(len(rv_time))
+    rv += rv_err * np.random.randn(len(rv_time))
+
     return (kepler6,
             Dataset(lc_time, lc_flux, lc_err, 1626.),
-            Dataset(sc_time, sc_flux, sc_err, 54.2))
+            Dataset(sc_time, sc_flux, sc_err, 54.2),
+            RVDataset(rv_time, rv, rv_err))
 
 
 if __name__ == "__main__":
     # Generate the synthetic data.
-    kepler6, lc, sc = generate_synthetic_data()
+    kepler6, lc, sc, rv = generate_synthetic_data()
     period = kepler6.planets[0].get_period(kepler6.star.mass)
 
     # Make plots.
@@ -87,3 +92,13 @@ if __name__ == "__main__":
     pl.xlabel("Time Since Transit")
     pl.ylabel("Relative Flux")
     pl.savefig("model_building_data.png")
+
+    # Plot the radial velocity.
+    pl.clf()
+    rv_folded = (rv.time + 0.5 * period) % period - 0.5 * period
+    pl.errorbar(rv_folded, rv.rv, yerr=rv.rverr, fmt=".k")
+    t = np.linspace(0.5 * period, 1.5 * period, 1000) + TIME_ZERO
+    pl.plot(t - period - TIME_ZERO, kepler6.radial_velocity(t))
+    pl.gca().axhline(kepler6.rv0, color="k", ls="dashed")
+    pl.xlim(-0.5 * period, 0.5 * period)
+    pl.savefig("model_building_rv_data.png")

@@ -18,26 +18,35 @@
 
         implicit none
 
+        double precision :: twopi=2*3.141592653589793238462643d0
         double precision, intent(in) :: wt, e
         double precision, intent(out) :: psi
         integer, intent(out) :: info
-        double precision :: psi0, spsi0, f, fp, fpp, tol=1.48e-8, eps
-        integer :: it, maxit=100
+        double precision :: psi0,wt0,spsi0,f,fp,fpp,tol=1.48e-10,eps
+        integer :: it, maxit=500
 
-        info = 0
-
-        eps = 2 * epsilon(0.d0)
-        if (abs(e - 1.d0) .lt. eps .and. abs(wt) .lt. eps) then
-          psi0 = 0.d0
+        ! Check for un-physical eccentricities.
+        if (e .lt. 0 .or. e .ge. 1) then
+          psi0 = 0.0
+          info = 2
           return
         endif
 
-        psi0 = wt
+        info = 0
+        wt0 = dmod(wt, twopi)
+
+        eps = 2 * epsilon(0.d0)
+        if (abs(e - 1.d0) .lt. eps .and. abs(wt0) .lt. eps) then
+          psi = 0.d0
+          return
+        endif
+
+        psi0 = wt0
         do it=1,maxit
 
           ! Compute the function and derivatives.
           spsi0 = sin(psi0)
-          f = psi0 - e * spsi0 - wt
+          f = psi0 - e * spsi0 - wt0
           fp = 1.d0 - e * cos(psi0)
           fpp = e * spsi0
 
@@ -52,7 +61,6 @@
 
         enddo
 
-        write(*,*) "Warning: root finding didn't converge.", wt, e
         info = 1
 
       end subroutine
@@ -163,12 +171,16 @@
 
         integer :: i
         double precision :: period,manom,psi,cpsi,d,cth,r,x,y,xp,yp,&
-                            xsx,psi0,t1,K,th,spsi
+                            xsx,psi0,t1,K,th,spsi,eps
+
+        eps = 2 * epsilon(0.d0)
 
         period = 2 * pi * dsqrt(a * a * a / G / (mstar + mplanet))
 
         if (rvflag.eq.1) then
           call velocity_amplitude(mstar,mplanet,0.5*pi-ix,e,period,K)
+        else
+          radvel(:) = 0.0
         endif
 
         psi0 = 2 * datan2(dtan(0.5 * pomega), dsqrt((1 + e) / (1 - e)))
@@ -179,7 +191,7 @@
 
           manom = 2 * pi * (t(i) - t1) / period
 
-          call wt2psi(dmod(manom, 2 * pi), e, psi, info)
+          call wt2psi(manom, e, psi, info)
           if (info.ne.0) then
             return
           endif
@@ -187,6 +199,13 @@
           cpsi = dcos(psi)
           spsi = dsin(psi)
           d = 1.0d0 - e * cpsi
+
+          ! Deal with NaNs.
+          if (d .lt. eps) then
+            info = 2
+            return
+          endif
+
           cth = (cpsi - e) / d
 
           if (rvflag.eq.0) then

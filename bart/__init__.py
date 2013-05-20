@@ -4,10 +4,11 @@
 from __future__ import absolute_import, unicode_literals
 
 __all__ = ["Star", "Planet", "PlanetarySystem", "LimbDarkening",
-           "QuadraticLimbDarkening"]
+           "QuadraticLimbDarkening", "LCDataset", "KeplerDataset",
+           "RVDataset"]
 
 from .bart import Star, Planet, PlanetarySystem
-from .dataset import Dataset, KeplerDataset
+from .dataset import LCDataset, KeplerDataset, RVDataset
 from . import parameters, kepler
 
 __version__ = "0.0.3"
@@ -31,3 +32,9 @@ if r == 0:
     __commit__ = p.stdout.read().strip()
 elif os.path.exists(commit_file):
     __commit__ = open(commit_file).read().strip()
+
+
+# Run the tests.
+def tests():
+    from .testing import solver
+    solver.test_solver()
