@@ -514,14 +514,15 @@ class PlanetarySystem(Model):
         self.vector = result.x
         return result.x
 
-    def get_photons(self, t):
+    def get_photons(self, t, plot=True):
         """
         generate a Poisson photon list from a light curve
         - fails when `self.lightcurve()` hits zero
         - requires user to input a sensible (ie, fine) time grid `t`
         - time grid t must be monotonically increasing
         """
-        print("Generating photons")
+        if(plot):
+            print("Generating photons")
         lc = self.lightcurve(t)
         times = np.empty(0)
         for i in range(len(t)-1):
@@ -529,12 +530,13 @@ class PlanetarySystem(Model):
             times = np.append(times, t[i]+tbin*np.random.uniform(size = np.random.poisson(lam = tbin*lc[i])))
         self.t = t
         self.times = times
-        print("Photons finished")
-        pl.clf()
-        pl.plot(t, lc)
-        pl.hist(times, bins = t.max()-t.min())
-        pl.savefig("/home/jmg789/bart/document/figures/lightcurve.png")
-        print("Finished lightcurve.png")
+        if(plot):
+            print("Photons finished")
+            pl.clf()
+            pl.plot(t, lc)
+            pl.hist(times, bins = t.max()-t.min())
+            pl.savefig("/home/jmg789/bart/document/figures/lightcurve.png")
+            print("Finished lightcurve.png")
         return self.times
 
 

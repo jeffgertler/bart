@@ -38,7 +38,6 @@ import matplotlib.pyplot as pl
 from matplotlib.ticker import MaxNLocator
 
 
-# Reproducible Science.™
 np.random.seed(100)
 
 
@@ -104,6 +103,8 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
     if fitrv:
         ds.parameters.append(LogParameter(r"$\delta_v$", "jitter"))
         system.add_dataset(ds)
+    
+    print(planet.get_period(star.mass))
 
     # Plot initial conditions.
     pl.plot(system.datasets[0].time % P, system.datasets[0].flux, ".k",
@@ -116,22 +117,25 @@ def main(fns, eta, results_only=False, nsteps=2000, nburn=50, fitrv=True):
                 yerr=np.sqrt(ds.rverr ** 2 + ds.jitter ** 2), fmt=".k")
     pl.plot(ts, system.radial_velocity(ts))
     pl.savefig("initial_rv.png")
+    
+    t = np.linspace(-0.2, 0.2, 5000)
+    pl.clf()
+    pl.plot(t, system.lightcurve(t))
+    pl.savefig("lightcurve.png")
 
     print(system.vector)
     if not results_only:
         system.fit(nsteps, thin=10, burnin=[], nwalkers=64) 
     
     results = system.results(thin=10, burnin=nburn)
-    print(len(results.system.planets[0].a))
     
-    results.corner_plot([
+'''    results.corner_plot([
             Column(r"$a/R_\star$", lambda s: s.planets[0].a / s.star.radius),
             Column(r"$r/R_\star$", lambda s: s.planets[0].r / s.star.radius),
             Column(r"$t_0$", lambda s: s.planets[0].t0),
             Column(r"$i$", lambda s: s.iobs),
         ])
-
-    print(results)
+'''
 
 
 def download_data(bp):
