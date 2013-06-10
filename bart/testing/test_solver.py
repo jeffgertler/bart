@@ -32,7 +32,7 @@ def test_solver_easy():
     assert info == 0
     assert_allclose(psi, 0.0)
 
-    psi, info = _bart.wt2psi(0., 1.0)
+    psi, info = _bart.wt2psi(0., 0.9999)
     assert info == 0
     assert_allclose(psi, 0.0)
 
@@ -43,7 +43,7 @@ def test_solver_fengji():
 
     """
     psi0 = 0.000001
-    e = 1.0
+    e = 0.9999
     psi, info = _bart.wt2psi(psi2wt(psi0, e), e)
     assert info == 0
     assert_allclose(psi, psi0, rtol=0, atol=solver_precision)
@@ -57,7 +57,7 @@ def test_solver_ranges():
     """
     N = 5000
     psi0 = np.pi
-    e0 = np.linspace(0.9999, 1.0, N)
+    e0 = np.linspace(0.9999, 1.0, N + 1)[:-1]
     wt0 = psi2wt(psi0, e0)
     psi = [_bart.wt2psi(w, e)[0] for w, e in zip(wt0, e0)]
     assert_allclose(psi, psi0, rtol=0, atol=solver_precision)

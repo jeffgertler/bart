@@ -9,10 +9,9 @@ SUFF        = pdf
 
 CHECK_RERUN = grep Rerun $*.log
 
-NAME    = doc
-DOC_OUT = ${NAME}.${SUFF}
+DOC_OUT = 
 
-all: ${DOC_OUT}
+all: doc.pdf limb.pdf
 
 %.pdf: %.tex figures/*.tex
 	${LATEX} $<

@@ -361,7 +361,7 @@ class PlanetarySystem(Model):
             self.vector = p
 
             # Compute the prior.
-            lnp = self.lnprior()
+            lnp = 0.0   # self.lnprior()
             if np.isinf(lnp) or np.isnan(lnp):
                 return -np.inf
 
@@ -415,7 +415,7 @@ class PlanetarySystem(Model):
         """
         lnlike = 0.0
 
-        N = np.sum([len(ds) for ds in self.datasets])
+        N = np.sum([len(ds.time) for ds in self.datasets])
 
         for ds in self.datasets:
             # Add in the jitter.
@@ -424,9 +424,17 @@ class PlanetarySystem(Model):
             ivar[inds] = 1. / (1. / ivar[inds] + ds.jitter * ds.jitter)
 
             if ds.__type__ == "lc":
+                mask = np.zeros_like(ds.time, dtype=bool)
+                for planet in self.planets:
+                    period = planet.get_period(self.star.mass)
+                    duration = period * (self.star.radius
+                                         + planet.r) / planet.a / np.pi
+                    t = (ds.time - planet.t0) % period
+                    mask += t < 2 * duration
+
                 # Compute the "foreground" model probability.
-                model = self.lightcurve(ds.time, texp=ds.texp)
-                delta = ds.flux - ds.zp * model
+                model = self.lightcurve(ds.time[mask], texp=ds.texp)
+                delta = ds.flux[mask] - ds.zp * model
                 # e1 = np.log(1 - self.pbad) + 0.5 * np.log(ivar) \
                 #      - 0.5 * delta * delta * ivar
 
@@ -439,8 +447,8 @@ class PlanetarySystem(Model):
                 #      - 0.5 * delta_bg * delta_bg * ivar_bg
 
                 # lnlike += np.sum(np.logaddexp(e1, e2))
-                lnlike += np.sum(0.5 * np.log(ivar) / N
-                                 - 0.5 * delta * delta * ivar / N)
+                iv = ivar[mask]
+                lnlike += 0.5 * np.sum(np.log(iv) - delta * delta * iv)
 
             elif ds.__type__ == "rv":
                 model = self.radial_velocity(ds.time)
@@ -455,7 +463,7 @@ class PlanetarySystem(Model):
 
     def _get_pars(self):
         r = [(p.mass, p.r, p.a, p.t0, p.e, p.pomega, p.ix, p.iy)
-                                                    for p in self.planets]
+             for p in self.planets]
         return zip(*r)
 
     def null_bgfunc(t):
@@ -489,9 +497,9 @@ class PlanetarySystem(Model):
         s = self.star
         ldp = s.ldp
         lc, info = _bart.lightcurve(t, texp / 68400., K, s.flux, s.mass,
-                                s.radius, self.iobs,
-                                mass, r, a, t0, e, pomega, ix, iy,
-                                ldp.bins, ldp.intensity)
+                                    s.radius, self.iobs,
+                                    mass, r, a, t0, e, pomega, ix, iy,
+                                    ldp.bins, ldp.intensity)
         assert info == 0, "Orbit computation failed. {0}".format(e)
         return lc * sfunc(t) + bgfunc(t)
 

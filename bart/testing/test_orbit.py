@@ -31,6 +31,10 @@ def test_eccentricity():
                                       False)
     assert info != 0
 
+    pos, rv, info = _bart.solve_orbit(0.5, Ms, Mp, e, a, t0, pomega, ix, iy,
+                                      False)
+    assert info != 0
+
 
 def test_inclinations():
     """
@@ -63,3 +67,26 @@ def test_inclinations():
     pos = [_bart.solve_orbit(0, Ms, Mp, e, a, t0, pomega, ix, iy, False)[0][0]
            for i in np.linspace(0, np.pi, 10)]
     assert_allclose(pos, a)
+
+
+def test_positions():
+    """
+    Make sure that the orbit solves right at negative times.
+
+    """
+    # System parameters.
+    Ms = 1.0
+    Mp = 0.0
+    e = 0.0
+    a = 10.0
+    t0 = 0.5
+    pomega = 0.0
+    ix, iy = 0.0, 0.0
+
+    # For an eccentricity of 1, the solve should fail at ``t = 0``.
+    pos, rv, info = _bart.solve_orbit([0., t0, 1.], Ms, Mp, e, a, t0,
+                                      pomega, ix, iy, False)
+    assert info == 0
+    assert np.any(pos[:, 0] != pos[:, 1])
+    assert pos[1, 0] == -pos[1, 2]
+    assert pos[0, 0] == pos[0, 2]

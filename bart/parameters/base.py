@@ -185,12 +185,19 @@ class CosParameter(Parameter):
         setattr(obj, self.attr, float(np.degrees(np.arccos(val))))
 
     def lnprior(self, obj):
-        if 0 <= getattr(obj, self.attr) < 90.0:
-            return 0.0
+        v = getattr(obj, self.attr)
+        if 0 <= v < 90.0:
+            return self.prior(v)
         return -np.inf
 
     def sample(self, obj, std=1e-5, size=1):
-        i = getattr(obj, self.attr) * (1 + std * np.random.randn(size))
-        while np.any(i > 90):
-            i[i > 90] = 180 - i[i > 90]
+        i = getattr(obj, self.attr) + np.zeros(size)
+        inds = np.ones(size, dtype=bool)
+        while np.any(inds):
+            i[inds] = getattr(obj, self.attr) * (1 +
+                                                 std *
+                                                 np.random.randn(np.sum(inds)))
+            while np.any(i > 90):
+                i[i > 90] = 180 - i[i > 90]
+            inds = np.isinf([self.prior(i0) for i0 in i])
         return np.cos(np.radians(i))

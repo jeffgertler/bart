@@ -26,7 +26,7 @@
         integer :: it, maxit=500
 
         ! Check for un-physical eccentricities.
-        if (e .lt. 0 .or. e .gt. 1) then
+        if (e .lt. 0 .or. e .ge. 1) then
           psi0 = 0.0
           info = 2
           return
@@ -52,13 +52,6 @@
 
           ! Take a second order step.
           psi = psi0 - 2.d0 * f * fp / (2.d0 * fp * fp - f * fpp)
-
-          ! Deal with looping boundaries properly.
-          if (psi .gt. twopi) then
-            psi = 0.5 * (psi0 + twopi)
-          elseif (psi .lt. 0.0) then
-            psi = 0.5 * psi0
-          endif
 
           if (abs(psi - psi0) .le. tol) then
             return

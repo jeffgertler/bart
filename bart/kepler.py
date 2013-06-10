@@ -26,7 +26,10 @@ from .ldp import QuadraticLimbDarkening
 from . import _bart
 
 
+# The exposure times in seconds.
 EXPOSURE_TIMES = [54.2, 1626.0]
+
+# The conversion between KBJD and BJD: ``KBJD = BJD - TIME_ZERO``.
 TIME_ZERO = 2454833.0
 
 

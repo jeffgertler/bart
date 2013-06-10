@@ -14,14 +14,13 @@ API Reference
 .. autoclass:: PlanetarySystem
    :inherited-members:
 
-.. autoclass:: Dataset
-   :inherited-members:
 
 Results
 -------
 
 .. autoclass:: bart.results.ResultsProcess
    :inherited-members:
+
 
 Kepler API & Data
 -----------------
@@ -33,3 +32,13 @@ Kepler API & Data
    :inherited-members:
 
 .. autofunction:: bart.kepler.spline_detrend
+
+
+Datasets
+--------
+
+.. autoclass:: bart.dataset.KeplerDataset
+   :inherited-members:
+
+.. autoclass:: bart.dataset.RVDataset
+   :inherited-members:
