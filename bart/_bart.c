@@ -25,7 +25,7 @@ static PyObject
              *ix_obj, *iy_obj, *ldp_r_obj, *ldp_I_obj;
 
     // Parse the input arguments.
-    if (!PyArg_ParseTuple(args, "OdidddOOOOOOOOOO", &t_obj, &texp, &K,
+    if (!PyArg_ParseTuple(args, "OdiddddOOOOOOOOOO", &t_obj, &texp, &K,
                           &fstar, &mstar, &rstar, &iobs,
                           &mass_obj, &r_obj, &a_obj, &t0_obj, &e_obj,
                           &pomega_obj, &ix_obj, &iy_obj,
@@ -61,7 +61,8 @@ static PyObject
         (int)PyArray_DIM(pomega_array, 0) != np ||
         (int)PyArray_DIM(ix_array, 0) != np ||
         (int)PyArray_DIM(iy_array, 0) != np ||
-        (int)PyArray_DIM(ldp_I_array, 0) != nld)
+        (int)PyArray_DIM(ldp_I_array, 0) != nld
+        )
     {
         PyErr_SetString(PyExc_ValueError, "Dimension mismatch");
         goto fail;
@@ -72,20 +73,29 @@ static PyObject
     PyArrayObject *flux_array = (PyArrayObject*)PyArray_SimpleNew(1, dim,
                                                                   NPY_DOUBLE);
 
+    if (flux_array == NULL) {
+        Py_XDECREF(flux_array);
+        goto fail;
+    }
+
     // Compute the light curve.
-    int info = lightcurve (n, PyArray_DATA(t_array), PyArray_DATA(flux_array),
-                           K, texp,
+    double *t = PyArray_DATA(t_array),
+           *flux = PyArray_DATA(flux_array),
+           *mass = PyArray_DATA(mass_array),
+           *r = PyArray_DATA(r_array),
+           *a = PyArray_DATA(a_array),
+           *t0 = PyArray_DATA(t0_array),
+           *e = PyArray_DATA(e_array),
+           *pomega = PyArray_DATA(pomega_array),
+           *ix = PyArray_DATA(ix_array),
+           *iy = PyArray_DATA(iy_array),
+           *ldp_r = PyArray_DATA(ldp_r_array),
+           *ldp_I = PyArray_DATA(ldp_I_array);
+
+    int info = lightcurve (n, t, flux, K, texp,
                            fstar, mstar, rstar, iobs,
-                           np, PyArray_DATA(mass_array),
-                           PyArray_DATA(r_array),
-                           PyArray_DATA(a_array),
-                           PyArray_DATA(t0_array),
-                           PyArray_DATA(e_array),
-                           PyArray_DATA(pomega_array),
-                           PyArray_DATA(ix_array),
-                           PyArray_DATA(iy_array),
-                           nld, PyArray_DATA(ldp_r_array),
-                           PyArray_DATA(ldp_I_array));
+                           np, mass, r, a, t0, e, pomega, ix, iy,
+                           nld, ldp_r, ldp_I);
 
     Py_DECREF(t_array);
     Py_DECREF(mass_array);
@@ -99,7 +109,13 @@ static PyObject
     Py_DECREF(ldp_r_array);
     Py_DECREF(ldp_I_array);
 
-    return Py_BuildValue("O", &flux_array);
+    if (info != 0) {
+        PyErr_SetString(PyExc_RuntimeError, "Orbit computation failed.");
+        Py_DECREF(flux_array);
+        return NULL;
+    }
+
+    return Py_BuildValue("O", flux_array);
 
 fail:
 

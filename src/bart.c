@@ -73,7 +73,7 @@ int lightcurve (int n, double *t, double *flux,
             ttmp[i * nbin + j] = t[i] + texp * ((j + 0.5) / nbin - 0.5);
 
     // Initialize the light curve at the continuum.
-    for (i = 0; i < n; ++i) ftmp[i] = fstar;
+    for (i = 0; i < n * nbin; ++i) ftmp[i] = fstar;
 
     // Loop over planets.
     for (i = 0; i < np; ++i) {
@@ -84,12 +84,13 @@ int lightcurve (int n, double *t, double *flux,
                            iy[i] / 180 * M_PI);
 
         // Did the solve fail?
-        if (info != 0) return info;
+        if (info != 0) goto cleanup;
 
         // Compute the impact parameter vector.
-        for (j = 0; j < nbin * n; ++j)
+        for (j = 0; j < nbin * n; ++j) {
             b[j] = sqrt(pos[3 * j + 1] * pos[3 * j + 1]
                         + pos[3 * j + 2] * pos[3 * j + 2]) / rstar;
+        }
 
         // HACK: deal with positions behind star.
         for (j = 0; j < nbin * n; ++j)
@@ -108,9 +109,13 @@ int lightcurve (int n, double *t, double *flux,
         for (j = 0; j < nbin; ++j) flux[i] += ftmp[i * nbin + j] / nbin;
     }
 
+cleanup:
+
     free(ttmp);
     free(ftmp);
     free(tmp);
     free(pos);
     free(b);
+
+    return info;
 }
