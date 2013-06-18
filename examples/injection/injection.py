@@ -77,9 +77,7 @@ def inject(kicid):
             ferr /= mu
 
             # Run untrendy.
-            trend = untrendy.fit_trend(time[inds], flux[inds], ferr[inds],
-                                       fill_times=10 ** -1.25, dt=5)
-            factor = trend(time[inds])
+            factor = untrendy.median(time[inds], flux[inds])
 
             pl.plot((time[inds] - epoch + 0.5 * period) % period
                     - 0.5 * period,
