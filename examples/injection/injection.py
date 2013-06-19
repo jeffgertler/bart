@@ -31,32 +31,31 @@ def inject(kicid):
     # Get the KIC entry.
     kic = client.star(kicid)
     teff, logg, feh = kic.kic_teff, kic.kic_logg, kic.kic_feh
-    radius = kic.kic_radius
     assert teff is not None
-
-    # Compute the stellar parameters.
-    if radius is None:
-        radius = 1.0
-
-    # FIXME: Can estimate this from logg. Does this matter?
-    mass = 1.0
 
     # Get the limb darkening law.
     mu1, mu2 = adapter.get_coeffs(teff, logg=logg, feh=feh)
+    if np.any(np.isnan([mu1, mu2])):
+        mu1, mu2 = adapter.get_coeffs(teff)
+        if np.any(np.isnan([mu1, mu2])):
+            return None
     bins = np.linspace(0, 1, 50)[1:] ** 0.5
     ldp = bart.ld.QuadraticLimbDarkening(mu1, mu2).histogram(bins)
 
     # Build the star object.
-    star = bart.Star(radius=radius, mass=mass, ldp=ldp)
+    star = bart.Star(ldp=ldp)
 
     # Set up the planet.
     period = 365 + 30 * np.random.randn()
-    size = 0.01 + 0.03 * np.random.rand()
+    size = 0.005 + 0.02 * np.random.rand()
     epoch = period * np.random.rand()
-    planet = bart.Planet(size, star.get_semimajor(period), t0=epoch)
+    incl = np.degrees(np.acos(0.01 * np.random.randn()))
+    a = star.get_semimajor(period)
+    b = a / np.tan(np.radians(incl))
+    planet = bart.Planet(size, a, t0=epoch)
 
     # Set up the system.
-    ps = bart.PlanetarySystem(star)
+    ps = bart.PlanetarySystem(star, iobs=incl)
     ps.add_planet(planet)
 
     # Make sure that that data directory exists.
@@ -68,15 +67,16 @@ def inject(kicid):
 
     # Save the injected values.
     with open(os.path.join(base_dir, "truth.txt"), "w") as f:
-        f.write("# " + ",".join(["r/R", "period", "epoch"]) + "\n")
-        f.write(",".join(map("{0}".format, [size / radius, period, epoch])))
+        f.write("# " + ",".join(["r/R", "b", "incl", "period", "epoch"])
+                + "\n")
+        f.write(",".join(map("{0}".format, [size, b, incl, period, epoch])))
         f.write("\n")
 
     # Load the data and inject into each transit.
     lcs = kic.get_light_curves(short_cadence=False)
     for lc in lcs:
-        # print(lc.filename)
-        with lc.open(clobber=True) as f:
+        print(lc.filename)
+        with lc.open() as f:
             # The light curve data are in the first FITS HDU.
             hdu_data = f[1].data
 
@@ -106,6 +106,8 @@ def inject(kicid):
                             quality):
                 f.write(",".join(map("{0}".format, line)) + "\n")
 
+    return None
+
 
 if __name__ == "__main__":
     from multiprocessing import Pool
@@ -117,4 +119,7 @@ if __name__ == "__main__":
     ss = 100
     for i in range(3540, 5000, ss):
         pool = Pool()
-        pool.map(inject, targets[i:i + ss])
+        try:
+            pool.map(inject, targets[i:i + ss])
+        except:
+            print("Failed.")
