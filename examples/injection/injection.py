@@ -25,6 +25,7 @@ output_path = "data"
 
 
 def inject(kicid):
+    print(kicid)
     np.random.seed(int(kicid))
 
     # Get the KIC entry.
@@ -48,9 +49,9 @@ def inject(kicid):
     period = 365 + 30 * np.random.randn()
     size = 0.005 + 0.02 * np.random.rand()
     epoch = period * np.random.rand()
-    incl = np.degrees(np.acos(0.01 * np.random.randn()))
     a = star.get_semimajor(period)
-    b = a / np.tan(np.radians(incl))
+    b = np.random.rand()
+    incl = np.degrees(np.arctan2(a, b))
     planet = bart.Planet(size, a, t0=epoch)
 
     # Set up the system.
@@ -112,12 +113,13 @@ if __name__ == "__main__":
 
     # Load a list of KIC targets.
     with open("q11_solar_type.dat") as f:
-        targets = [k.strip() for k in f.readlines()]
+        targets = [int(k) for k in f.readlines()]
 
     ss = 100
-    for i in range(3540, 5000, ss):
+    for i in range(0, 5000, ss):
         pool = Pool()
         try:
             pool.map(inject, targets[i:i + ss])
-        except:
+        except Exception as e:
             print("Failed.")
+            print(e)
