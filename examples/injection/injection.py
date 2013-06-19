@@ -49,9 +49,9 @@ def inject(kicid):
     period = 365 + 30 * np.random.randn()
     size = 0.005 + 0.02 * np.random.rand()
     epoch = period * np.random.rand()
-    incl = np.degrees(np.acos(0.01 * np.random.randn()))
     a = star.get_semimajor(period)
-    b = a / np.tan(np.radians(incl))
+    b = np.random.rand()
+    incl = np.degrees(np.arctan2(a, b))
     planet = bart.Planet(size, a, t0=epoch)
 
     # Set up the system.
@@ -75,7 +75,6 @@ def inject(kicid):
     # Load the data and inject into each transit.
     lcs = kic.get_light_curves(short_cadence=False)
     for lc in lcs:
-        print(lc.filename)
         with lc.open() as f:
             # The light curve data are in the first FITS HDU.
             hdu_data = f[1].data
@@ -117,9 +116,10 @@ if __name__ == "__main__":
         targets = [int(k) for k in f.readlines()]
 
     ss = 100
-    for i in range(3540, 5000, ss):
+    for i in range(0, 5000, ss):
         pool = Pool()
         try:
             pool.map(inject, targets[i:i + ss])
-        except:
+        except Exception as e:
             print("Failed.")
+            print(e)
