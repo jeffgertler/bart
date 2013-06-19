@@ -48,10 +48,13 @@ def inject(kicid):
     period = 365 + 30 * np.random.randn()
     size = 0.005 + 0.02 * np.random.rand()
     epoch = period * np.random.rand()
-    planet = bart.Planet(size, star.get_semimajor(period), t0=epoch)
+    incl = np.degrees(np.acos(0.01 * np.random.randn()))
+    a = star.get_semimajor(period)
+    b = a / np.tan(np.radians(incl))
+    planet = bart.Planet(size, a, t0=epoch)
 
     # Set up the system.
-    ps = bart.PlanetarySystem(star)
+    ps = bart.PlanetarySystem(star, iobs=incl)
     ps.add_planet(planet)
 
     # Make sure that that data directory exists.
@@ -63,8 +66,9 @@ def inject(kicid):
 
     # Save the injected values.
     with open(os.path.join(base_dir, "truth.txt"), "w") as f:
-        f.write("# " + ",".join(["r/R", "period", "epoch"]) + "\n")
-        f.write(",".join(map("{0}".format, [size, period, epoch])))
+        f.write("# " + ",".join(["r/R", "b", "incl", "period", "epoch"])
+                + "\n")
+        f.write(",".join(map("{0}".format, [size, b, incl, period, epoch])))
         f.write("\n")
 
     # Load the data and inject into each transit.
