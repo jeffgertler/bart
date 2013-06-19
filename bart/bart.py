@@ -99,7 +99,7 @@ class PlanetarySystem(object):
              for p in self.planets]
         return zip(*r)
 
-    def lightcurve(self, t, texp=54.2, K=5):
+    def lightcurve(self, t, texp=1626.0, K=5):
         """
         Get the light curve of the model at the current model.
 
@@ -117,7 +117,7 @@ class PlanetarySystem(object):
                                                 self._get_pars())
         s = self.star
         ldp = s.ldp
-        lc = _bart.lightcurve(np.atleast_1d(t), texp / 68400., K, s.flux,
+        lc = _bart.lightcurve(np.atleast_1d(t), texp / 86400., K, s.flux,
                               s.mass, s.radius, self.iobs,
                               mass, r, a, t0, e, pomega, ix, iy,
                               np.atleast_1d(ldp.bins),
