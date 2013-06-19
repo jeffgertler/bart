@@ -9,14 +9,15 @@ __all__ = ["inject"]
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as pl
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.abspath(__file__)))))
 
 import bart
 import kplr
-from kplr.ld import get_quad_coeffs
+from kplr.ld import LDCoeffAdaptor
+
+adapter = LDCoeffAdaptor(model="claret11")
 
 client = kplr.API()
 
@@ -40,7 +41,7 @@ def inject(kicid):
     mass = 1.0
 
     # Get the limb darkening law.
-    mu1, mu2 = get_quad_coeffs(teff=teff, logg=logg, feh=feh, model="claret11")
+    mu1, mu2 = adapter.get_coeffs(teff, logg=logg, feh=feh)
     bins = np.linspace(0, 1, 50)[1:] ** 0.5
     ldp = bart.ld.QuadraticLimbDarkening(mu1, mu2).histogram(bins)
 
@@ -70,17 +71,11 @@ def inject(kicid):
         f.write(",".join(map("{0}".format, [size / radius, period, epoch])))
         f.write("\n")
 
-    # Set up the figures.
-    fig = pl.figure(figsize=(16, 8))
-    ax = fig.add_subplot(111)
-    fig_folded = pl.figure(figsize=(16, 8))
-    ax_folded = fig_folded.add_subplot(111)
-
     # Load the data and inject into each transit.
     lcs = kic.get_light_curves(short_cadence=False)
     for lc in lcs:
         print(lc.filename)
-        with lc.open() as f:
+        with lc.open(clobber=True) as f:
             # The light curve data are in the first FITS HDU.
             hdu_data = f[1].data
 
@@ -94,18 +89,11 @@ def inject(kicid):
 
             # Mask out missing data.
             inds = ~(np.isnan(time) + np.isnan(sap_flux))
+            pdcinds = ~(np.isnan(time) + np.isnan(pdc_flux))
 
             # Inject the transit into the SAP and PDC light curves.
             sap_flux[inds] *= ps.lightcurve(time[inds])
-            pdc_flux[inds] *= ps.lightcurve(time[inds])
-
-            # Plot the folded and un-folded data.
-            mu = np.median(pdc_flux)
-            ax.plot(time[inds], pdc_flux[inds] / mu, ".k")
-
-            time_folded = ((time[inds] - epoch + 0.5 * period) % period
-                           - 0.5 * period)
-            ax_folded.plot(time_folded, pdc_flux[inds] / mu, ".k")
+            pdc_flux[pdcinds] *= ps.lightcurve(time[pdcinds])
 
         # Coerce the filename.
         fn = os.path.splitext(os.path.split(lc.filename)[1])[0] + ".txt"
@@ -117,16 +105,6 @@ def inject(kicid):
                             quality):
                 f.write(",".join(map("{0}".format, line)) + "\n")
 
-    ax.set_xlabel("time [KBJD]")
-    ax.set_ylabel("pdc flux")
-    fig.savefig(os.path.join(base_dir, "lightcurve.png"))
-
-    ax_folded.set_xlim(-3, 3)
-    ax_folded.set_ylim(0.996, 1.002)
-    ax_folded.set_xlabel("time since transit [days]")
-    ax_folded.set_ylabel("pdc flux")
-    fig_folded.savefig(os.path.join(base_dir, "folded.png"))
-
 
 if __name__ == "__main__":
     from multiprocessing import Pool
@@ -135,5 +113,7 @@ if __name__ == "__main__":
     with open("q11_solar_type.dat") as f:
         targets = [k.strip() for k in f.readlines()]
 
-    pool = Pool()
-    pool.map(inject, targets[:100])
+    ss = 100
+    for i in range(3540, 5000, ss):
+        pool = Pool()
+        pool.map(inject, targets[i:i + ss])
