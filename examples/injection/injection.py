@@ -4,7 +4,7 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = []
+__all__ = ["inject"]
 
 import os
 import sys
@@ -23,6 +23,8 @@ client = kplr.API()
 
 
 def inject(kicid):
+    np.random.seed(int(kicid))
+
     # Get the KIC entry.
     kic = client.star(kicid)
     teff, logg, feh = kic.kic_teff, kic.kic_logg, kic.kic_feh
@@ -49,7 +51,7 @@ def inject(kicid):
 
     # Set up the planet.
     period = 365 + 30 * np.random.randn()
-    size = 0.01 + 0.02 * np.random.rand()
+    size = 0.01 + 0.03 * np.random.rand()
     epoch = period * np.random.rand()
     planet = bart.Planet(size, star.get_semimajor(period), t0=epoch)
 
@@ -77,7 +79,9 @@ def inject(kicid):
             ferr /= mu
 
             # Run untrendy.
-            factor = untrendy.median(time[inds], flux[inds])
+            trend = untrendy.fit_trend(time[inds], flux[inds], ferr[inds],
+                                       fill_times=10 ** -1.25, dt=10)
+            factor = trend(time[inds])
 
             pl.plot((time[inds] - epoch + 0.5 * period) % period
                     - 0.5 * period,
