@@ -21,6 +21,8 @@ import untrendy
 
 client = kplr.API()
 
+output_path = "data"
+
 
 def inject(kicid):
     np.random.seed(int(kicid))
@@ -47,19 +49,27 @@ def inject(kicid):
     ldp = bart.ld.QuadraticLimbDarkening(mu1, mu2).histogram(bins)
 
     # Build the star object.
-    star = bart.Star(radius=1.0, mass=mass, ldp=ldp)
+    star = bart.Star(radius=radius, mass=mass, ldp=ldp)
 
     # Set up the planet.
     period = 365 + 30 * np.random.randn()
     size = 0.01 + 0.03 * np.random.rand()
     epoch = period * np.random.rand()
     planet = bart.Planet(size, star.get_semimajor(period), t0=epoch)
+    print(radius, period, size, epoch)
 
     # Set up the system.
     ps = bart.PlanetarySystem(star)
     ps.add_planet(planet)
 
-    # Load the data.
+    # Make sure that that data directory exists.
+    base_dir = os.path.join(output_path, "{0}".format(kicid))
+    try:
+        os.makedirs(base_dir)
+    except os.error:
+        pass
+
+    # Load the data and inject into each transit.
     lcs = kic.get_light_curves(short_cadence=False)
     for lc in lcs:
         print(lc.filename)
@@ -67,12 +77,16 @@ def inject(kicid):
             # The light curve data are in the first FITS HDU.
             hdu_data = f[1].data
             time = hdu_data["time"]
-            flux = hdu_data["sap_flux"]
-            ferr = hdu_data["sap_flux_err"]
+            sap_flux = hdu_data["sap_flux"]
+            sap_ferr = hdu_data["sap_flux_err"]
             quality = hdu_data["sap_quality"]
 
-            inds = ~(np.isnan(time) + np.isnan(flux) + (quality != 0))
-            flux[inds] *= ps.lightcurve(time[inds])
+            inds = ~(np.isnan(time) + np.isnan(sap_flux))
+            sap_flux[inds] *= ps.lightcurve(time[inds])
+
+            inds *= quality == 0
+            flux = np.array(sap_flux)
+            ferr = np.array(sap_ferr)
 
             mu = np.median(flux[inds])
             flux /= mu
@@ -82,12 +96,19 @@ def inject(kicid):
             trend = untrendy.fit_trend(time[inds], flux[inds], ferr[inds],
                                        fill_times=10 ** -1.25, dt=10)
             factor = trend(time[inds])
+            flux[inds] /= factor
 
             pl.plot((time[inds] - epoch + 0.5 * period) % period
                     - 0.5 * period,
-                    flux[inds] / factor, ".k")
+                    flux[inds], ".k")
 
-    pl.xlim(-1, 1)
+        # Coerce the filename.
+        fn = os.path.splitext(os.path.split(lc.filename)[1])[0] + ".txt"
+        with open(os.path.join(base_dir, fn), "w") as f:
+            for line in zip(time, sap_flux, sap_ferr, flux, ferr, quality):
+                f.write(", ".join(map("{0}".format, line)) + "\n")
+
+    pl.xlim(-5, 5)
     pl.savefig("injection.png")
 
 if __name__ == "__main__":
