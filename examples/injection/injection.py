@@ -25,6 +25,7 @@ output_path = "data"
 
 
 def inject(kicid):
+    print(kicid)
     np.random.seed(int(kicid))
 
     # Get the KIC entry.
@@ -74,7 +75,7 @@ def inject(kicid):
     # Load the data and inject into each transit.
     lcs = kic.get_light_curves(short_cadence=False)
     for lc in lcs:
-        print(lc.filename)
+        # print(lc.filename)
         with lc.open(clobber=True) as f:
             # The light curve data are in the first FITS HDU.
             hdu_data = f[1].data
@@ -111,7 +112,7 @@ if __name__ == "__main__":
 
     # Load a list of KIC targets.
     with open("q11_solar_type.dat") as f:
-        targets = [k.strip() for k in f.readlines()]
+        targets = [int(k) for k in f.readlines()]
 
     ss = 100
     for i in range(3540, 5000, ss):
