@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
 import bart
 import kplr
 from kplr.ld import get_quad_coeffs
-import untrendy
 
 client = kplr.API()
 
