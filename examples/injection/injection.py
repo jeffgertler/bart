@@ -100,23 +100,6 @@ def inject(kicid):
             sap_flux[inds] *= ps.lightcurve(time[inds])
             pdc_flux[inds] *= ps.lightcurve(time[inds])
 
-            # For detrending, mask out the flagged data too.
-            # inds *= quality == 0
-            # flux = np.array(sap_flux)
-            # ferr = np.array(sap_ferr)
-
-            # Normalize.
-            # mu = np.median(flux[inds])
-            # flux /= mu
-            # ferr /= mu
-
-            # Run untrendy.
-            # trend = untrendy.fit_trend(time[inds], flux[inds], ferr[inds],
-            #                            fill_times=10 ** -1.25, dt=6)
-            # factor = trend(time[inds])
-            # # factor = untrendy.median(time[inds], flux[inds])
-            # flux[inds] /= factor
-
             # Plot the folded and un-folded data.
             mu = np.median(pdc_flux)
             ax.plot(time[inds], pdc_flux[inds] / mu, ".k")
@@ -140,6 +123,7 @@ def inject(kicid):
     fig.savefig(os.path.join(base_dir, "lightcurve.png"))
 
     ax_folded.set_xlim(-3, 3)
+    ax_folded.set_ylim(0.996, 1.002)
     ax_folded.set_xlabel("time since transit [days]")
     ax_folded.set_ylabel("pdc flux")
     fig_folded.savefig(os.path.join(base_dir, "folded.png"))
@@ -149,6 +133,8 @@ if __name__ == "__main__":
     from multiprocessing import Pool
 
     # Load a list of KIC targets.
+    with open("q11_solar_type.dat") as f:
+        targets = [k.strip() for k in f.readlines()]
 
     pool = Pool()
-    pool.map(inject)
+    pool.map(inject, targets[:100])
