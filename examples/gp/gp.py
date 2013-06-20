@@ -22,7 +22,8 @@ from bart import _george
 client = kplr.API()
 
 # Query the KIC and get some parameters.
-kic = client.star(2301306)
+# kic = client.star(8415109)  # Bright variable.
+kic = client.star(2301306)  # Quiet G-type.
 teff, logg, feh = kic.kic_teff, kic.kic_logg, kic.kic_feh
 assert teff is not None
 
@@ -101,7 +102,7 @@ dper = prng / (maxn - minn)
 pl.savefig("data.png")
 
 
-def lnlike(p):
+def lnprobfn(p):
     if not 0 < p[1] < 1 or p[2] <= 1 or not 0 <= p[3] < 1:
         return -np.inf
     planet.t0, planet.r, planet.a, b = p
@@ -115,25 +116,25 @@ def lnlike(p):
 
 
 if __name__ == "__main__":
-    nwalkers = 10
+    nwalkers = 20
     p0 = zip(epoch + 0.001 * np.random.randn(nwalkers),
              np.abs(size * (1 + 0.01 * np.random.randn(nwalkers))),
              np.abs(a * (1 + 1e-4 * np.random.randn(nwalkers))),
              np.abs(b * (1 + 0.01 * np.random.randn(nwalkers))))
 
     # Initialize the sampler.
-    sampler = emcee.EnsembleSampler(nwalkers, len(p0[0]), lnlike,
+    sampler = emcee.EnsembleSampler(nwalkers, len(p0[0]), lnprobfn,
                                     threads=nwalkers)
 
     # Run a burn-in.
-    pos, lnprob, state = sampler.run_mcmc(p0, 100)
+    pos, lnprob, state = sampler.run_mcmc(p0, 50)
     sampler.reset()
 
     fn = "samples.txt"
     with open(fn, "w") as f:
         f.write("# t0 r/R a/R b/R ln(prob)\n")
     for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
-                                             iterations=500,
+                                             iterations=100,
                                              storechain=False):
         with open(fn, "a") as f:
             for p, lp in zip(pos, lnprob):

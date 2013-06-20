@@ -3,8 +3,8 @@
 
 using namespace Eigen;
 
-double gp_lnlikelihood (int nsamples, double *x, double *y,
-                                   double *yerr, double amp, double var)
+double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
+                        double amp, double var)
 {
     int i, j;
     double logdet;
@@ -35,14 +35,14 @@ double gp_lnlikelihood (int nsamples, double *x, double *y,
            + nsamples * log(2 * M_PI));
 }
 
-int gp_predict (int nsamples, double *x, double *y, double *yerr,
-                           double amp, double var, int ntest, double *xtest,
-                           double *ytest)
+int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
+                double var, int ntest, double *xtest, double *mean)
 {
     int i, j;
     MatrixXd Kxx(nsamples, nsamples), Kstar(nsamples, ntest);
     LDLT<MatrixXd> L;
-    VectorXd alpha, mean, yvec = Map<VectorXd>(y, nsamples);
+    VectorXd alpha, yvec = Map<VectorXd>(y, nsamples),
+             meanvec = Map<VectorXd>(mean, ntest);
 
     // Build the kernel matrix.
     for (i = 0; i < nsamples; ++i) {
@@ -63,10 +63,7 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr,
     if (L.info() != Success)
         return -2;
 
-    mean = Kstar.transpose() * alpha;
-    for (i = 0; i < ntest; ++i) {
-        ytest[i] = mean[i];
-    }
+    meanvec = Kstar.transpose() * alpha;
 
     return 0;
 }
