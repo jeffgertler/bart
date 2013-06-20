@@ -116,7 +116,7 @@ if __name__ == "__main__":
         targets = [int(k) for k in f.readlines()]
 
     ss = 100
-    for i in range(0, 5000, ss):
+    for i in range(5000, 10000, ss):
         pool = Pool()
         try:
             pool.map(inject, targets[i:i + ss])
