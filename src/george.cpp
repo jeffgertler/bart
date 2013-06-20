@@ -55,17 +55,13 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr,
 
     // Compute the decomposition of K(X, X)
     L = LDLT<MatrixXd>(Kxx);
-    if (L.info() != Success) {
-        printf("Decomposition failed.\n");
+    if (L.info() != Success)
         return -1;
-    }
 
     // Solve the system.
     alpha = L.solve(yvec);
-    if (L.info() != Success) {
-        printf("Solve failed.\n");
+    if (L.info() != Success)
         return -2;
-    }
 
     mean = Kstar.transpose() * alpha;
     for (i = 0; i < ntest; ++i) {
