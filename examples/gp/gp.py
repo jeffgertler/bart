@@ -35,8 +35,9 @@ ldp = bart.ld.QuadraticLimbDarkening(mu1, mu2).histogram(bins)
 star = bart.Star(ldp=ldp)
 
 # Set up the planet.
+prng = 5
 period = 300.0
-size = 0.05
+size = 0.03
 epoch = 10.0
 a = star.get_semimajor(period)
 b = 0.5
@@ -51,7 +52,8 @@ ps.add_planet(planet)
 lcs = kic.get_light_curves(short_cadence=False, fetch=False)
 
 # Loop over the datasets and read in the data.
-time, flux, ferr, quality = [np.array([]) for i in range(4)]
+minn, maxn = 1e10, 0
+time, flux, ferr, quality = [[] for i in range(4)]
 for lc in lcs:
     with lc.open() as f:
         # The light curve data are in the first FITS HDU.
@@ -66,21 +68,36 @@ for lc in lcs:
             * (quality == 0))
     time_, flux_, ferr_ = [v[mask] for v in [time_, flux_, ferr_]]
 
+    # Cut out data near transits.
+    hp = 0.5 * period
+    inds = np.abs((time_ - epoch + hp) % period - hp) < prng
+    if not np.sum(inds):
+        continue
+    time_, flux_, ferr_ = [v[inds] for v in [time_, flux_, ferr_]]
+
     # Inject the transit.
     flux_ *= ps.lightcurve(time_)
 
-    # Normalize the data.
-    mu = np.median(flux_)
+    tn = np.array(np.round(np.abs((time_ - epoch) / period)), dtype=int)
+    alltn = set(tn)
 
-    time = np.append(time, time_)
-    flux = np.append(flux, flux_ / mu)
-    ferr = np.append(ferr, ferr_ / mu)
+    maxn = max([maxn, max(alltn)])
+    minn = min([minn, min(alltn)])
 
-# Cut out only data around transits.
-inds = np.abs((time - epoch + 0.5 * period) % period - 0.5 * period) < 5
-time, flux, ferr = time[inds], flux[inds], ferr[inds]
+    for n in alltn:
+        # Normalize the data.
+        mu = np.median(flux_[tn == n])
 
-pl.plot(time % period, flux, ".k")
+        time.append(time_[tn == n])
+        flux.append(flux_[tn == n] / mu)
+        ferr.append(ferr_[tn == n] / mu)
+
+# Compute the maximum change in period.
+dper = prng / (maxn - minn)
+
+# Plot the raw data.
+[pl.plot(t % period, f + 0.01 * i, ".")
+ for i, (t, f) in enumerate(zip(time, flux))]
 pl.savefig("data.png")
 
 
@@ -88,9 +105,13 @@ def lnlike(p):
     if not 0 < p[1] < 1 or p[2] <= 1 or not 0 <= p[3] < 1:
         return -np.inf
     planet.t0, planet.r, planet.a, b = p
+    per = planet.get_period(1.0)
+    if not period - dper < per < period + dper:
+        return -np.inf
     ps.iobs = np.degrees(np.arctan2(planet.a, b))
-    model = flux / ps.lightcurve(time) - 1
-    return _george.lnlikelihood(time, model, ferr, 1.0, 3.0)
+    return np.sum([_george.lnlikelihood(t, f / ps.lightcurve(t) - 1, fe,
+                                        1.0, 3.0)
+                   for t, f, fe in zip(time, flux, ferr)])
 
 
 if __name__ == "__main__":
@@ -100,12 +121,19 @@ if __name__ == "__main__":
              np.abs(a * (1 + 1e-4 * np.random.randn(nwalkers))),
              np.abs(b * (1 + 0.01 * np.random.randn(nwalkers))))
 
+    # Initialize the sampler.
     sampler = emcee.EnsembleSampler(nwalkers, len(p0[0]), lnlike,
                                     threads=nwalkers)
+
+    # Run a burn-in.
+    pos, lnprob, state = sampler.run_mcmc(p0, 100)
+    sampler.reset()
+
     fn = "samples.txt"
     with open(fn, "w") as f:
         f.write("# t0 r/R a/R b/R ln(prob)\n")
-    for pos, lnprob, state in sampler.sample(p0, iterations=500,
+    for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
+                                             iterations=500,
                                              storechain=False):
         with open(fn, "a") as f:
             for p, lp in zip(pos, lnprob):
