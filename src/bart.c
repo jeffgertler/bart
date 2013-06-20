@@ -94,7 +94,7 @@ int lightcurve (int n, double *t, double *flux,
 
         // HACK: deal with positions behind star.
         for (j = 0; j < nbin * n; ++j)
-            if (pos[3 * j] <= 0) b[j] = 1.1 + r[i];
+            if (pos[3 * j] <= 0) b[j] = 1.1 + r[i] / rstar;
 
         // Compute the fraction of occulted flux.
         ldlc(r[i] / rstar, nld, rld, ild, n * nbin, b, tmp);

@@ -15,9 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
 
 import bart
 import kplr
-from kplr.ld import LDCoeffAdaptor
-
-adapter = LDCoeffAdaptor(model="claret11")
+from kplr.ld import get_quad_coeffs
 
 client = kplr.API()
 
@@ -34,11 +32,7 @@ def inject(kicid):
     assert teff is not None
 
     # Get the limb darkening law.
-    mu1, mu2 = adapter.get_coeffs(teff, logg=logg, feh=feh)
-    if np.any(np.isnan([mu1, mu2])):
-        mu1, mu2 = adapter.get_coeffs(teff)
-        if np.any(np.isnan([mu1, mu2])):
-            return None
+    mu1, mu2 = get_quad_coeffs(teff, logg=logg, feh=feh)
     bins = np.linspace(0, 1, 50)[1:] ** 0.5
     ldp = bart.ld.QuadraticLimbDarkening(mu1, mu2).histogram(bins)
 

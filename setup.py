@@ -20,6 +20,8 @@ if sys.argv[-1] == "publish":
 
 bart = Extension("bart._bart", ["bart/_bart.c", "src/bart.c", "src/kepler.c"],
                  include_dirs=["include"] + get_numpy_include_dirs())
+george = Extension("bart._george", ["bart/_george.c", "src/george.cpp"],
+                   include_dirs=["include"] + get_numpy_include_dirs())
 
 setup(
     name="bart",
@@ -33,7 +35,7 @@ setup(
     package_data={"": ["README.rst"]},
     package_dir={"bart": "bart"},
     include_package_data=True,
-    ext_modules=[bart],
+    ext_modules=[bart, george],
     install_requires=[
         "numpy",
     ],
