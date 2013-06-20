@@ -1,18 +1,21 @@
 #ifndef _GEORGE_H_
 #define _GEORGE_H_
 
-#include <Eigen/Dense>
+#ifdef __cplusplus
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
 
-double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
-                        int npars, double *kpars,
-                        double (*kernel) (double, double, int, double*));
+EXTERNC double gp_lnlikelihood (int nsamples, double *x, double *y,
+                                double *yerr, double amp, double var);
+EXTERNC int gp_predict (int nsamples, double *x, double *y, double *yerr,
+                        double amp, double var, int ntest, double *xtest,
+                        double *ytest);
+EXTERNC double gp_isotropic_kernel (double x1, double x2, double amp,
+                                       double var);
 
-int gp_predict (int nsamples, double *x, double *y, double *yerr,
-                int npars, double *kpars,
-                double (*kernel) (double, double, int, double*),
-                int ntest, double *xtest, double *ytest);
-
-double gp_isotropic_kernel (double x1, double x2, int npars, double *pars);
+#undef EXTERNC
 
 #endif
 // /_GEORGE_H_

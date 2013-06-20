@@ -1,10 +1,10 @@
+#include <Eigen/Dense>
 #include "george.h"
 
 using namespace Eigen;
 
-double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
-                        int npars, double *kpars,
-                        double (*kernel) (double, double, int, double*))
+double gp_lnlikelihood (int nsamples, double *x, double *y,
+                                   double *yerr, double amp, double var)
 {
     int i, j;
     double logdet;
@@ -15,7 +15,7 @@ double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
     // Build the kernel matrix.
     for (i = 0; i < nsamples; ++i) {
         for (j = 0; j < nsamples; ++j)
-            Kxx(i, j) = kernel(x[i], x[j], npars, kpars);
+            Kxx(i, j) = gp_isotropic_kernel(x[i], x[j], amp, var);
         Kxx(i, i) += yerr[i] * yerr[i];
     }
 
@@ -40,23 +40,22 @@ double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
 }
 
 int gp_predict (int nsamples, double *x, double *y, double *yerr,
-                int npars, double *kpars,
-                double (*kernel) (double, double, int, double*),
-                int ntest, double *xtest, double *ytest)
+                           double amp, double var, int ntest, double *xtest,
+                           double *ytest)
 {
     int i, j;
-    double logdet;
     MatrixXd Kxx(nsamples, nsamples), Kstar(nsamples, ntest);
     LDLT<MatrixXd> L;
     VectorXd alpha, mean, yvec = Map<VectorXd>(y, nsamples);
+    printf("supfoo\n");
 
     // Build the kernel matrix.
     for (i = 0; i < nsamples; ++i) {
         for (j = 0; j < nsamples; ++j)
-            Kxx(i, j) = kernel(x[i], x[j], npars, kpars);
+            Kxx(i, j) = gp_isotropic_kernel(x[i], x[j], amp, var);
         Kxx(i, i) += yerr[i] * yerr[i];
         for (j = 0; j < ntest; ++j)
-            Kxx(i, j) = kernel(x[i], xtest[j], npars, kpars);
+            Kstar(i, j) = gp_isotropic_kernel(x[i], xtest[j], amp, var);
     }
 
     // Compute the decomposition of K(X, X)
@@ -74,14 +73,16 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr,
     }
 
     mean = Kstar.transpose() * alpha;
-    for (i = 0; i < ntest; ++i)
+    for (i = 0; i < ntest; ++i) {
         ytest[i] = mean[i];
+    }
 
     return 0;
 }
 
-double gp_isotropic_kernel(double x1, double x2, int npars, double *pars)
+double gp_isotropic_kernel (double x1, double x2, double amp,
+                                       double var)
 {
     double d = x1 - x2;
-    return pars[0] * exp(-0.5 * d * d * pars[1]);
+    return amp * exp(-0.5 * d * d / var);
 }
