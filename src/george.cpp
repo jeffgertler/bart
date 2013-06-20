@@ -21,17 +21,13 @@ double gp_lnlikelihood (int nsamples, double *x, double *y,
 
     // Compute the decomposition of K(X, X)
     L = LDLT<MatrixXd>(Kxx);
-    if (L.info() != Success) {
-        printf("Decomposition failed.\n");
+    if (L.info() != Success)
         return -INFINITY;
-    }
 
     // Solve the system.
     alpha = L.solve(yvec);
-    if (L.info() != Success) {
-        printf("Solve failed.\n");
+    if (L.info() != Success)
         return -INFINITY;
-    }
 
     // Compute the likelihood value.
     logdet = log(L.vectorD().array()).sum();
@@ -47,7 +43,6 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr,
     MatrixXd Kxx(nsamples, nsamples), Kstar(nsamples, ntest);
     LDLT<MatrixXd> L;
     VectorXd alpha, mean, yvec = Map<VectorXd>(y, nsamples);
-    printf("supfoo\n");
 
     // Build the kernel matrix.
     for (i = 0; i < nsamples; ++i) {
