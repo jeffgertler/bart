@@ -47,11 +47,14 @@ static PyObject
     }
 
     // Allocate the output array.
-    npy_intp dim[1] = {ntest};
-    PyArrayObject *ytest_array = (PyArrayObject*)PyArray_SimpleNew(1, dim,
-                                                                   NPY_DOUBLE);
-    if (ytest_array == NULL) {
-        Py_XDECREF(ytest_array);
+    npy_intp dim[1] = {ntest}, dim2[2] = {ntest, ntest};
+    PyArrayObject *mean_array = (PyArrayObject*)PyArray_SimpleNew(1, dim,
+                                                                  NPY_DOUBLE),
+                  *cov_array = (PyArrayObject*)PyArray_SimpleNew(2, dim2,
+                                                                 NPY_DOUBLE);
+    if (mean_array == NULL || cov_array == NULL) {
+        Py_XDECREF(mean_array);
+        Py_XDECREF(cov_array);
         goto fail;
     }
 
@@ -60,8 +63,10 @@ static PyObject
            *y = PyArray_DATA(y_array),
            *yerr = PyArray_DATA(yerr_array),
            *xtest = PyArray_DATA(xtest_array),
-           *ytest = PyArray_DATA(ytest_array);
-    int info = gp_predict (nsamples, x, y, yerr, amp, var, ntest, xtest, ytest);
+           *mean = PyArray_DATA(mean_array),
+           *cov = PyArray_DATA(cov_array);
+    int info = gp_predict (nsamples, x, y, yerr, amp, var, ntest, xtest,
+                           mean, cov);
 
     Py_DECREF(x_array);
     Py_DECREF(y_array);
@@ -70,11 +75,12 @@ static PyObject
 
     if (info != 0) {
         PyErr_SetString(PyExc_RuntimeError, "GP predict failed.");
-        Py_DECREF(ytest_array);
+        Py_DECREF(mean_array);
+        Py_DECREF(cov_array);
         return NULL;
     }
 
-    return Py_BuildValue("O", ytest_array);
+    return Py_BuildValue("OO", mean_array, cov_array);
 
 fail:
 
