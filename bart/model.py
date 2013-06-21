@@ -48,7 +48,13 @@ class Model(object):
         lp = self.planetary_system.lnprior()
         if not np.isfinite(lp):
             return -np.inf
-        return lp + np.sum([l(self) for l in self.lnpriors])
+        pp = [l(self) for l in self.lnpriors]
+        if not np.all(np.isfinite(pp)):
+            return -np.inf
+        ppar = [p.lnprior(self) for p in self.parameters]
+        if not np.all(np.isfinite(ppar)):
+            return -np.inf
+        return lp + np.sum(pp) + np.sum(ppar)
 
     def lnlike(self):
         return np.sum([d.lnlike(self) for d in self.datasets])

@@ -97,15 +97,16 @@ def setup():
 
     # Add some priors.
     dper = prng / (maxn - minn)
-    model.lnpriors.append(lambda m: 0.0 if period - dper <
-                          m.planetary_system.planets[0].get_period(1.0)
-                          < period + dper else -np.inf)
+    # model.lnpriors.append(lambda m: 0.0 if period - dper <
+    #                       m.planetary_system.planets[0].get_period(1.0)
+    #                       < period + dper else -np.inf)
 
     # Add some parameters.
     model.parameters.append(bart.parameters.PlanetParameter("t0"))
     model.parameters.append(bart.parameters.PlanetParameter("r"))
     model.parameters.append(bart.parameters.ImpactParameter())
-    model.parameters.append(bart.parameters.PeriodParameter())
+    model.parameters.append(bart.parameters.PeriodParameter(
+        lnprior=bart.priors.UniformPrior(period - dper, period + dper)))
 
     return model, period
 
