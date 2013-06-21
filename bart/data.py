@@ -54,8 +54,8 @@ class LightCurve(Dataset):
 
         # Normalize by the median.
         mu = np.median(self.flux)
-        flux /= mu
-        ferr /= mu
+        self.flux /= mu
+        self.ferr /= mu
 
         # Light curve parameters.
         self.texp = texp

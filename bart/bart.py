@@ -37,6 +37,14 @@ class Star(object):
         return (_G * T * T * (self.mass + planet_mass)
                 / (4 * np.pi * np.pi)) ** (1. / 3)
 
+    def lnprior(self):
+        if self.mass <= 0 or self.radius <= 0:
+            return -np.inf
+        if (np.any(self.ldp.intensity <= 0) or np.any(self.ldp.bins <= 0)
+           or np.any(self.ldp.bins > 1.0)):
+            return -np.inf
+        return 0.0
+
 
 class Planet(object):
 
@@ -67,6 +75,12 @@ class Planet(object):
         """
         a = self.a
         return 2 * np.pi * np.sqrt(a * a * a / _G / (mstar + self.mass))
+
+    def lnprior(self):
+        if (self.r <= 0.0 or self.a <= 0.0 or (not 0.0 <= self.e < 1.0)
+           or self.mass < 0.0):
+            return -np.inf
+        return 0.0
 
 
 class PlanetarySystem(object):
@@ -123,3 +137,12 @@ class PlanetarySystem(object):
                               np.atleast_1d(ldp.bins),
                               np.atleast_1d(ldp.intensity))
         return lc
+
+    def lnprior(self):
+        lps = self.star.lnprior()
+        if not np.isfinite(lps):
+            return -np.inf
+        lp = np.sum([p.lnprior() for p in self.planets])
+        if not np.isfinite(lp):
+            return -np.inf
+        return lp + lps

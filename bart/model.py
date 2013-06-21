@@ -4,7 +4,7 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["Parameter", "Model"]
+__all__ = ["Model"]
 
 import numpy as np
 
@@ -16,20 +16,19 @@ class Model(object):
 
     """
 
-    def __init__(self, planetary_system, datasets=[]):
+    def __init__(self, planetary_system, datasets=[], parameters=[],
+                 priors=[]):
         self.planetary_system = planetary_system
         self.datasets = datasets
-        self.parameters = []
-
-    def add_parameter(self, parameter):
-        self.parameters.append(parameter)
+        self.parameters = parameters
+        self.lnpriors = priors
 
     @property
     def vector(self):
         return np.array([p.get(self) for p in self.parameters], dtype=float)
 
     @vector.setter
-    def set_vector(self, values):
+    def vector(self, values):
         [p.set(self, v) for p, v in zip(self.parameters, values)]
 
     def __call__(self, p):
@@ -46,7 +45,10 @@ class Model(object):
         return lp + ll
 
     def lnprior(self):
-        return 0.0
+        lp = self.planetary_system.lnprior()
+        if not np.isfinite(lp):
+            return -np.inf
+        return lp + np.sum([l(self) for l in self.lnpriors])
 
     def lnlike(self):
-        return np.sum([d.lnlike(self.planetary_system) for d in self.datasets])
+        return np.sum([d.lnlike(self) for d in self.datasets])
