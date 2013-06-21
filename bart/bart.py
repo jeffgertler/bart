@@ -99,7 +99,7 @@ class PlanetarySystem(object):
              for p in self.planets]
         return zip(*r)
 
-    def lightcurve(self, t, texp=1626.0, K=5):
+    def lightcurve(self, t, texp=1626.0, K=3):
         """
         Get the light curve of the model at the current model.
 
