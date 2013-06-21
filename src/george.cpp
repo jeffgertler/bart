@@ -83,8 +83,7 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
     return 0;
 }
 
-double gp_isotropic_kernel (double x1, double x2, double amp,
-                                       double var)
+double gp_isotropic_kernel (double x1, double x2, double amp, double var)
 {
     double d = x1 - x2;
     return amp * exp(-0.5 * d * d / var);
