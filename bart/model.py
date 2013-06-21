@@ -53,8 +53,7 @@ class Parameter(object):
 class Model(object):
     """
     A likelihood wrapper that combines a generative model and datasets to
-
-    a change.
+    ...
 
     """
 
@@ -73,3 +72,22 @@ class Model(object):
     @vector.setter
     def set_vector(self, values):
         [p.set(self, v) for p, v in zip(self.parameters, values)]
+
+    def __call__(self, p):
+        self.vector = p
+        return self.lnprob()
+
+    def lnprob(self):
+        lp = self.lnprior()
+        if not np.isfinite(lp):
+            return -np.inf
+        ll = self.lnlike()
+        if not np.isfinite(ll):
+            return -np.inf
+        return lp + ll
+
+    def lnprior(self):
+        return 0.0
+
+    def lnlike(self):
+        return np.sum([d.lnlike(self.planetary_system) for d in self.datasets])
