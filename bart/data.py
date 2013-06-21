@@ -54,6 +54,8 @@ class Model(object):
     """
     A likelihood wrapper that combines a generative model and datasets to
 
+    a change.
+
     """
 
     def __init__(self, planetary_system, datasets=[]):
