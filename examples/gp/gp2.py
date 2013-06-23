@@ -7,6 +7,7 @@ from __future__ import (division, print_function, absolute_import,
 import os
 import sys
 import emcee
+import time as timer
 import triangle
 import matplotlib.pyplot as pl
 import numpy as np
@@ -128,20 +129,23 @@ if __name__ == "__main__":
                                     threads=nwalkers)
 
     # Run a burn-in.
-    pos, lnprob, state = sampler.run_mcmc(p0, 50)
+    pos, lnprob, state = sampler.run_mcmc(p0, 100)
     sampler.reset()
 
     fn = "samples.txt"
     with open(fn, "w") as f:
         f.write("# t0 r/R b/R P ln(prob)\n")
+
+    strt = timer.time()
     for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
-                                             iterations=100,
+                                             iterations=5000,
                                              storechain=False):
         with open(fn, "a") as f:
             for p, lp in zip(pos, lnprob):
                 f.write("{0} {1}\n".format(
                     " ".join(map("{0}".format, p)), lp))
 
+    print("Took {0} seconds".format(timer.time() - strt))
     print("Acceptance fraction: {0}"
           .format(np.mean(sampler.acceptance_fraction)))
 
