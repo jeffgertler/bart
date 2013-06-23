@@ -13,10 +13,14 @@ double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
     VectorXd alpha, yvec = Map<VectorXd>(y, nsamples);
 
     // Build the kernel matrix.
+    // NOTE: I'm assuming a symmetric kernel.
     for (i = 0; i < nsamples; ++i) {
-        for (j = 0; j < nsamples; ++j)
+        for (j = i + 1; j < nsamples; ++j) {
             Kxx(i, j) = gp_isotropic_kernel(x[i], x[j], amp, var);
-        Kxx(i, i) += yerr[i] * yerr[i];
+            Kxx(j, i) = gp_isotropic_kernel(x[i], x[j], amp, var);
+        }
+        Kxx(i, i) = gp_isotropic_kernel(x[i], x[j], amp, var)
+                    + yerr[i] * yerr[i];
     }
 
     // Compute the decomposition of K(X, X)
@@ -46,10 +50,14 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
     VectorXd alpha, ytest, yvec = Map<VectorXd>(y, nsamples);
 
     // Build the kernel matrices.
+    // NOTE: I'm assuming a symmetric kernel.
     for (i = 0; i < nsamples; ++i) {
-        for (j = 0; j < nsamples; ++j)
+        for (j = i + 1; j < nsamples; ++j) {
             Kxx(i, j) = gp_isotropic_kernel(x[i], x[j], amp, var);
-        Kxx(i, i) += yerr[i] * yerr[i];
+            Kxx(j, i) = gp_isotropic_kernel(x[i], x[j], amp, var);
+        }
+        Kxx(i, i) = gp_isotropic_kernel(x[i], x[j], amp, var)
+                    + yerr[i] * yerr[i];
         for (j = 0; j < ntest; ++j)
             Kxs(i, j) = gp_isotropic_kernel(x[i], xtest[j], amp, var);
     }
