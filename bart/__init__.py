@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import (division, print_function, absolute_import,
-                        unicode_literals)
-
+from __future__ import absolute_import
 from . import ld, data, priors, parameters
 from .bart import Star, Planet, PlanetarySystem
 from .model import Model
-from .parameters import Parameter
