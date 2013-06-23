@@ -38,15 +38,9 @@ class LightCurve(Dataset):
         The number of bins to use in the approximate exposure time integral.
         (default: 3)
 
-    :param alpha: (optional)
-        The amplitude of the GP kernel. (default: 1.0)
-
-    :param l2: (optional)
-        The variance scale of the GP. (default: 3.0)
-
     """
 
-    def __init__(self, time, flux, ferr, texp=1626.0, K=3, alpha=1.0, l2=3.0):
+    def __init__(self, time, flux, ferr, texp=1626.0, K=3):
         m = np.isfinite(time) * np.isfinite(flux) * np.isfinite(ferr)
         self.time = time[m]
         self.flux = flux[m]
@@ -61,7 +55,45 @@ class LightCurve(Dataset):
         self.texp = texp
         self.K = K
 
-        # Gaussian process parameters.
+    def lnlike(self, model):
+        lc = model.planetary_system.lightcurve(self.time, texp=self.texp,
+                                               K=self.K)
+        return np.sum(-0.5 * (lc - self.flux) ** 2)
+
+
+class GPLightCurve(LightCurve):
+    """
+    An extension to :class:`LightCurve` with a Gaussian Process likelihood
+    function. This does various nice things like masking NaNs and Infs and
+    normalizing the fluxes by the median.
+
+    :param time:
+        The time series in days.
+
+    :param flux:
+        The flux measurements in arbitrary units.
+
+    :param ferr:
+        The error bars on ``flux``.
+
+    :param texp: (optional)
+        The integration time (in seconds). (default: 1626.0… Kepler
+        long-cadence)
+
+    :param K: (optional)
+        The number of bins to use in the approximate exposure time integral.
+        (default: 3)
+
+    :param alpha: (optional)
+        The amplitude of the GP kernel. (default: 1.0)
+
+    :param l2: (optional)
+        The variance scale of the GP. (default: 3.0)
+
+    """
+
+    def __init__(self, time, flux, ferr, alpha=1.0, l2=3.0, **kwargs):
+        super(GPLightCurve, self).__init__(time, flux, ferr, **kwargs)
         self.alpha = alpha
         self.l2 = l2
 

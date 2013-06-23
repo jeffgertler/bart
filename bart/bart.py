@@ -87,6 +87,7 @@ class PlanetarySystem(object):
 
     def __init__(self, star, iobs=90.0):
         self.star = star
+        self.star.planetary_system = self
         self.iobs = iobs
         self.planets = []
 
@@ -106,6 +107,7 @@ class PlanetarySystem(object):
             The :class:`Planet` to add.
 
         """
+        planet.planetary_system = self
         self.planets.append(planet)
 
     def _get_pars(self):
@@ -118,7 +120,7 @@ class PlanetarySystem(object):
         Get the light curve of the model at the current model.
 
         :param t:
-            The times where the light curve should be evaluated.
+            The times where the light curve should be evaluated (in days).
 
         :param texp:
             The exposure time in seconds.

@@ -25,11 +25,11 @@ class Model(object):
 
     @property
     def vector(self):
-        return np.array([p.get(self) for p in self.parameters], dtype=float)
+        return np.array([p.get() for p in self.parameters], dtype=float)
 
     @vector.setter
     def vector(self, values):
-        [p.set(self, v) for p, v in zip(self.parameters, values)]
+        [p.set(v) for p, v in zip(self.parameters, values)]
 
     def __call__(self, p):
         self.vector = p
@@ -48,10 +48,10 @@ class Model(object):
         lp = self.planetary_system.lnprior()
         if not np.isfinite(lp):
             return -np.inf
-        pp = [l(self) for l in self.lnpriors]
+        pp = [l() for l in self.lnpriors]
         if not np.all(np.isfinite(pp)):
             return -np.inf
-        ppar = [p.lnprior(self) for p in self.parameters]
+        ppar = [p.lnprior() for p in self.parameters]
         if not np.all(np.isfinite(ppar)):
             return -np.inf
         return lp + np.sum(pp) + np.sum(ppar)
