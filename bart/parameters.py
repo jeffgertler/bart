@@ -98,7 +98,8 @@ class LogParameter(Parameter):
     """
 
     def __str__(self):
-        return r"\ln\,{0}".format(self.attr)
+        nm = super(LogParameter, self).__str__()
+        return r"\ln\,{0}".format(nm)
 
     def conv(self, value):
         return np.log(value)
@@ -116,6 +117,9 @@ class ImpactParameter(Parameter):
         The :class:`Planet` itself.
 
     """
+
+    def __str__(self):
+        return "b"
 
     def __init__(self, planet, **kwargs):
         lnprior = kwargs.pop("lnprior", None)
@@ -146,6 +150,9 @@ class PeriodParameter(Parameter):
         for disallowed periods.
 
     """
+
+    def __str__(self):
+        return "P"
 
     def getter(self):
         smass = self.target.planetary_system.star.mass

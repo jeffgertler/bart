@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     fn = "samples.txt"
     with open(fn, "w") as f:
-        f.write("# t0 r/R b/R P ln(prob)\n")
+        f.write("# {0}\n".format(" ".join(map(unicode, model.parameters))))
     for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
                                              iterations=100,
                                              storechain=False):
