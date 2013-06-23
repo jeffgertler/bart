@@ -7,7 +7,7 @@ double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
                         double amp, double var)
 {
     int i, j;
-    double logdet;
+    double logdet, value;
     MatrixXd Kxx(nsamples, nsamples);
     LDLT<MatrixXd> L;
     VectorXd alpha, yvec = Map<VectorXd>(y, nsamples);
@@ -16,10 +16,11 @@ double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
     // NOTE: I'm assuming a symmetric kernel.
     for (i = 0; i < nsamples; ++i) {
         for (j = i + 1; j < nsamples; ++j) {
-            Kxx(i, j) = gp_isotropic_kernel(x[i], x[j], amp, var);
-            Kxx(j, i) = gp_isotropic_kernel(x[i], x[j], amp, var);
+            value = gp_isotropic_kernel(x[i], x[j], amp, var);
+            Kxx(i, j) = value;
+            Kxx(j, i) = value;
         }
-        Kxx(i, i) = gp_isotropic_kernel(x[i], x[j], amp, var)
+        Kxx(i, i) = gp_isotropic_kernel(x[i], x[i], amp, var)
                     + yerr[i] * yerr[i];
     }
 
@@ -44,6 +45,7 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
                 double *cov)
 {
     int i, j;
+    double value;
     MatrixXd Kxx(nsamples, nsamples), Kxs(nsamples, ntest),
              Kss(ntest, ntest);
     LDLT<MatrixXd> L;
@@ -53,10 +55,11 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
     // NOTE: I'm assuming a symmetric kernel.
     for (i = 0; i < nsamples; ++i) {
         for (j = i + 1; j < nsamples; ++j) {
-            Kxx(i, j) = gp_isotropic_kernel(x[i], x[j], amp, var);
-            Kxx(j, i) = gp_isotropic_kernel(x[i], x[j], amp, var);
+            value = gp_isotropic_kernel(x[i], x[j], amp, var);
+            Kxx(i, j) = value;
+            Kxx(j, i) = value;
         }
-        Kxx(i, i) = gp_isotropic_kernel(x[i], x[j], amp, var)
+        Kxx(i, i) = gp_isotropic_kernel(x[i], x[i], amp, var)
                     + yerr[i] * yerr[i];
         for (j = 0; j < ntest; ++j)
             Kxs(i, j) = gp_isotropic_kernel(x[i], xtest[j], amp, var);
