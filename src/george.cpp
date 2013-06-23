@@ -64,9 +64,16 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
         for (j = 0; j < ntest; ++j)
             Kxs(i, j) = gp_isotropic_kernel(x[i], xtest[j], amp, var);
     }
-    for (i = 0; i < ntest; ++i)
-        for (j = 0; j < ntest; ++j)
-            Kss(i, j) = gp_isotropic_kernel(xtest[i], xtest[j], amp, var);
+
+    // NOTE: I'm assuming a symmetric kernel here too!
+    for (i = 0; i < ntest; ++i) {
+        Kss(i, i) = gp_isotropic_kernel(xtest[i], xtest[i], amp, var);
+        for (j = i + 1; j < ntest; ++j) {
+            value = gp_isotropic_kernel(xtest[i], xtest[j], amp, var);
+            Kss(i, j) = value;
+            Kss(j, i) = value;
+        }
+    }
 
     // Compute the decomposition of K(X, X)
     L = LDLT<MatrixXd>(Kxx);
