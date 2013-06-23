@@ -17,6 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.abspath(__file__)))))
 
 import bart
+from bart.parameters import Parameter, ImpactParameter, PeriodParameter
+from bart.priors import UniformPrior
 
 client = kplr.API()
 
@@ -39,7 +41,7 @@ def setup():
     star = bart.Star(ldp=ldp)
 
     # Set up the planet.
-    prng = 5
+    prng = 3.0
     period = 278.
     size = 0.03
     epoch = 10.0
@@ -92,21 +94,19 @@ def setup():
 
         for n in alltn:
             m = tn == n
-            model.datasets.append(bart.data.LightCurve(time_[m], flux_[m],
-                                                       ferr_[m]))
+            model.datasets.append(bart.data.GPLightCurve(time_[m], flux_[m],
+                                                         ferr_[m]))
 
     # Add some priors.
     dper = prng / (maxn - minn)
-    # model.lnpriors.append(lambda m: 0.0 if period - dper <
-    #                       m.planetary_system.planets[0].get_period(1.0)
-    #                       < period + dper else -np.inf)
 
     # Add some parameters.
-    model.parameters.append(bart.parameters.PlanetParameter("t0"))
-    model.parameters.append(bart.parameters.PlanetParameter("r"))
-    model.parameters.append(bart.parameters.ImpactParameter())
-    model.parameters.append(bart.parameters.PeriodParameter(
-        lnprior=bart.priors.UniformPrior(period - dper, period + dper)))
+    model.parameters.append(Parameter(planet, "t0"))
+    model.parameters.append(Parameter(planet, "r"))
+    model.parameters.append(ImpactParameter(planet))
+
+    ppr = UniformPrior(period - dper, period + dper)
+    model.parameters.append(PeriodParameter(planet, lnprior=ppr))
 
     return model, period
 

@@ -120,7 +120,7 @@ class PlanetarySystem(object):
         Get the light curve of the model at the current model.
 
         :param t:
-            The times where the light curve should be evaluated.
+            The times where the light curve should be evaluated (in days).
 
         :param texp:
             The exposure time in seconds.
