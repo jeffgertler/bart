@@ -125,6 +125,7 @@ class ImpactParameter(Parameter):
         lnprior = kwargs.pop("lnprior", None)
         if lnprior is None:
             lnprior = UniformPrior(0.0, 1.0)
+        kwargs["lnprior"] = lnprior
         super(ImpactParameter, self).__init__(planet, **kwargs)
 
     def getter(self):
