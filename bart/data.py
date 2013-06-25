@@ -4,7 +4,7 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["Dataset", "LightCurve"]
+__all__ = ["Dataset", "LightCurve", "GPLightCurve", "PhotonStream"]
 
 
 import numpy as np
@@ -118,7 +118,7 @@ class GPLightCurve(LightCurve):
                                     self.alpha, self.l2)
 
 
-class PoissonLightCurve(LightCurve):
+class PhotonStream(LightCurve):
     """
     An extension to :class:`LightCurve` with a Poisson likelihood function.
     This class automatically masks all NaNs in the data stream.
