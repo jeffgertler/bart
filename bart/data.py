@@ -118,7 +118,7 @@ class GPLightCurve(LightCurve):
                                     self.alpha, self.l2)
 
 
-class PhotonStream(LightCurve):
+class PhotonStream(Dataset):
     """
     An extension to :class:`LightCurve` with a Poisson likelihood function.
     This class automatically masks all NaNs in the data stream.
@@ -145,7 +145,7 @@ class PhotonStream(LightCurve):
         """
         photonrates = self.rate(model, self.time)
         bintimes = np.arange(self.time.min(), self.time.max(), self.dt)
-        binrates = self.rate(bintimes)
+        binrates = self.rate(model, bintimes)
         prob = np.sum(np.log(photonrates)) - self.dt * np.sum(binrates)
         return prob
 
