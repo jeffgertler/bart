@@ -16,9 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.abspath(__file__)))))
 
 import bart
-from bart.parameters import (Parameter, ImpactParameter, PeriodParameter,
-                             LogMultiParameter, LogParameter)
-from bart.priors import UniformPrior, NormalPrior
+from bart.parameters import (Parameter, LogParameter)
 
 
 def setup():
@@ -35,21 +33,20 @@ def setup():
     model = bart.Model(ps)
 
     # Generate some fake data.
-    dt = 0.001
+    dt, bglevel = 0.001, 10.0
     tbins = np.arange(0.0, 5.0, dt)
-    lc = ps.lightcurve(tbins, texp=0, K=1)
+    lc = ps.lightcurve(tbins, texp=0, K=1) + bglevel
     times = np.array([])
     for t, r in zip(tbins, lc):
         times = np.append(times, t + dt *
                           np.random.rand(np.random.poisson(lam=dt * r)))
 
     n, bins, p = pl.hist(times, 50)
-    print(bins[1] - bins[0])
-    pl.plot(tbins, lc)
+    pl.plot(tbins, lc * (bins[1] - bins[0]))
     pl.savefig("data.png")
 
     # Add the dataset.
-    dataset = bart.data.PhotonStream(times)
+    dataset = bart.data.PhotonStream(times, background=bglevel)
     model.datasets.append(dataset)
 
     # Add some parameters.
@@ -76,11 +73,12 @@ if __name__ == "__main__":
 
     fn = "samples.txt"
     with open(fn, "w") as f:
-        f.write("# {0}\n".format(" ".join(map(unicode, model.parameters))))
+        f.write("# {0} {1}\n".format(" ".join(map(unicode, model.parameters)),
+                                     "ln\,p"))
 
     strt = timer.time()
     for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
-                                             iterations=2000,
+                                             iterations=1000,
                                              storechain=False):
         with open(fn, "a") as f:
             for p, lp in zip(pos, lnprob):
