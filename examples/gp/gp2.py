@@ -18,8 +18,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.abspath(__file__)))))
 
 import bart
-from bart.parameters import Parameter, ImpactParameter, PeriodParameter
-from bart.priors import UniformPrior
+from bart.parameters import (Parameter, ImpactParameter, PeriodParameter,
+                             LogMultiParameter)
+from bart.priors import UniformPrior, NormalPrior
 
 client = kplr.API()
 
@@ -96,7 +97,7 @@ def setup():
         for n in alltn:
             m = tn == n
             model.datasets.append(bart.data.GPLightCurve(time_[m], flux_[m],
-                                                         ferr_[m]))
+                                                         ferr_[m], alpha=1.1))
 
     # Add some priors.
     dper = prng / (maxn - minn)
@@ -106,8 +107,18 @@ def setup():
     model.parameters.append(Parameter(planet, "r"))
     model.parameters.append(ImpactParameter(planet))
 
+    # Prior range for the period so that it doesn't predict transits outside
+    # of the data range.
     ppr = UniformPrior(period - dper, period + dper)
     model.parameters.append(PeriodParameter(planet, lnprior=ppr))
+
+    # Sample in the GP hyper-parameters.
+    apr = NormalPrior(0.0, 1.0)
+    model.parameters.append(LogMultiParameter(model.datasets, "alpha",
+                                              lnprior=apr))
+    lpr = NormalPrior(2.0, 0.5)
+    model.parameters.append(LogMultiParameter(model.datasets, "l2",
+                                              lnprior=lpr))
 
     return model, period
 

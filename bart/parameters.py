@@ -78,7 +78,7 @@ class Parameter(object):
         return getattr(self.target, self.attr)
 
     def setter(self, value):
-        return setattr(self.target, self.attr, value)
+        setattr(self.target, self.attr, value)
 
     def conv(self, value):
         return value
@@ -170,3 +170,17 @@ class LogPeriodParameter(PeriodParameter, LogParameter):
     natural logarithm of the period.
 
     """
+
+
+class MultiParameter(Parameter):
+
+    def getter(self):
+        return getattr(self.target[0], self.attr)
+
+    def setter(self, value):
+        [setattr(t, self.attr, value) for t in self.target]
+
+
+class LogMultiParameter(MultiParameter, LogParameter):
+
+    pass
