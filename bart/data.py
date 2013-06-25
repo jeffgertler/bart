@@ -131,9 +131,10 @@ class PhotonStream(Dataset):
 
     """
 
-    def __init__(self, time, dt=0.1, K=3):
+    def __init__(self, time, dt=0.1, background=0.0):
         self.time = time[np.isfinite(time)]
         self.dt = dt
+        self.bglevel = background
 
     def lnlike(self, model):
         """
@@ -175,7 +176,7 @@ class PhotonStream(Dataset):
             The time points in days.
 
         """
-        return np.zeros_like(t)
+        return np.zeros_like(t) + self.bglevel
 
     def sensitivity(self, t):
         """
