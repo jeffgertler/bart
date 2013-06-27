@@ -4,7 +4,7 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-__all__ = ["Dataset", "LightCurve"]
+__all__ = ["Dataset", "LightCurve", "GPLightCurve", "PhotonStream"]
 
 
 import numpy as np
@@ -40,11 +40,35 @@ class LightCurve(Dataset):
 
     """
 
-    def __init__(self, time, flux, ferr, texp=1626.0, K=3):
+    def __init__(self, time, flux, ferr, texp=1626.0, K=3, dtbin=None):
         m = np.isfinite(time) * np.isfinite(flux) * np.isfinite(ferr)
-        self.time = time[m]
-        self.flux = flux[m]
-        self.ferr = ferr[m]
+
+        if dtbin is not None:
+            tmn, tmx = np.min(time), np.max(time)
+            time, flux, ferr = time[m], flux[m], ferr[m]
+            ivar = 1.0 / (ferr * ferr)
+
+            self.time = np.arange(tmn, tmx + dtbin, dtbin)
+            self.flux = np.zeros_like(self.time)
+            self.ivar = np.zeros_like(self.time)
+            bind = np.floor((time - tmn) / dtbin)
+            for i in range(len(self.time)):
+                m = bind == i
+                if np.any(m):
+                    self.ivar[i] = np.sum(ivar[m])
+                    self.flux[i] = np.sum(flux[m] * ivar[m]) / self.ivar[i]
+
+            m = self.ivar > 0
+            self.time = self.time[m]
+            self.flux = self.flux[m]
+            self.ivar = self.ivar[m]
+            self.ferr = 1.0 / np.sqrt(self.ivar)
+
+        else:
+            self.time = time[m]
+            self.flux = flux[m]
+            self.ferr = ferr[m]
+            self.ivar = 1.0 / (self.ferr * self.ferr)
 
         # Normalize by the median.
         mu = np.median(self.flux)
@@ -65,7 +89,7 @@ class LightCurve(Dataset):
         """
         lc = model.planetary_system.lightcurve(self.time, texp=self.texp,
                                                K=self.K)
-        return np.sum(-0.5 * (lc - self.flux) ** 2)
+        return np.sum(-0.5 * (lc - self.flux) ** 2 * self.ivar)
 
 
 class GPLightCurve(LightCurve):
@@ -118,7 +142,7 @@ class GPLightCurve(LightCurve):
                                     self.alpha, self.l2)
 
 
-class PoissonLightCurve(LightCurve):
+class PhotonStream(Dataset):
     """
     An extension to :class:`LightCurve` with a Poisson likelihood function.
     This class automatically masks all NaNs in the data stream.
@@ -131,9 +155,10 @@ class PoissonLightCurve(LightCurve):
 
     """
 
-    def __init__(self, time, dt=0.1, K=3):
+    def __init__(self, time, dt=0.1, background=0.0):
         self.time = time[np.isfinite(time)]
         self.dt = dt
+        self.bglevel = background
 
     def lnlike(self, model):
         """
@@ -145,7 +170,7 @@ class PoissonLightCurve(LightCurve):
         """
         photonrates = self.rate(model, self.time)
         bintimes = np.arange(self.time.min(), self.time.max(), self.dt)
-        binrates = self.rate(bintimes)
+        binrates = self.rate(model, bintimes)
         prob = np.sum(np.log(photonrates)) - self.dt * np.sum(binrates)
         return prob
 
@@ -175,7 +200,7 @@ class PoissonLightCurve(LightCurve):
             The time points in days.
 
         """
-        return np.zeros_like(t)
+        return np.zeros_like(t) + self.bglevel
 
     def sensitivity(self, t):
         """
