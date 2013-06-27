@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
 
 import bart
 from bart.parameters import (Parameter, ImpactParameter, PeriodParameter,
-                             LogMultiParameter)
+                             LogMultiParameter, MultiParameter)
 from bart.priors import UniformPrior, NormalPrior
 
 client = kplr.API()
@@ -97,7 +97,10 @@ def setup():
         for n in alltn:
             m = tn == n
             model.datasets.append(bart.data.GPLightCurve(time_[m], flux_[m],
-                                                         ferr_[m], alpha=1.1))
+                                                         ferr_[m],
+                                                         alpha=1.0,
+                                                         l2=3.0,
+                                                         dtbin=None))
 
     # Add some priors.
     dper = prng / (maxn - minn)
@@ -112,22 +115,25 @@ def setup():
     ppr = UniformPrior(period - dper, period + dper)
     model.parameters.append(PeriodParameter(planet, lnprior=ppr))
 
-    # Sample in the GP hyper-parameters.
-    apr = NormalPrior(0.0, 1.0)
-    model.parameters.append(LogMultiParameter(model.datasets, "alpha",
-                                              lnprior=apr))
-    lpr = NormalPrior(2.0, 0.5)
-    model.parameters.append(LogMultiParameter(model.datasets, "l2",
-                                              lnprior=lpr))
+    # # Sample in the GP hyper-parameters.
+    # apr = UniformPrior(0.0, 10.0)
+    # model.parameters.append(MultiParameter(model.datasets, "alpha",
+    #                                        lnprior=apr))
+    # lpr = UniformPrior(3.0, 20.0)
+    # model.parameters.append(MultiParameter(model.datasets, "l2",
+    #                                        lnprior=lpr))
 
     return model, period
 
 
 if __name__ == "__main__":
+    import timeit
     model, period = setup()
-    print(model.lnprob())
+    print(timeit.timeit("model.datasets[0].lnlike(model)",
+                        setup="from __main__ import model",
+                        number=1000))
 
-    [pl.plot(d.time % period, d.flux + 0.01 * i, ".")
+    [pl.errorbar(d.time % period, d.flux + 0.01 * i, yerr=d.ferr, fmt=".")
      for i, d in enumerate(model.datasets)]
     pl.savefig("data.png")
 
@@ -149,7 +155,7 @@ if __name__ == "__main__":
 
     strt = timer.time()
     for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
-                                             iterations=2000,
+                                             iterations=1000,
                                              storechain=False):
         with open(fn, "a") as f:
             for p, lp in zip(pos, lnprob):

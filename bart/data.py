@@ -40,11 +40,35 @@ class LightCurve(Dataset):
 
     """
 
-    def __init__(self, time, flux, ferr, texp=1626.0, K=3):
+    def __init__(self, time, flux, ferr, texp=1626.0, K=3, dtbin=None):
         m = np.isfinite(time) * np.isfinite(flux) * np.isfinite(ferr)
-        self.time = time[m]
-        self.flux = flux[m]
-        self.ferr = ferr[m]
+
+        if dtbin is not None:
+            tmn, tmx = np.min(time), np.max(time)
+            time, flux, ferr = time[m], flux[m], ferr[m]
+            ivar = 1.0 / (ferr * ferr)
+
+            self.time = np.arange(tmn, tmx + dtbin, dtbin)
+            self.flux = np.zeros_like(self.time)
+            self.ivar = np.zeros_like(self.time)
+            bind = np.floor((time - tmn) / dtbin)
+            for i in range(len(self.time)):
+                m = bind == i
+                if np.any(m):
+                    self.ivar[i] = np.sum(ivar[m])
+                    self.flux[i] = np.sum(flux[m] * ivar[m]) / self.ivar[i]
+
+            m = self.ivar > 0
+            self.time = self.time[m]
+            self.flux = self.flux[m]
+            self.ivar = self.ivar[m]
+            self.ferr = 1.0 / np.sqrt(self.ivar)
+
+        else:
+            self.time = time[m]
+            self.flux = flux[m]
+            self.ferr = ferr[m]
+            self.ivar = 1.0 / (self.ferr * self.ferr)
 
         # Normalize by the median.
         mu = np.median(self.flux)
@@ -65,7 +89,7 @@ class LightCurve(Dataset):
         """
         lc = model.planetary_system.lightcurve(self.time, texp=self.texp,
                                                K=self.K)
-        return np.sum(-0.5 * (lc - self.flux) ** 2)
+        return np.sum(-0.5 * (lc - self.flux) ** 2 * self.ivar)
 
 
 class GPLightCurve(LightCurve):
