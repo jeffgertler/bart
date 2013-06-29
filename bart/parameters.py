@@ -7,7 +7,7 @@ from __future__ import (division, print_function, absolute_import,
 __all__ = ["Parameter", "LogParameter", "ImpactParameter", "PeriodParameter",
            "LogPeriodParameter"]
 
-
+import collections
 import numpy as np
 
 from .priors import Prior, UniformPrior
@@ -16,8 +16,8 @@ from .priors import Prior, UniformPrior
 class Parameter(object):
     """
     Specification for a model parameter. This object specifies getter and
-    setter methods that will be applied to a specific target. The most basic
-    usage would look something like:
+    setter methods that will be applied to a specific target object (or list
+    of targets). The most basic usage would look something like:
 
     .. code-block:: python
 
@@ -32,12 +32,12 @@ class Parameter(object):
     Subclasses can implement more sophisticated transformations (see
     :class:`LogParameter` and :class:`ImpactParameter` for examples).
 
-    :param target:
-        The target object to which the parameter is related.
+    :param targets:
+        The target objects to which the parameter is related.
 
     :param attr: (optional)
         For a simple parameter, this is the attribute name of the parameter
-        in ``target``.
+        in ``targets``.
 
     :param lnprior: (optional)
         A callable log-prior function that should take in a single scalar (the
@@ -50,8 +50,11 @@ class Parameter(object):
 
     """
 
-    def __init__(self, target, attr=None, lnprior=None, context={}):
-        self.target = target
+    def __init__(self, targets, attr=None, lnprior=None, context={}):
+        if isinstance(targets, collections.Iterable):
+            self.targets = targets
+        else:
+            self.targets = [targets]
         self.attr = attr
         if lnprior is None:
             lnprior = Prior()
@@ -75,10 +78,12 @@ class Parameter(object):
         self.setter(self.invconv(value))
 
     def getter(self):
-        return getattr(self.target, self.attr)
+        vals = [getattr(t, self.attr) for t in self.targets]
+        assert all([v == vals[0] for v in vals])
+        return vals[0]
 
     def setter(self, value):
-        setattr(self.target, self.attr, value)
+        [setattr(t, self.attr, value) for t in self.targets]
 
     def conv(self, value):
         return value
@@ -129,12 +134,15 @@ class ImpactParameter(Parameter):
         super(ImpactParameter, self).__init__(planet, **kwargs)
 
     def getter(self):
-        iobs = self.target.planetary_system.iobs
-        return self.target.a / np.tan(np.radians(iobs - self.target.ix))
+        iobs = self.targets[0].planetary_system.iobs
+        return self.targets[0].a / np.tan(np.radians(iobs
+                                                     - self.targets[0].ix))
 
     def setter(self, b):
-        iobs = self.target.planetary_system.iobs
-        self.target.ix = iobs - np.degrees(np.arctan2(self.target.a, b))
+        iobs = self.targets[0].planetary_system.iobs
+        a = self.targets[0].a
+        for t in self.targets:
+            t.ix = iobs - np.degrees(np.arctan2(a, b))
 
 
 class PeriodParameter(Parameter):
@@ -156,12 +164,14 @@ class PeriodParameter(Parameter):
         return "P"
 
     def getter(self):
-        smass = self.target.planetary_system.star.mass
-        return self.target.get_period(smass)
+        smass = self.targets[0].planetary_system.star.mass
+        return self.targets[0].get_period(smass)
 
     def setter(self, period):
-        s = self.target.planetary_system.star
-        self.target.a = s.get_semimajor(period, planet_mass=self.target.mass)
+        s = self.targets[0].planetary_system.star
+        m = self.targets[0].mass
+        for t in self.targets:
+            t.a = s.get_semimajor(period, planet_mass=m)
 
 
 class LogPeriodParameter(PeriodParameter, LogParameter):
@@ -172,15 +182,15 @@ class LogPeriodParameter(PeriodParameter, LogParameter):
     """
 
 
-class MultiParameter(Parameter):
+# class MultiParameter(Parameter):
 
-    def getter(self):
-        return getattr(self.target[0], self.attr)
+#     def getter(self):
+#         return getattr(self.target[0], self.attr)
 
-    def setter(self, value):
-        [setattr(t, self.attr, value) for t in self.target]
+#     def setter(self, value):
+#         [setattr(t, self.attr, value) for t in self.target]
 
 
-class LogMultiParameter(MultiParameter, LogParameter):
+# class LogMultiParameter(MultiParameter, LogParameter):
 
-    pass
+#     pass
