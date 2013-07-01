@@ -44,13 +44,9 @@ class Parameter(object):
         result of :func:`Parameter.get`) and return the natural logarithm of
         the prior probability function.
 
-    :param context: (optional)
-        A dictionary of other information that the parameter might need to
-        know about.
-
     """
 
-    def __init__(self, targets, attr=None, lnprior=None, context={}):
+    def __init__(self, targets, attr=None, lnprior=None):
         if isinstance(targets, collections.Iterable):
             self.targets = targets
         else:
@@ -59,7 +55,6 @@ class Parameter(object):
         if lnprior is None:
             lnprior = Prior()
         self._lnprior = lnprior
-        self.context = {}
 
     def __str__(self):
         return "{0}".format(self.attr)
@@ -180,17 +175,3 @@ class LogPeriodParameter(PeriodParameter, LogParameter):
     natural logarithm of the period.
 
     """
-
-
-# class MultiParameter(Parameter):
-
-#     def getter(self):
-#         return getattr(self.target[0], self.attr)
-
-#     def setter(self, value):
-#         [setattr(t, self.attr, value) for t in self.target]
-
-
-# class LogMultiParameter(MultiParameter, LogParameter):
-
-#     pass
