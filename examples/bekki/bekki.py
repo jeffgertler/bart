@@ -116,40 +116,44 @@ def setup():
 
 
 if __name__ == "__main__":
-    model, period = setup()
-
-    [pl.plot(d.time % period, d.flux + 0.003 * i, ".", ms=2)
-     for i, d in enumerate(model.datasets)]
-    pl.savefig("data.png")
-
-    # Set up sampler.
-    nwalkers = 20
-    v = model.vector
-    p0 = v[None, :] * (1e-4 * np.random.randn(len(v) * nwalkers)
-                       + 1).reshape((nwalkers, len(v)))
-    sampler = emcee.EnsembleSampler(nwalkers, len(p0[0]), model,
-                                    threads=nwalkers)
-
-    # Run a burn-in.
-    pos, lnprob, state = sampler.run_mcmc(p0, 100)
-    sampler.reset()
+    import sys
 
     fn = "samples.txt"
-    with open(fn, "w") as f:
-        f.write("# {0}\n".format(" ".join(map(unicode, model.parameters))))
+    model, period = setup()
 
-    strt = timer.time()
-    for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
-                                             iterations=1000,
-                                             storechain=False):
-        with open(fn, "a") as f:
-            for p, lp in zip(pos, lnprob):
-                f.write("{0} {1}\n".format(
-                    " ".join(map("{0}".format, p)), lp))
+    if "--no-data" not in sys.argv:
+        [pl.plot(d.time % period, d.flux + 0.003 * i, ".", ms=2)
+         for i, d in enumerate(model.datasets)]
+        pl.savefig("data.png")
 
-    print("Took {0} seconds".format(timer.time() - strt))
-    print("Acceptance fraction: {0}"
-          .format(np.mean(sampler.acceptance_fraction)))
+    if "--results" not in sys.argv:
+        # Set up sampler.
+        nwalkers = 20
+        v = model.vector
+        p0 = v[None, :] * (1e-4 * np.random.randn(len(v) * nwalkers)
+                           + 1).reshape((nwalkers, len(v)))
+        sampler = emcee.EnsembleSampler(nwalkers, len(p0[0]), model,
+                                        threads=nwalkers)
+
+        # Run a burn-in.
+        pos, lnprob, state = sampler.run_mcmc(p0, 100)
+        sampler.reset()
+
+        with open(fn, "w") as f:
+            f.write("# {0}\n".format(" ".join(map(unicode, model.parameters))))
+
+        strt = timer.time()
+        for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
+                                                 iterations=1000,
+                                                 storechain=False):
+            with open(fn, "a") as f:
+                for p, lp in zip(pos, lnprob):
+                    f.write("{0} {1}\n".format(
+                        " ".join(map("{0}".format, p)), lp))
+
+        print("Took {0} seconds".format(timer.time() - strt))
+        print("Acceptance fraction: {0}"
+              .format(np.mean(sampler.acceptance_fraction)))
 
     samples = np.loadtxt(fn)
     figure = triangle.corner(samples)
