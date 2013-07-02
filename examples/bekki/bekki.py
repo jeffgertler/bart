@@ -158,3 +158,19 @@ if __name__ == "__main__":
     samples = np.loadtxt(fn)
     figure = triangle.corner(samples)
     figure.savefig("triangle.png")
+
+    P = np.median(samples[:, -2])
+    print(period, P)
+
+    ax = pl.figure().add_subplot(111)
+    [ax.plot(d.time % P, d.flux + 0.002 * i, ".", ms=2)
+     for i, d in enumerate(model.datasets)]
+
+    mn, mx = ax.get_xlim()
+    for sample in samples[::831]:
+        model.vector = sample[:1]
+        [ax.plot(d.time % P, d.predict(model) + 0.002 * i, "k",
+                 alpha=0.05)
+         for i, d in enumerate(model.datasets)]
+
+    pl.savefig("samples.png")

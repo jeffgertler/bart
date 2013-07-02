@@ -172,11 +172,18 @@ class GPLightCurve(LightCurve):
         """
         if t is None:
             t = self.time
-        lc = model.planetary_system.lightcurve(t, texp=self.texp,
-                                               K=self.K)
-        mu, cov = _george.predict(self.time, self.flux / lc - 1, self.ferr,
-                                  self.alpha, self.l2)
-        return np.random.multivariate_normal(mu, cov) * lc + 1
+            lc0 = model.planetary_system.lightcurve(t, texp=self.texp,
+                                                    K=self.K)
+            lc = lc0
+        else:
+            lc0 = model.planetary_system.lightcurve(self.time, texp=self.texp,
+                                                    K=self.K)
+            lc = model.planetary_system.lightcurve(t, texp=self.texp,
+                                                   K=self.K)
+
+        mu, cov = _george.predict(self.time, self.flux / lc0 - 1, self.ferr,
+                                  self.alpha, self.l2, t)
+        return (np.random.multivariate_normal(mu, cov) + 1) * lc
 
 
 class PhotonStream(Dataset):
