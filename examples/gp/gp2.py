@@ -13,19 +13,19 @@ import matplotlib.pyplot as pl
 import numpy as np
 import kplr
 from kplr.ld import get_quad_coeffs
+import untrendy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.abspath(__file__)))))
 
 import bart
-from bart.parameters import (Parameter, ImpactParameter, PeriodParameter,
-                             LogMultiParameter, MultiParameter)
-from bart.priors import UniformPrior, NormalPrior
+from bart.parameters import Parameter, ImpactParameter, PeriodParameter
+from bart.priors import UniformPrior
 
 client = kplr.API()
 
 
-def setup():
+def setup(gp=True):
     client = kplr.API()
 
     # Query the KIC and get some parameters.
@@ -46,7 +46,7 @@ def setup():
     prng = 3.0
     period = 278.
     size = 0.03
-    epoch = 10.0
+    epoch = 20.0
     a = star.get_semimajor(period)
     b = 0.3
     incl = np.degrees(np.arctan2(a, b))
@@ -61,6 +61,14 @@ def setup():
 
     # Load the data and inject into each transit.
     lcs = kic.get_light_curves(short_cadence=False, fetch=False)
+
+    # Choose the type of dataset to use.
+    if gp:
+        args = {"alpha": 1.0, "l2": 3.0, "dtbin": None}
+        dsc = bart.data.GPLightCurve
+    else:
+        args = {"dtbin": None}
+        dsc = bart.data.LightCurve
 
     # Loop over the datasets and read in the data.
     minn, maxn = 1e10, 0
@@ -88,6 +96,11 @@ def setup():
         # Inject the transit.
         flux_ *= ps.lightcurve(time_)
 
+        if not gp:
+            mu = untrendy.median(time_, flux_, dt=3.0)
+            flux_ /= mu
+            ferr_ /= mu
+
         tn = np.array(np.round(np.abs((time_ - epoch) / period)), dtype=int)
         alltn = set(tn)
 
@@ -96,11 +109,10 @@ def setup():
 
         for n in alltn:
             m = tn == n
-            model.datasets.append(bart.data.GPLightCurve(time_[m], flux_[m],
-                                                         ferr_[m],
-                                                         alpha=1.0,
-                                                         l2=3.0,
-                                                         dtbin=None))
+            tf = time_[m]
+            fl = flux_[m]
+            fle = ferr_[m]
+            model.datasets.append(dsc(tf, fl, fle, **args))
 
     # Add some priors.
     dper = prng / (maxn - minn)
@@ -128,7 +140,7 @@ def setup():
 
 if __name__ == "__main__":
     import timeit
-    model, period = setup()
+    model, period = setup(gp=True)
     print(timeit.timeit("model.datasets[0].lnlike(model)",
                         setup="from __main__ import model",
                         number=1000))

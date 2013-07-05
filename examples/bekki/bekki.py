@@ -12,6 +12,7 @@ import matplotlib.pyplot as pl
 import numpy as np
 import kplr
 from kplr.ld import get_quad_coeffs
+import untrendy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
                 os.path.abspath(__file__)))))
@@ -23,7 +24,7 @@ from bart.priors import UniformPrior
 client = kplr.API()
 
 
-def setup():
+def setup(gp=True):
     client = kplr.API()
 
     # Query the KIC and get some parameters.
@@ -93,11 +94,17 @@ def setup():
 
         for n in alltn:
             m = tn == n
-            model.datasets.append(bart.data.GPLightCurve(time_[m], flux_[m],
-                                                         ferr_[m],
-                                                         alpha=1.0,
-                                                         l2=3.0,
-                                                         dtbin=None))
+            tf = time_[m]
+            fl = flux_[m]
+            fle = ferr_[m]
+
+            if not gp:
+                mu = untrendy.median(tf, fl, dt=4.0)
+                fl /= mu
+                fle /= mu
+
+            model.datasets.append(dsc(tf, fl, fle, alpha=1.0, l2=3.0,
+                                      dtbin=None))
 
     # Add some priors.
     dper = prng / (maxn - minn)
