@@ -87,9 +87,25 @@ class LightCurve(Dataset):
             The :class:`Model` specifying the model to compare the data to.
 
         """
-        lc = model.planetary_system.lightcurve(self.time, texp=self.texp,
-                                               K=self.K)
+        lc = self.predict(model)
         return np.sum(-0.5 * (lc - self.flux) ** 2 * self.ivar)
+
+    def predict(self, model, t=None):
+        """
+        Generate a model light curve for a particular :class:`Model`.
+
+        :param model:
+            The :class:`Model` specifying the model to generate from.
+
+        :param t: (optional)
+            The times where the model should be evaluated. By default, it'll
+            return the light curve evaluated at the data points.
+
+        """
+        if t is None:
+            t = self.time
+        return model.planetary_system.lightcurve(t, texp=self.texp,
+                                                 K=self.K)
 
 
 class GPLightCurve(LightCurve):
@@ -140,6 +156,34 @@ class GPLightCurve(LightCurve):
                                                K=self.K)
         return _george.lnlikelihood(self.time, self.flux / lc - 1, self.ferr,
                                     self.alpha, self.l2)
+
+    def predict(self, model, t=None):
+        """
+        Generate a sample from the light curve probability function for a
+        particular :class:`Model`.
+
+        :param model:
+            The :class:`Model` specifying the model to generate from.
+
+        :param t: (optional)
+            The times where the model should be evaluated. By default, it'll
+            return the light curve evaluated at the data points.
+
+        """
+        if t is None:
+            t = self.time
+            lc0 = model.planetary_system.lightcurve(t, texp=self.texp,
+                                                    K=self.K)
+            lc = lc0
+        else:
+            lc0 = model.planetary_system.lightcurve(self.time, texp=self.texp,
+                                                    K=self.K)
+            lc = model.planetary_system.lightcurve(t, texp=self.texp,
+                                                   K=self.K)
+
+        mu, cov = _george.predict(self.time, self.flux / lc0 - 1, self.ferr,
+                                  self.alpha, self.l2, t)
+        return (np.random.multivariate_normal(mu, cov) + 1) * lc
 
 
 class PhotonStream(Dataset):
@@ -213,3 +257,17 @@ class PhotonStream(Dataset):
 
         """
         return np.ones_like(t)
+
+    def predict(self, model, t=None):
+        """
+        Generate a model light curve for a particular :class:`Model`.
+
+        :param model:
+            The :class:`Model` specifying the model to generate from.
+
+        :param t: (optional)
+            The times where the model should be evaluated. By default, it'll
+            return the light curve evaluated at the data points.
+
+        """
+        raise NotImplementedError()
