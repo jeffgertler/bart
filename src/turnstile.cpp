@@ -1,29 +1,55 @@
 #include "george.h"
-#include <stdlib.h>
+#include <vector>
 
-typedef struct {
+using std::vector;
 
-    int length;
-    double *time, *flux, *ferr;
-
-} Dataset;
-
-Dataset *dataset_malloc (int n)
+class LightCurve
 {
-    Dataset *d = (Dataset*)malloc(sizeof(Dataset));
-    d->length = n;
-    d->time = (double*)malloc(n * sizeof(double));
-    d->flux = (double*)malloc(n * sizeof(double));
-    d->ferr = (double*)malloc(n * sizeof(double));
-    return d;
+
+    private:
+
+        double prev_depth_;
+        vector<double> time_, flux_, ferr_;
+        vector<int> in_transit_;
+        George *gp_;
+
+    public:
+
+        LightCurve (double amp, double var);
+        ~LightCurve ();
+        void push_back (double time, double flux, double ferr,
+                        bool in_transit);
+        void update_depth (double depth);
+
+};
+
+LightCurve::LightCurve (double amp, double var)
+{
+    double pars[2] = {amp, var};
+    gp_ = new George(2, pars, &gp_isotropic_kernel);
+    prev_depth_ = 0.0;
 }
 
-void dataset_free (Dataset *d)
+LightCurve::~LightCurve ()
 {
-    free(d->time);
-    free(d->flux);
-    free(d->ferr);
-    free(d);
+    delete gp_;
+}
+
+void LightCurve::push_back (double time, double flux, double ferr,
+                            bool in_transit)
+{
+    time_.push_back(time);
+    flux_.push_back(time);
+    ferr_.push_back(time);
+    if (in_transit) in_transit_.push_back(time_.size() - 1);
+}
+
+void LightCurve::update_depth (double depth)
+{
+    int i, l = in_transit_.size();
+    double factor = (1 - prev_depth_) / (1 - depth);
+    for (i = 0; i < l; ++i) flux_[i] *= factor;
+    prev_depth_ = depth;
 }
 
 double turnstile_marginalized_depth (int nsets, Dataset **datasets,
@@ -34,8 +60,6 @@ double turnstile_marginalized_depth (int nsets, Dataset **datasets,
 {
     int info;
     double r, pars[2] = {amp, var}, *ftmp = malloc;
-    George *gps = malloc();
-    (2, pars, &gp_isotropic_kernel);
 
     // Compute the initial GP stuff.
     info = gp.compute(n, t, ferr);
