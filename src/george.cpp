@@ -33,7 +33,7 @@ int George::compute (int nsamples, double *x, double *yerr)
 double George::lnlikelihood (int nsamples, double *y)
 {
     double logdet;
-    VectorXd det, alpha, yvec = Map<VectorXd>(y, nsamples);
+    VectorXd alpha, yvec = Map<VectorXd>(y, nsamples);
 
     if (!computed_ || nsamples != nsamples_)
         return -INFINITY;
@@ -42,11 +42,7 @@ double George::lnlikelihood (int nsamples, double *y)
     if (L_.info() != Success)
         return -INFINITY;
 
-    det = L_.vectorD().array();
-    if (det.minCoeff() < 0)
-        return -INFINITY;
-
-    logdet = log(det).sum();
+    logdet = log(L_.vectorD().array()).sum();
     return -0.5 * (yvec.transpose() * alpha + logdet + nsamples * TWOLNPI);
 }
 
@@ -62,7 +58,7 @@ int George::predict (int nsamples, double *y, int ntest, double *x,
         return -1;
 
     // Build the kernel matrices.
-    for (i = 0; i < nsamples_; ++i)
+    for (i = 0; i < nsamples; ++i)
         for (j = 0; j < ntest; ++j)
             Kxs(i, j) = kernel_(x_[i], x[j], npars_, pars_);
     for (i = 0; i < ntest; ++i) {
