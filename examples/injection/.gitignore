@@ -1,2 +1,4 @@
 data
 data.tar.gz
+data_detrended_mf
+median_filter.py
