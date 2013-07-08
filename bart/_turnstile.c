@@ -13,12 +13,13 @@ struct module_state {
 static struct module_state _state;
 #endif
 
-#define PARSE_ARRAY(o) (PyArrayObject*) PyArray_FROM_OTF(o, NPY_DOUBLE, \
-        NPY_IN_ARRAY)
+#define PARSE_ARRAY(o) (PyArrayObject*) PyArray_FROM_OTF(o, NPY_DOUBLE, NPY_IN_ARRAY)
 
 static PyObject
 *turnstile_period_search (PyObject *self, PyObject *args)
 {
+    int i, j;
+
     int nperiods, ndepths;
     double min_period, max_period, min_depth, max_depth,  amp, var;
     PyObject *datasets;
@@ -29,72 +30,116 @@ static PyObject
                           &ndepths, &amp, &var))
         return NULL;
 
-    /* // Decode the numpy arrays. */
-    /* PyArrayObject *x_array = PARSE_ARRAY(x_obj), */
-    /*               *y_array = PARSE_ARRAY(y_obj), */
-    /*               *yerr_array = PARSE_ARRAY(yerr_obj), */
-    /*               *xtest_array = PARSE_ARRAY(xtest_obj); */
-    /* if (x_array == NULL || y_array == NULL || yerr_array == NULL || */
-    /*     xtest_array == NULL) */
-    /*     goto fail; */
+    // Allocate memory for outputs.
+    npy_intp dim[1] = {nperiods};
+    PyArrayObject *periodsarray = (PyArrayObject*)PyArray_SimpleNew(1, dim,
+                                                                    NPY_DOUBLE),
+                  *depthsarray = (PyArrayObject*)PyArray_SimpleNew(1, dim,
+                                                                   NPY_DOUBLE);
+    if (periodsarray == NULL || depthsarray == NULL) {
+        Py_XDECREF(periodsarray);
+        Py_XDECREF(depthsarray);
+        return NULL;
+    }
 
-    /* // Get the dimensions. */
-    /* int nsamples = (int) PyArray_DIM(x_array, 0), */
-    /*     ntest = (int) PyArray_DIM(xtest_array, 0); */
-    /* if ((int)PyArray_DIM(y_array, 0) != nsamples || */
-    /*     (int)PyArray_DIM(yerr_array, 0) != nsamples) */
-    /* { */
-    /*     PyErr_SetString(PyExc_ValueError, "Dimension mismatch"); */
-    /*     goto fail; */
-    /* } */
+    // Parse and extract the necessary information from the datasets.
+    if (!PyList_Check(datasets)) {
+        PyErr_SetString(PyExc_TypeError, "Expected a list.");
+        Py_DECREF(periodsarray);
+        Py_DECREF(depthsarray);
+        return NULL;
+    }
+    int max_sets, nsets = (int)PyList_Size(datasets),
+        *ndata = malloc(nsets * sizeof(int));
+    double **time = malloc(nsets * sizeof(double*)),
+           **flux = malloc(nsets * sizeof(double*)),
+           **ferr = malloc(nsets * sizeof(double*));
+    PyObject *timeobj = NULL, *fluxobj = NULL, *ferrobj = NULL;
+    PyArrayObject *timearray = NULL, *fluxarray = NULL, *ferrarray = NULL;
 
-    /* // Allocate the output array. */
-    /* npy_intp dim[1] = {ntest}, dim2[2] = {ntest, ntest}; */
-    /* PyArrayObject *mean_array = (PyArrayObject*)PyArray_SimpleNew(1, dim, */
-    /*                                                               NPY_DOUBLE), */
-    /*               *cov_array = (PyArrayObject*)PyArray_SimpleNew(2, dim2, */
-    /*                                                              NPY_DOUBLE); */
-    /* if (mean_array == NULL || cov_array == NULL) { */
-    /*     Py_XDECREF(mean_array); */
-    /*     Py_XDECREF(cov_array); */
-    /*     goto fail; */
-    /* } */
+    for (max_sets = 0; max_sets < nsets; ++max_sets) {
+        // Get the dataset.
+        PyObject *ds = PyList_GetItem(datasets, max_sets);
+        if (ds == NULL) goto fail;
 
-    /* // Compute the light curve. */
-    /* double *x = PyArray_DATA(x_array), */
-    /*        *y = PyArray_DATA(y_array), */
-    /*        *yerr = PyArray_DATA(yerr_array), */
-    /*        *xtest = PyArray_DATA(xtest_array), */
-    /*        *mean = PyArray_DATA(mean_array), */
-    /*        *cov = PyArray_DATA(cov_array); */
-    /* int info = gp_predict (nsamples, x, y, yerr, amp, var, ntest, xtest, */
-    /*                        mean, cov); */
+        // Access the attributes that we need.
+        timeobj = PyObject_GetAttrString(ds, "time");
+        fluxobj = PyObject_GetAttrString(ds, "flux");
+        ferrobj = PyObject_GetAttrString(ds, "ferr");
 
-    /* Py_DECREF(x_array); */
-    /* Py_DECREF(y_array); */
-    /* Py_DECREF(yerr_array); */
-    /* Py_DECREF(xtest_array); */
+        // Clean up properly if anything went wrong.
+        if (timeobj == NULL || fluxobj == NULL || ferrobj == NULL)
+            goto ds_fail;
 
-    /* if (info != 0) { */
-    /*     PyErr_SetString(PyExc_RuntimeError, "GP predict failed."); */
-    /*     Py_DECREF(mean_array); */
-    /*     Py_DECREF(cov_array); */
-    /*     return NULL; */
-    /* } */
+        // Parse the objects as numpy arrays.
+        timearray = PARSE_ARRAY(timeobj),
+        fluxarray = PARSE_ARRAY(fluxobj),
+        ferrarray = PARSE_ARRAY(ferrobj);
 
-    /* return Py_BuildValue("OO", mean_array, cov_array); */
+        // Clean up properly if anything went wrong.
+        if (timearray == NULL || fluxarray == NULL || ferrarray == NULL)
+            goto ds_fail;
 
-    Py_INCREF(Py_None);
-    return Py_None;
+        // Figure out the size of the dataset and allocate the needed memory.
+        ndata[max_sets] = (int)PyArray_DIM(timearray, 0);
+        if (PyArray_DIM(fluxarray, 0) != ndata[max_sets] ||
+            PyArray_DIM(ferrarray, 0) != ndata[max_sets]) {
+            PyErr_SetString(PyExc_ValueError, "Dimension mismatch.");
+            goto ds_fail;
+        }
+        time[max_sets] = malloc(ndata[max_sets] * sizeof(double));
+        flux[max_sets] = malloc(ndata[max_sets] * sizeof(double));
+        ferr[max_sets] = malloc(ndata[max_sets] * sizeof(double));
 
-/* fail: */
+        // Copy the data over.
+        double *t =  PyArray_DATA(timearray),
+               *f =  PyArray_DATA(fluxarray),
+               *fe =  PyArray_DATA(ferrarray);
+        for (i = 0; i < ndata[max_sets]; ++i) {
+            time[max_sets][i] = t[i];
+            flux[max_sets][i] = f[i];
+            ferr[max_sets][i] = fe[i];
+        }
 
-    /* Py_XDECREF(x_array); */
-    /* Py_XDECREF(y_array); */
-    /* Py_XDECREF(yerr_array); */
-    /* Py_XDECREF(xtest_array); */
-    /* return NULL; */
+        // Reference counting.
+        Py_DECREF(timeobj);
+        Py_DECREF(fluxobj);
+        Py_DECREF(ferrobj);
+        Py_DECREF(timearray);
+        Py_DECREF(fluxarray);
+        Py_DECREF(ferrarray);
+    }
 
+    double *periods = PyArray_DATA(periodsarray),
+           *depths = PyArray_DATA(depthsarray);
+    turnstile (nsets, ndata, time, flux, ferr, amp, var,
+               min_period, max_period, nperiods,
+               min_depth, max_depth, ndepths, periods, depths);
+
+    return Py_BuildValue("OO", periodsarray, depthsarray);
+
+ds_fail:
+
+    Py_XDECREF(timeobj);
+    Py_XDECREF(fluxobj);
+    Py_XDECREF(ferrobj);
+    Py_XDECREF(timearray);
+    Py_XDECREF(fluxarray);
+    Py_XDECREF(ferrarray);
+
+fail:
+
+    Py_DECREF(periodsarray);
+    Py_DECREF(depthsarray);
+    for (j = 0; j < max_sets; ++j) {
+        free(time[j]);
+        free(flux[j]);
+        free(ferr[j]);
+    }
+    free(time);
+    free(flux);
+    free(ferr);
+    return NULL;
 }
 
 static PyMethodDef turnstile_methods[] = {

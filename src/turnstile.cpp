@@ -45,8 +45,8 @@ void LightCurve::push_back (double time, double flux, double ferr,
                             bool in_transit)
 {
     time_.push_back(time);
-    flux_.push_back(time);
-    ferr_.push_back(time);
+    flux_.push_back(flux - 1);
+    ferr_.push_back(ferr);
     if (in_transit) in_transit_.push_back(time_.size() - 1);
 }
 
@@ -61,7 +61,9 @@ void LightCurve::reset ()
 
 int LightCurve::compute ()
 {
-    int info = gp_->compute((int)(time_.size()), &(time_[0]), &(ferr_[0]));
+    int size = (int)(time_.size()), info;
+    if (size > 0) info = gp_->compute(size, &(time_[0]), &(ferr_[0]));
+    else info = -10;
     if (info == 0) valid_ = true;
     else valid_ = false;
     return info;
@@ -69,12 +71,15 @@ int LightCurve::compute ()
 
 double LightCurve::update_depth (double depth)
 {
-    int i, l = in_transit_.size();
+    int i, ind, l = in_transit_.size();
     double factor = (1 - prev_depth_) / (1 - depth);
 
     if (!valid_) return -INFINITY;
 
-    for (i = 0; i < l; ++i) flux_[i] *= factor;
+    for (i = 0; i < l; ++i) {
+        ind = in_transit_[i];
+        flux_[ind] = (flux_[ind] + 1) * factor - 1;
+    }
     prev_depth_ = depth;
 
     return gp_->lnlikelihood((int)(time_.size()), &(flux_[0]));
@@ -91,11 +96,11 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
                 double **ferr, double amp, double var,
                 double min_period, double max_period, int nperiods,
                 double min_depth, double max_depth, int ndepths,
-                double *depths)
+                double *periods, double *depths)
 {
-    int i, j, l, np;
+    int i, j, l, np, nvalid;
     double period, epoch, duration, depth, bestdepth, ldepth, mdepth, weight,
-           lnlike, t, tfold;
+           lnlike, t, tfold, ll;
     vector<LightCurve*> lcs;
 
     // Initialize the working datasets.
@@ -104,13 +109,14 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
 
     for (np = 0; np < nperiods; ++np) {
         period = min_period + np * (max_period - min_period) / (nperiods - 1);
+        periods[np] = period;
         bestdepth = 0.0;
 
         // MAGIC: compute the shit out of the duration. Don't ask.
         duration = 0.5 * exp(0.44 * log(period) - 2.97);
 
         // Loop over epochs.
-        for (epoch = 0; epoch < period; epoch += 0.25 * duration) {
+        for (epoch = 0; epoch < period; epoch += 0.5 * duration) {
             for (i = 0; i < nsets; ++i) {
                 // Reset the dataset wrapper.
                 lcs[i]->reset();
@@ -121,9 +127,10 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
                     t = time[i][j];
                     tfold = fabs(fmod(t - epoch + 0.5 * period, period)
                                  - 0.5 * period);
-                    if (tfold < 3 * duration)
+                    if (tfold < 3 * duration) {
                         lcs[i]->push_back(t, flux[i][j], ferr[i][j],
                                           tfold < duration);
+                    }
                 }
 
                 // Compute/factorize the GP.
@@ -131,24 +138,39 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
             }
 
             // Loop over depths and accumulate the marginal depth.
-            mdepth = 0.0;
-            weight = 0.0;
+            mdepth = -INFINITY;
+            weight = -INFINITY;
             for (j = 0; j < ndepths; ++j) {
                 depth = min_depth + j * (max_depth - min_depth) / (ndepths - 1);
                 if (depth > 0.0) {
                     lnlike = 0.0;
-                    for (i = 0; i < nsets; ++i)
-                        if (lcs[i]->is_valid())
-                            lnlike += lcs[i]->update_depth(depth);
+                    nvalid = 0;
+                    for (i = 0; i < nsets; ++i) {
+                        if (lcs[i]->is_valid()) {
+                            ll = lcs[i]->update_depth(depth);
+                            if (finite(ll)) {
+                                lnlike += ll;
+                                nvalid ++;
+                            }
+                        }
+                    }
 
-                    // Update the marginal accumulation and the weight.
-                    ldepth = log(depth);
-                    mdepth = logsumexp(mdepth, ldepth + lnlike);
-                    weight = logsumexp(weight, lnlike);
+                    if (nvalid > 0) {
+                        // Update the marginal accumulation and the weight.
+                        if (finite(weight)) {
+                            ldepth = log(depth);
+                            mdepth = logsumexp(mdepth, ldepth + lnlike);
+                            weight = logsumexp(weight, lnlike);
+                        } else {
+                            mdepth = log(depth) + lnlike;
+                            weight = lnlike;
+                        }
+                    }
                 }
             }
 
             // Exponentiate the result.
+            printf("diff: %e - %e = %e\n", mdepth, weight, mdepth - weight);
             mdepth = exp(mdepth - weight);
             if (mdepth > bestdepth) {
                 bestdepth = mdepth;
@@ -157,6 +179,7 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
 
         // Add the best depth to the result vector.
         depths[np] = bestdepth;
+        printf("%e %e\n", period, bestdepth);
     }
 
     for (i = 0; i < nsets; ++i)
