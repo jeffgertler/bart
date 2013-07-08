@@ -11,7 +11,7 @@ EXTERNC void turnstile (int nsets, int *ndata, double **time, double **flux,
                         double **ferr, double amp, double var,
                         double min_period, double max_period, int nperiods,
                         double min_depth, double max_depth, double d_depth,
-                        double *depths)
+                        double *depths);
 
 #undef EXTERNC
 

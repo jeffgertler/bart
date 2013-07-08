@@ -90,11 +90,11 @@ double logsumexp (double a, double b)
 void turnstile (int nsets, int *ndata, double **time, double **flux,
                 double **ferr, double amp, double var,
                 double min_period, double max_period, int nperiods,
-                double min_depth, double max_depth, double d_depth,
+                double min_depth, double max_depth, int ndepths,
                 double *depths)
 {
-    int i, j, l, np, info;
-    double period, epoch, duration, depth, maxdepth, ldepth, mdepth, weight,
+    int i, j, l, np;
+    double period, epoch, duration, depth, bestdepth, ldepth, mdepth, weight,
            lnlike, t, tfold;
     vector<LightCurve*> lcs;
 
@@ -103,8 +103,8 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
         lcs.push_back(new LightCurve(amp, var));
 
     for (np = 0; np < nperiods; ++np) {
-        period = min_period + (max_period - min_period) / (nperiods - 1);
-        maxdepth = 0.0;
+        period = min_period + np * (max_period - min_period) / (nperiods - 1);
+        bestdepth = 0.0;
 
         // MAGIC: compute the shit out of the duration. Don't ask.
         duration = 0.5 * exp(0.44 * log(period) - 2.97);
@@ -133,7 +133,8 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
             // Loop over depths and accumulate the marginal depth.
             mdepth = 0.0;
             weight = 0.0;
-            for (depth = min_depth; depth <= max_depth; depth += d_depth) {
+            for (j = 0; j < ndepths; ++j) {
+                depth = min_depth + j * (max_depth - min_depth) / (ndepths - 1);
                 if (depth > 0.0) {
                     lnlike = 0.0;
                     for (i = 0; i < nsets; ++i)
@@ -149,13 +150,13 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
 
             // Exponentiate the result.
             mdepth = exp(mdepth - weight);
-            if (mdepth > maxdepth) {
-                maxdepth = mdepth;
+            if (mdepth > bestdepth) {
+                bestdepth = mdepth;
             }
         }
 
         // Add the best depth to the result vector.
-        depths[np] = maxdepth;
+        depths[np] = bestdepth;
     }
 
     for (i = 0; i < nsets; ++i)
