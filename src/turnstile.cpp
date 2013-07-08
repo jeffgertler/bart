@@ -10,6 +10,7 @@ class LightCurve
     private:
 
         double prev_depth_;
+        bool valid_;
         vector<double> time_, flux_, ferr_;
         vector<int> in_transit_;
         George *gp_;
@@ -23,6 +24,7 @@ class LightCurve
         void reset ();
         int compute ();
         double update_depth (double depth);
+        bool is_valid () { return valid_; };
 
 };
 
@@ -31,6 +33,7 @@ LightCurve::LightCurve (double amp, double var)
     double pars[2] = {amp, var};
     gp_ = new George(2, pars, &gp_isotropic_kernel);
     prev_depth_ = 0.0;
+    valid_ = false;
 }
 
 LightCurve::~LightCurve ()
@@ -53,17 +56,24 @@ void LightCurve::reset ()
     flux_.clear();
     ferr_.clear();
     prev_depth_ = 0.0;
+    valid_ = false;
 }
 
 int LightCurve::compute ()
 {
-    return gp_->compute((int)(time_.size()), &(time_[0]), &(ferr_[0]));
+    int info = gp_->compute((int)(time_.size()), &(time_[0]), &(ferr_[0]));
+    if (info == 0) valid_ = true;
+    else valid_ = false;
+    return info;
 }
 
 double LightCurve::update_depth (double depth)
 {
     int i, l = in_transit_.size();
     double factor = (1 - prev_depth_) / (1 - depth);
+
+    if (!valid_) return -INFINITY;
+
     for (i = 0; i < l; ++i) flux_[i] *= factor;
     prev_depth_ = depth;
 
@@ -83,7 +93,7 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
                 double min_depth, double max_depth, double d_depth,
                 double *depths)
 {
-    int i, j, l, np;
+    int i, j, l, np, info;
     double period, epoch, duration, depth, maxdepth, ldepth, mdepth, weight,
            lnlike, t, tfold;
     vector<LightCurve*> lcs;
@@ -115,6 +125,9 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
                         lcs[i]->push_back(t, flux[i][j], ferr[i][j],
                                           tfold < duration);
                 }
+
+                // Compute/factorize the GP.
+                lcs[i]->compute();
             }
 
             // Loop over depths and accumulate the marginal depth.
@@ -124,7 +137,8 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
                 if (depth > 0.0) {
                     lnlike = 0.0;
                     for (i = 0; i < nsets; ++i)
-                        lnlike += lcs[i]->update_depth(depth);
+                        if (lcs[i]->is_valid())
+                            lnlike += lcs[i]->update_depth(depth);
 
                     // Update the marginal accumulation and the weight.
                     ldepth = log(depth);
