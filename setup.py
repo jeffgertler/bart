@@ -20,11 +20,13 @@ if sys.argv[-1] == "publish":
 
 bart = Extension("bart._bart", ["bart/_bart.c", "src/bart.c", "src/kepler.c"],
                  include_dirs=["include"] + get_numpy_include_dirs())
-george = Extension("bart._george", ["bart/_george.c", "src/george.cpp"],
+george = Extension("bart._george", ["bart/_george.c", "src/george.cpp",
+                                    "src/kernels.c"],
                    include_dirs=["include"] + get_numpy_include_dirs())
 turnstile = Extension("bart._turnstile", ["bart/_turnstile.c",
                                           "src/turnstile.cpp",
-                                          "src/george.cpp"],
+                                          "src/kernels.c",
+                                          "src/bart.c"],
                       include_dirs=["include"] + get_numpy_include_dirs())
 
 setup(

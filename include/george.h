@@ -52,8 +52,6 @@ EXTERNC double gp_lnlikelihood (int nsamples, double *x, double *y,
 EXTERNC int gp_predict (int nsamples, double *x, double *y, double *yerr,
                         double amp, double var, int ntest, double *xtest,
                         double *mean, double *cov);
-EXTERNC double gp_isotropic_kernel (double x1, double x2, int npars,
-                                    double *pars);
 
 #undef EXTERNC
 

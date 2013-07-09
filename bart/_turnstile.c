@@ -20,33 +20,18 @@ static PyObject
 {
     int i, j;
 
-    int nperiods, ndepths;
-    double min_period, max_period, min_depth, max_depth,  amp, var;
+    int nperiods;
+    double min_period, max_period,  amp, var;
     PyObject *datasets;
 
     // Parse the input arguments.
-    if (!PyArg_ParseTuple(args, "Oddiddidd", &datasets, &min_period,
-                          &max_period, &nperiods, &min_depth, &max_depth,
-                          &ndepths, &amp, &var))
+    if (!PyArg_ParseTuple(args, "Oddidd", &datasets, &min_period,
+                          &max_period, &nperiods, &amp, &var))
         return NULL;
-
-    // Allocate memory for outputs.
-    npy_intp dim[1] = {nperiods};
-    PyArrayObject *periodsarray = (PyArrayObject*)PyArray_SimpleNew(1, dim,
-                                                                    NPY_DOUBLE),
-                  *depthsarray = (PyArrayObject*)PyArray_SimpleNew(1, dim,
-                                                                   NPY_DOUBLE);
-    if (periodsarray == NULL || depthsarray == NULL) {
-        Py_XDECREF(periodsarray);
-        Py_XDECREF(depthsarray);
-        return NULL;
-    }
 
     // Parse and extract the necessary information from the datasets.
     if (!PyList_Check(datasets)) {
         PyErr_SetString(PyExc_TypeError, "Expected a list.");
-        Py_DECREF(periodsarray);
-        Py_DECREF(depthsarray);
         return NULL;
     }
     int max_sets, nsets = (int)PyList_Size(datasets),
@@ -110,13 +95,63 @@ static PyObject
         Py_DECREF(ferrarray);
     }
 
-    double *periods = PyArray_DATA(periodsarray),
-           *depths = PyArray_DATA(depthsarray);
+    int *nepochs = NULL;
+    double *periods = NULL, **epochs = NULL, **depths = NULL, **dvar = NULL;
     turnstile (nsets, ndata, time, flux, ferr, amp, var,
                min_period, max_period, nperiods,
-               min_depth, max_depth, ndepths, periods, depths);
+               &nepochs, &periods, &epochs, &depths, &dvar);
 
-    return Py_BuildValue("OO", periodsarray, depthsarray);
+    // Construct the output period array.
+    npy_intp d1[1] = {nperiods};
+    PyObject *periodarray = PyArray_SimpleNewFromData(1, d1, NPY_DOUBLE,
+                                                      periods);
+    if (periodarray == NULL) {
+        Py_XDECREF(periodarray);
+        goto fail;
+    }
+
+    // Construct the lists of epoch, depth and depth uncertainty arrays.
+    PyObject *epochlist = PyList_New(nperiods),
+             *depthlist = PyList_New(nperiods),
+             *dvarlist = PyList_New(nperiods);
+    if (epochlist == NULL || depthlist == NULL || dvarlist == NULL) {
+        Py_DECREF(periodarray);
+        Py_XDECREF(epochlist);
+        Py_XDECREF(depthlist);
+        Py_XDECREF(dvarlist);
+        goto fail;
+    }
+    for (i = 0; i < nperiods; ++i) {
+        npy_intp dim[1] = {nepochs[i]};
+        PyObject *ea = PyArray_SimpleNewFromData(1, dim, NPY_DOUBLE, epochs[i]),
+                 *da = PyArray_SimpleNewFromData(1, dim, NPY_DOUBLE, depths[i]),
+                 *va = PyArray_SimpleNewFromData(1, dim, NPY_DOUBLE, dvar[i]);
+        if (ea == NULL || da == NULL || va == NULL) {
+            Py_DECREF(periodarray);
+            Py_DECREF(epochlist);
+            Py_DECREF(depthlist);
+            Py_DECREF(dvarlist);
+            Py_XDECREF(ea);
+            Py_XDECREF(da);
+            Py_XDECREF(va);
+            goto fail;
+        }
+        int info = PyList_SetItem(epochlist, i, ea)
+                 + PyList_SetItem(depthlist, i, da)
+                 + PyList_SetItem(dvarlist, i, va);
+        if (info != 0) {
+            Py_DECREF(periodarray);
+            Py_DECREF(epochlist);
+            Py_DECREF(depthlist);
+            Py_DECREF(dvarlist);
+            Py_XDECREF(ea);
+            Py_XDECREF(da);
+            Py_XDECREF(va);
+            goto fail;
+        }
+    }
+
+    return Py_BuildValue("OOOO", periodarray, epochlist, depthlist, dvarlist);
 
 ds_fail:
 
@@ -129,8 +164,6 @@ ds_fail:
 
 fail:
 
-    Py_DECREF(periodsarray);
-    Py_DECREF(depthsarray);
     for (j = 0; j < max_sets; ++j) {
         free(time[j]);
         free(flux[j]);

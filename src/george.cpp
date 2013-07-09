@@ -1,4 +1,5 @@
 #include "george.h"
+#include "kernels.h"
 
 #define TWOLNPI 1.8378770664093453
 
@@ -113,13 +114,4 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
     if (info != 0)
         return info;
     return gp.predict(nsamples, y, ntest, xtest, mean, cov);
-}
-
-double gp_isotropic_kernel (double x1, double x2, int npars, double *pars)
-{
-    int i;
-    double d = x1 - x2, chi2 = -0.5 * d * d, value = 0.0;
-    for (i = 0; i + 1 < npars; i += 2)
-        value += pars[i] * exp(chi2 / pars[i + 1]);
-    return value;
 }
