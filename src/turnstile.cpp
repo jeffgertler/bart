@@ -1,95 +1,30 @@
 #include "turnstile.h"
-#include "george.h"
-#include <vector>
+#include <Eigen/Dense>
 
-using std::vector;
+using Eigen::VectorXd;
+using Eigen::MatrixXd;
+using Eigen::LDLT;
 
-class LightCurve
+double max_like_depth (VectorXd time, VectorXd flux, VectorXd ferr,
+                       VectorXd model, int npars, double *pars,
+                       double (*kernel) (double, double, int, double*))
 {
+    int i, j, nsamples = time.size();
+    double value;
+    LDLT<MatrixXd> L;
+    MatrixXd Kxx(nsamples, nsamples);
 
-    private:
-
-        double prev_depth_;
-        bool valid_;
-        vector<double> time_, flux_, ferr_;
-        vector<int> in_transit_;
-        George *gp_;
-
-    public:
-
-        LightCurve (double amp, double var);
-        ~LightCurve ();
-        void push_back (double time, double flux, double ferr,
-                        bool in_transit);
-        void reset ();
-        int compute ();
-        double update_depth (double depth);
-        bool is_valid () { return valid_; };
-
-};
-
-LightCurve::LightCurve (double amp, double var)
-{
-    double pars[2] = {amp, var};
-    gp_ = new George(2, pars, &gp_isotropic_kernel);
-    prev_depth_ = 0.0;
-    valid_ = false;
-}
-
-LightCurve::~LightCurve ()
-{
-    delete gp_;
-}
-
-void LightCurve::push_back (double time, double flux, double ferr,
-                            bool in_transit)
-{
-    time_.push_back(time);
-    flux_.push_back(flux - 1);
-    ferr_.push_back(ferr);
-    if (in_transit) in_transit_.push_back(time_.size() - 1);
-}
-
-void LightCurve::reset ()
-{
-    time_.clear();
-    flux_.clear();
-    ferr_.clear();
-    prev_depth_ = 0.0;
-    valid_ = false;
-}
-
-int LightCurve::compute ()
-{
-    int size = (int)(time_.size()), info;
-    if (size > 0) info = gp_->compute(size, &(time_[0]), &(ferr_[0]));
-    else info = -10;
-    if (info == 0) valid_ = true;
-    else valid_ = false;
-    return info;
-}
-
-double LightCurve::update_depth (double depth)
-{
-    int i, ind, l = in_transit_.size();
-    double factor = (1 - prev_depth_) / (1 - depth);
-
-    if (!valid_) return -INFINITY;
-
-    for (i = 0; i < l; ++i) {
-        ind = in_transit_[i];
-        flux_[ind] = (flux_[ind] + 1) * factor - 1;
+    for (i = 0; i < nsamples; ++i) {
+        for (j = i + 1; j < nsamples; ++j) {
+            value = kernel(time[i], time[j], npars, pars);
+            Kxx(i, j) = value;
+            Kxx(j, i) = value;
+        }
+        Kxx(i, i) = kernel(time[i], time[i], npars, pars) + ferr[i] * ferr[i];
     }
-    prev_depth_ = depth;
 
-    return gp_->lnlikelihood((int)(time_.size()), &(flux_[0]));
-}
-
-double logsumexp (double a, double b)
-{
-    double A = a;
-    if (b > a) A = b;
-    return A + log(exp(a - A) + exp(b - A));
+    L = LDLT<MatrixXd>(Kxx);
+    if (L.info() != Success) return -1;
 }
 
 void turnstile (int nsets, int *ndata, double **time, double **flux,

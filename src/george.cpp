@@ -8,7 +8,6 @@ int George::compute (int nsamples, double *x, double *yerr)
 {
     int i, j;
     double value;
-    LDLT<MatrixXd> L;
     MatrixXd Kxx(nsamples, nsamples);
 
     nsamples_ = nsamples;
@@ -24,7 +23,7 @@ int George::compute (int nsamples, double *x, double *yerr)
     }
 
     L_ = LDLT<MatrixXd>(Kxx);
-    if (L.info() != Success) return -1;
+    if (L_.info() != Success) return -1;
 
     computed_ = true;
     return 0;
