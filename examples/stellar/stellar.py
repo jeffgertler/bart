@@ -19,7 +19,7 @@ datasets, ps = kepler_injection(2301306, 400.0, 0.0)
 
 dt = 10.0
 
-ds = datasets[6]
+ds = datasets[8]
 tmn, tmx = ds.time.min(), ds.time.max()
 t0 = tmn + (tmx - tmn) * np.random.rand()
 m = (ds.time > t0) * (ds.time < t0 + dt)
@@ -36,14 +36,23 @@ def lnprobfn(p):
 
 
 def loss(p):
-    p = np.exp(p)
-    return -_george.lnlikelihood(time, flux, ferr, p[0], p[1])
+    ll, g = _george.gradlnlikelihood(time, flux, ferr, p[0], p[1])
+    if np.isfinite(ll):
+        return -ll, -g
+    return np.inf, -g
 
-p0 = [-10.0, 1.5]
-results = op.minimize(loss, p0, jac=True)
-print results
-print results.x
-print results.message
+p0 = np.exp([-1.0, 1.5])
+results = op.minimize(loss, p0, jac=True, method="L-BFGS-B",
+                      bounds=[(0, None), (0, None)])
+p = results.x
+print(p)
+
+# Plot predictions.
+t = np.linspace(t0, t0 + dt, 100)
+mu, cov = _george.predict(time, flux, ferr, p[0], p[1], t)
+model = np.random.multivariate_normal(mu, cov, size=50)
+pl.plot(t, model.T, "k", alpha=0.05)
+pl.savefig("prediction.png")
 
 assert 0
 
