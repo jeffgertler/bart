@@ -64,7 +64,7 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
     for (np = 0; np < nperiods; ++np) {
         period = min_period + np * (max_period - min_period) / (nperiods - 1);
         (*periods)[np] = period;
-        printf("Period %d: %e\n", np, period);
+        // printf("Period %d: %e\n", np, period);
 
         // MAGIC: compute the shit out of the duration. Don't ask.
         // duration = 0.5 * exp(0.44 * log(period) - 2.97);

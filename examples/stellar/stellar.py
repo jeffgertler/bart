@@ -34,11 +34,19 @@ def lnprobfn(p):
     return _george.lnlikelihood(time, flux, ferr, p[0], p[1])
 
 
-ndim, nwalkers = 2, 50
-p0 = [np.array([np.log(1000), np.log(3)]) + 1e-5 * np.random.randn(2)
+ndim, nwalkers = 2, 10
+p0 = [np.array([-10.0, 6.1]) + 1e-5 * np.random.randn(2)
       for i in range(nwalkers)]
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprobfn, threads=10)
-sampler.run_mcmc(p0, 100)
+sampler.run_mcmc(p0, 1000)
+
+# Plot predictions.
+for sample in sampler.flatchain[100 * nwalkers::2 * nwalkers + 1]:
+    p = np.exp(sample)
+    mu, cov = _george.predict(time, flux, ferr, p[0], p[1], time)
+    model = np.random.multivariate_normal(mu, cov)
+    pl.plot(time, model.T, "k", alpha=0.05)
+pl.savefig("prediction.png")
 
 pl.clf()
 figure = triangle.corner(sampler.flatchain)
