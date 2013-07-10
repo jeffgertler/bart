@@ -12,6 +12,7 @@ import emcee
 import triangle
 import numpy as np
 import matplotlib.pyplot as pl
+import scipy.optimize as op
 
 # Get some datasets but don't actually
 datasets, ps = kepler_injection(2301306, 400.0, 0.0)
@@ -34,8 +35,20 @@ def lnprobfn(p):
     return _george.lnlikelihood(time, flux, ferr, p[0], p[1])
 
 
+def loss(p):
+    p = np.exp(p)
+    return -_george.lnlikelihood(time, flux, ferr, p[0], p[1])
+
+p0 = [-10.0, 1.5]
+results = op.minimize(loss, p0, jac=True)
+print results
+print results.x
+print results.message
+
+assert 0
+
 ndim, nwalkers = 2, 10
-p0 = [np.array([-10.0, 6.1]) + 1e-5 * np.random.randn(2)
+p0 = [np.array([-10.0, 1.5]) + 1e-5 * np.random.randn(2)
       for i in range(nwalkers)]
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprobfn, threads=10)
 sampler.run_mcmc(p0, 1000)

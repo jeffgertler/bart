@@ -46,6 +46,51 @@ double George::lnlikelihood (int nsamples, double *y)
     return -0.5 * (yvec.transpose() * alpha + logdet + nsamples * TWOLNPI);
 }
 
+int George::gradlnlikelihood (int nsamples, double *y, double *lnlike,
+                              VectorXd *gradlnlike)
+{
+    int i, j, k, n;
+    double logdet, value, *grad;
+    MatrixXd dkdt(npars_ * nsamples, nsamples);
+    VectorXd alpha, yvec = Map<VectorXd>(y, nsamples);
+
+    if (!computed_ || nsamples != nsamples_)
+        return -1;
+
+    alpha = L_.solve(yvec);
+    if (L_.info() != Success)
+        return -2;
+
+    logdet = log(L_.vectorD().array()).sum();
+    *lnlike = -0.5 * (yvec.transpose() * alpha + logdet + nsamples * TWOLNPI);
+
+    // Build the derivatives matrix.
+    grad = (double*)malloc(npars_ * sizeof(double));
+    for (i = 0; i < nsamples; ++i) {
+        for (j = i; j < nsamples; ++j) {
+            dkernel_(x_[i], x_[j], npars_, pars_, grad);
+            for (k = 0; k < npars_; ++k) {
+                dkdt(nsamples_ * k + i, j) = grad[k];
+                if (j > i)
+                    dkdt(nsamples_ * k + j, i) = grad[k];
+            }
+        }
+    }
+    free(grad);
+
+    *gradlnlike = VectorXd::Zero(npars_);
+    for (k = 0; k < npars_; ++k) {
+        n = k * nsamples_;
+        value = 0.0;
+        for (i = 0; i < nsamples_; ++i)
+            value += alpha(i) * alpha.dot(dkdt.row(n + i));
+        value -= L_.solve(dkdt.block(n, 0, nsamples_, nsamples_)).trace();
+        (*gradlnlike)(k) = 0.5 * value;
+    }
+
+    return 0;
+}
+
 int George::predict (int nsamples, double *y, int ntest, double *x,
                      double *mu, double *cov)
 {
@@ -96,11 +141,35 @@ double gp_lnlikelihood (int nsamples, double *x, double *y, double *yerr,
 {
     int info;
     double pars[2] = {amp, var};
-    George gp(2, pars, &gp_isotropic_kernel);
+    George gp(2, pars, &gp_isotropic_kernel, &gp_isotropic_kernel_grad);
     info = gp.compute(nsamples, x, yerr);
     if (info != 0)
         return -INFINITY;
     return gp.lnlikelihood(nsamples, y);
+}
+
+int gp_gradlnlikelihood (int nsamples, double *x, double *y, double *yerr,
+                         double amp, double var, double *lnlike,
+                         double **gradlnlike)
+{
+    int info;
+    double pars[2] = {amp, var};
+    VectorXd gll;
+    George gp(2, pars, &gp_isotropic_kernel, &gp_isotropic_kernel_grad);
+
+    // Factorize the GP.
+    info = gp.compute(nsamples, x, yerr);
+    if (info != 0)
+        return info;
+
+    // Compute the lnlikelihood and the gradient.
+    info = gp.gradlnlikelihood (nsamples, y, lnlike, &gll);
+    if (info != 0)
+        return -info;
+
+    (*gradlnlike)[0] = gll(0);
+    (*gradlnlike)[1] = gll(1);
+    return 0;
 }
 
 int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
@@ -109,7 +178,7 @@ int gp_predict (int nsamples, double *x, double *y, double *yerr, double amp,
 {
     int info;
     double pars[2] = {amp, var};
-    George gp(2, pars, &gp_isotropic_kernel);
+    George gp(2, pars, &gp_isotropic_kernel, &gp_isotropic_kernel_grad);
     info = gp.compute(nsamples, x, yerr);
     if (info != 0)
         return info;

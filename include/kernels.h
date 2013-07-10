@@ -9,6 +9,8 @@
 
 EXTERNC double gp_isotropic_kernel (double x1, double x2, int npars,
                                     double *pars);
+EXTERNC void gp_isotropic_kernel_grad (double x1, double x2, int npars,
+                                       double *pars, double *dkdt);
 
 #undef EXTERNC
 
