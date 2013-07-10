@@ -9,14 +9,15 @@ from bart._turnstile import period_search
 import numpy as np
 import matplotlib.pyplot as pl
 
-period, size = 278.0, 0.08
+period, size = 278.1045694, 0.05
 datasets, ps = kepler_injection(2301306, period, size, t0=20.0)
 
 [pl.plot(d.time, d.flux, ".k") for d in datasets]
 pl.savefig("data.png")
 
-periods, epochs, depths, dvar = period_search(datasets, 270, 290, 100, 1e-4,
-                                              3.0)
+periods, epochs, depths, dvar = period_search(datasets,
+                                              period - 0.01, period + 0.01, 5,
+                                              100.0, 4.0)
 
 mu = [np.mean(d) for d in depths]
 print(mu)

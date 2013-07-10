@@ -71,7 +71,7 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
         duration = pow(period / (2 * M_PI * G_GRAV), 1. / 3.);
 
         // Figure out the number of epochs.
-        te = (*nepochs)[np] = period / (0.3 * duration);
+        te = (*nepochs)[np] = period / (0.1 * duration);
 
         // Allocate the inner data structures for the depth and epoch arrays.
         (*epochs)[np] = (double*)malloc(te * sizeof(double));
@@ -109,9 +109,9 @@ void turnstile (int nsets, int *ndata, double **time, double **flux,
 
                     VectorXd model(npts);
                     double rld[1] = {1.0}, ild[1] = {1.0};
-                    fast_lightcurve(npts, &(t[0]), &(model[0]), 0.03, period,
+                    fast_lightcurve(npts, &(t[0]), &(model[0]), 0.05, period,
                                     epoch, 1, rld, ild);
-                    model = model.array() - 1.0;
+                    model = model.array() / model.maxCoeff() - 1.0;
 
                     // Solve for the depth.
                     info = max_like_depth (t, f, fe, model, 2, pars,
