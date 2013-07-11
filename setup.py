@@ -18,7 +18,7 @@ if sys.argv[-1] == "publish":
     os.system("python setup.py sdist upload")
     sys.exit()
 
-includes = ["include", os.path.join("include", "eigen3")]
+includes = ["include", os.path.join("lib", "eigen3")]
 includes += get_numpy_include_dirs()
 
 bart = Extension("bart._bart", ["bart/_bart.c", "src/bart.c", "src/kepler.c"],
