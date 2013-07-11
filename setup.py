@@ -18,16 +18,19 @@ if sys.argv[-1] == "publish":
     os.system("python setup.py sdist upload")
     sys.exit()
 
+includes = ["include", os.path.join("include", "eigen3")]
+includes += get_numpy_include_dirs()
+
 bart = Extension("bart._bart", ["bart/_bart.c", "src/bart.c", "src/kepler.c"],
-                 include_dirs=["include"] + get_numpy_include_dirs())
+                 include_dirs=includes)
 george = Extension("bart._george", ["bart/_george.c", "src/george.cpp",
                                     "src/kernels.c"],
-                   include_dirs=["include"] + get_numpy_include_dirs())
+                   include_dirs=includes)
 turnstile = Extension("bart._turnstile", ["bart/_turnstile.c",
                                           "src/turnstile.cpp",
                                           "src/kernels.c",
                                           "src/bart.c"],
-                      include_dirs=["include"] + get_numpy_include_dirs())
+                      include_dirs=includes)
 
 setup(
     name="bart",
