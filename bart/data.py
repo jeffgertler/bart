@@ -139,10 +139,9 @@ class GPLightCurve(LightCurve):
 
     """
 
-    def __init__(self, time, flux, ferr, alpha=1.0, l2=3.0, **kwargs):
+    def __init__(self, time, flux, ferr, alpha=1e-5, l2=8.0, **kwargs):
         super(GPLightCurve, self).__init__(time, flux, ferr, **kwargs)
-        self.alpha = alpha
-        self.l2 = l2
+        self.hyperpars = [alpha, l2]
 
     def lnlike(self, model):
         """
@@ -155,7 +154,7 @@ class GPLightCurve(LightCurve):
         lc = model.planetary_system.lightcurve(self.time, texp=self.texp,
                                                K=self.K)
         return _george.lnlikelihood(self.time, self.flux / lc - 1, self.ferr,
-                                    self.alpha, self.l2)
+                                    self.hyperpars[0], self.hyperpars[1])
 
     def predict(self, model, t=None):
         """
@@ -182,7 +181,7 @@ class GPLightCurve(LightCurve):
                                                    K=self.K)
 
         mu, cov = _george.predict(self.time, self.flux / lc0 - 1, self.ferr,
-                                  self.alpha, self.l2, t)
+                                  self.hyperpars[0], self.hyperpars[1], t)
         return (np.random.multivariate_normal(mu, cov) + 1) * lc
 
 
