@@ -119,3 +119,20 @@ cleanup:
 
     return info;
 }
+
+void fast_lightcurve (int n, double *time, double *flux,
+                      double rp, double period, double t0p,
+                      int nld, double *rld, double *ild)
+{
+    int i;
+    double a = pow(G_GRAV * period * period / 4 / M_PI / M_PI, 1. / 3.),
+           phase, factor = 2 * M_PI / period,
+           *b = malloc(n * sizeof(double));
+    for (i = 0; i < n; ++i) {
+        phase =  (time[i] - t0p) * factor;
+        if (cos(phase) > 0) b[i] = a * sin(phase);
+        else b[i] = 1.1 + rp;
+    }
+    ldlc(rp, nld, rld, ild, n, b, flux);
+    free(b);
+}

@@ -139,6 +139,68 @@ fail:
 
 }
 
+static PyObject
+*george_gradlnlikelihood (PyObject *self, PyObject *args)
+{
+    double amp, var;
+    PyObject *x_obj, *y_obj, *yerr_obj;
+
+    // Parse the input arguments.
+    if (!PyArg_ParseTuple(args, "OOOdd", &x_obj, &y_obj, &yerr_obj, &amp, &var))
+        return NULL;
+
+    // Decode the numpy arrays.
+    PyArrayObject *x_array = PARSE_ARRAY(x_obj),
+                  *y_array = PARSE_ARRAY(y_obj),
+                  *yerr_array = PARSE_ARRAY(yerr_obj);
+    if (x_array == NULL || y_array == NULL || yerr_array == NULL)
+        goto fail;
+
+    // Get the dimensions.
+    int nsamples = (int) PyArray_DIM(x_array, 0);
+    if ((int)PyArray_DIM(y_array, 0) != nsamples ||
+        (int)PyArray_DIM(yerr_array, 0) != nsamples) {
+        PyErr_SetString(PyExc_ValueError, "Dimension mismatch");
+        goto fail;
+    }
+
+    // Compute the light curve.
+    double *x = PyArray_DATA(x_array),
+           *y = PyArray_DATA(y_array),
+           *yerr = PyArray_DATA(yerr_array);
+    double lnlike, *gradlnlike = malloc(2 * sizeof(double));
+    int info = gp_gradlnlikelihood (nsamples, x, y, yerr, amp, var, &lnlike,
+                                    &gradlnlike);
+
+    // Clean up.
+    Py_DECREF(x_array);
+    Py_DECREF(y_array);
+    Py_DECREF(yerr_array);
+
+    if (info != 0) {
+        free(gradlnlike);
+        return NULL;
+    }
+
+    // Build the output.
+    npy_intp dim[1] = {2};
+    PyObject *grad = PyArray_SimpleNewFromData(1, dim, NPY_DOUBLE, gradlnlike);
+    if (grad == NULL) {
+        free(gradlnlike);
+        return NULL;
+    }
+
+    return Py_BuildValue("dO", lnlike, grad);
+
+fail:
+
+    Py_XDECREF(x_array);
+    Py_XDECREF(y_array);
+    Py_XDECREF(yerr_array);
+    return NULL;
+
+}
+
 static PyMethodDef george_methods[] = {
     {"predict",
      (PyCFunction) george_predict,
@@ -148,6 +210,10 @@ static PyMethodDef george_methods[] = {
      (PyCFunction) george_lnlikelihood,
      METH_VARARGS,
      "Compute the ln-likelihood of a GP."},
+    {"gradlnlikelihood",
+     (PyCFunction) george_gradlnlikelihood,
+     METH_VARARGS,
+     "Compute the ln-likelihood and gradients of a GP."},
     {NULL, NULL, 0, NULL}
 };
 

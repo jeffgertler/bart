@@ -3,7 +3,6 @@
 
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
-
 import os
 import sys
 import emcee
@@ -29,8 +28,7 @@ def setup(gp=True):
     client = kplr.API()
 
     # Query the KIC and get some parameters.
-    # kic = client.star(8415109)  # Bright variable.
-    kic = client.star(2301306)  # Quiet G-type.
+    kic = client.star(7364176)
     teff, logg, feh = kic.kic_teff, kic.kic_logg, kic.kic_feh
     assert teff is not None
 
@@ -43,12 +41,12 @@ def setup(gp=True):
     star = bart.Star(ldp=ldp)
 
     # Set up the planet.
-    prng = 3.0
-    period = 278.
-    size = 0.03
-    epoch = 20.0
+    prng = 5.0
+    period = 272.1884457597957407
+    size = 0.01
+    epoch = 103.7235285266694973 + 0.265
     a = star.get_semimajor(period)
-    b = 0.3
+    b = 0.1
     incl = np.degrees(np.arctan2(a, b))
     planet = bart.Planet(size, a, t0=epoch)
 
@@ -61,14 +59,6 @@ def setup(gp=True):
 
     # Load the data and inject into each transit.
     lcs = kic.get_light_curves(short_cadence=False, fetch=False)
-
-    # Choose the type of dataset to use.
-    if gp:
-        args = {"alpha": 1.0, "l2": 3.0, "dtbin": None}
-        dsc = bart.data.GPLightCurve
-    else:
-        args = {"dtbin": None}
-        dsc = bart.data.LightCurve
 
     # Loop over the datasets and read in the data.
     minn, maxn = 1e10, 0
@@ -96,11 +86,6 @@ def setup(gp=True):
         # Inject the transit.
         flux_ *= ps.lightcurve(time_)
 
-        if not gp:
-            mu = untrendy.median(time_, flux_, dt=3.0)
-            flux_ /= mu
-            ferr_ /= mu
-
         tn = np.array(np.round(np.abs((time_ - epoch) / period)), dtype=int)
         alltn = set(tn)
 
@@ -112,7 +97,14 @@ def setup(gp=True):
             tf = time_[m]
             fl = flux_[m]
             fle = ferr_[m]
-            model.datasets.append(dsc(tf, fl, fle, **args))
+
+            if not gp:
+                mu = untrendy.median(tf, fl, dt=4.0)
+                fl /= mu
+                fle /= mu
+
+            model.datasets.append(dsc(tf, fl, fle, alpha=1.0, l2=3.0,
+                                      dtbin=None))
 
     # Add some priors.
     dper = prng / (maxn - minn)
@@ -127,57 +119,65 @@ def setup(gp=True):
     ppr = UniformPrior(period - dper, period + dper)
     model.parameters.append(PeriodParameter(planet, lnprior=ppr))
 
-    # # Sample in the GP hyper-parameters.
-    # apr = UniformPrior(0.0, 10.0)
-    # model.parameters.append(MultiParameter(model.datasets, "alpha",
-    #                                        lnprior=apr))
-    # lpr = UniformPrior(3.0, 20.0)
-    # model.parameters.append(MultiParameter(model.datasets, "l2",
-    #                                        lnprior=lpr))
-
     return model, period
 
 
 if __name__ == "__main__":
-    import timeit
-    model, period = setup(gp=True)
-    print(timeit.timeit("model.datasets[0].lnlike(model)",
-                        setup="from __main__ import model",
-                        number=1000))
-
-    [pl.errorbar(d.time % period, d.flux + 0.01 * i, yerr=d.ferr, fmt=".")
-     for i, d in enumerate(model.datasets)]
-    pl.savefig("data.png")
-
-    # Set up sampler.
-    nwalkers = 20
-    v = model.vector
-    p0 = v[None, :] * (1e-4 * np.random.randn(len(v) * nwalkers)
-                       + 1).reshape((nwalkers, len(v)))
-    sampler = emcee.EnsembleSampler(nwalkers, len(p0[0]), model,
-                                    threads=nwalkers)
-
-    # Run a burn-in.
-    pos, lnprob, state = sampler.run_mcmc(p0, 100)
-    sampler.reset()
+    import sys
 
     fn = "samples.txt"
-    with open(fn, "w") as f:
-        f.write("# {0}\n".format(" ".join(map(unicode, model.parameters))))
+    model, period = setup()
 
-    strt = timer.time()
-    for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
-                                             iterations=1000,
-                                             storechain=False):
-        with open(fn, "a") as f:
-            for p, lp in zip(pos, lnprob):
-                f.write("{0} {1}\n".format(
-                    " ".join(map("{0}".format, p)), lp))
+    if "--no-data" not in sys.argv:
+        [pl.plot(d.time % period, d.flux + 0.003 * i, ".", ms=2)
+         for i, d in enumerate(model.datasets)]
+        pl.savefig("data.png")
 
-    print("Took {0} seconds".format(timer.time() - strt))
-    print("Acceptance fraction: {0}"
-          .format(np.mean(sampler.acceptance_fraction)))
+    if "--results" not in sys.argv:
+        # Set up sampler.
+        nwalkers = 20
+        v = model.vector
+        p0 = v[None, :] * (1e-4 * np.random.randn(len(v) * nwalkers)
+                           + 1).reshape((nwalkers, len(v)))
+        sampler = emcee.EnsembleSampler(nwalkers, len(p0[0]), model,
+                                        threads=nwalkers)
+
+        # Run a burn-in.
+        pos, lnprob, state = sampler.run_mcmc(p0, 100)
+        sampler.reset()
+
+        with open(fn, "w") as f:
+            f.write("# {0}\n".format(" ".join(map(unicode, model.parameters))))
+
+        strt = timer.time()
+        for pos, lnprob, state in sampler.sample(pos, lnprob0=lnprob,
+                                                 iterations=1000,
+                                                 storechain=False):
+            with open(fn, "a") as f:
+                for p, lp in zip(pos, lnprob):
+                    f.write("{0} {1}\n".format(
+                        " ".join(map("{0}".format, p)), lp))
+
+        print("Took {0} seconds".format(timer.time() - strt))
+        print("Acceptance fraction: {0}"
+              .format(np.mean(sampler.acceptance_fraction)))
 
     samples = np.loadtxt(fn)
     figure = triangle.corner(samples)
     figure.savefig("triangle.png")
+
+    P = np.median(samples[:, -2])
+    print(period, P)
+
+    ax = pl.figure().add_subplot(111)
+    [ax.plot(d.time % P, d.flux + 0.002 * i, ".", ms=2)
+     for i, d in enumerate(model.datasets)]
+
+    mn, mx = ax.get_xlim()
+    for sample in samples[::831]:
+        model.vector = sample[:1]
+        [ax.plot(d.time % P, d.predict(model) + 0.002 * i, "k",
+                 alpha=0.05)
+         for i, d in enumerate(model.datasets)]
+
+    pl.savefig("samples.png")
